@@ -20,7 +20,7 @@ namespace Papst.EventStore.Abstractions
         /// <returns></returns>
         /// <exception cref="Exceptions.EventStreamNotFoundException"></exception>
         /// <exception cref="Exceptions.EventStreamVersionMismatchException"></exception>
-        Task<EventStream> ReadAsync(Guid streamId, ulong fromVersion, CancellationToken token = default);
+        Task<IEventStream> ReadAsync(Guid streamId, ulong fromVersion, CancellationToken token = default);
 
         /// <summary>
         /// Reads a complete <see cref="EventStream"/> Async
@@ -29,7 +29,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="token"></param>
         /// <returns></returns>
         /// <exception cref="Exceptions.EventStreamNotFoundException"></exception>
-        Task<EventStream> ReadAsync(Guid streamId, CancellationToken token = default);
+        Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default);
 
         /// <summary>
         /// Reads a <see cref="EventStream"/> from the Latest Snapshot
@@ -38,7 +38,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="token"></param>
         /// <returns></returns>
         /// <exception cref="Exceptions.EventStreamNotFoundException"></exception>
-        Task<EventStream> ReadFromSnapshotAsync(Guid streamId, CancellationToken token = default);
+        Task<IEventStream> ReadFromSnapshotAsync(Guid streamId, CancellationToken token = default);
 
         /// <summary>
         /// Appends a <see cref="EventStreamDocument"/> to the <see cref="EventStream"/> Async
@@ -85,7 +85,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="token"></param>
         /// <exception cref="Exceptions.EventStreamAlreadyExistsException">Thrown when the StreamId is already taken</exception>
         /// <returns></returns>
-        Task<EventStream> CreateAsync(Guid stringId, EventStreamDocument doc, CancellationToken token = default);
+        Task<IEventStream> CreateAsync(Guid stringId, EventStreamDocument doc, CancellationToken token = default);
 
     }
 }

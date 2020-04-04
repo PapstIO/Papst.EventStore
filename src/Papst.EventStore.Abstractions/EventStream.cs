@@ -1,6 +1,9 @@
 ﻿namespace Papst.EventStore.Abstractions
 {
-    public class EventStream
+    internal class EventStream : IEventStream
     {
+        EventStreamDocument LatestSnapshot { get; }
+
+        
     }
 }
