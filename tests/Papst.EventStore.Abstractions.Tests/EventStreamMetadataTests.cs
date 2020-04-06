@@ -14,7 +14,6 @@ namespace Papst.EventStore.Abstractions.Tests
             Guid id,
             string name,
             Guid tenant,
-            Guid plant,
             string comment,
             Dictionary<string, string> add
         )
@@ -24,7 +23,6 @@ namespace Papst.EventStore.Abstractions.Tests
                 UserId = id,
                 UserName = name,
                 TenantId = tenant,
-                PlantId = plant,
                 Comment = comment,
                 Additional = add
             };
@@ -33,7 +31,6 @@ namespace Papst.EventStore.Abstractions.Tests
             meta.UserId.Should().Be(id);
             meta.UserName.Should().Be(name);
             meta.TenantId.Should().Be(tenant);
-            meta.PlantId.Should().Be(plant);
             meta.Comment.Should().Be(comment);
             meta.Additional.Should().BeEquivalentTo(add);
         }

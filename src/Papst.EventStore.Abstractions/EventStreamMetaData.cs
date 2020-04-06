@@ -24,11 +24,6 @@ namespace Papst.EventStore.Abstractions
         public Guid? TenantId { get; set; }
 
         /// <summary>
-        /// Optional: PlantId
-        /// </summary>
-        public Guid? PlantId { get; set; }
-
-        /// <summary>
         /// Comment if available
         /// </summary>
         public string Comment { get; set; }
