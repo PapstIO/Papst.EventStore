@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -80,12 +79,12 @@ namespace Papst.EventStore.Abstractions
         /// <summary>
         /// Creates a new <see cref="EventStream"/> Async
         /// </summary>
-        /// <param name="stringId"></param>
+        /// <param name="streamId"></param>
         /// <param name="doc"></param>
         /// <param name="token"></param>
         /// <exception cref="Exceptions.EventStreamAlreadyExistsException">Thrown when the StreamId is already taken</exception>
         /// <returns></returns>
-        Task<IEventStream> CreateAsync(Guid stringId, EventStreamDocument doc, CancellationToken token = default);
+        Task<IEventStream> CreateAsync(Guid streamId, EventStreamDocument doc, CancellationToken token = default);
 
     }
 }

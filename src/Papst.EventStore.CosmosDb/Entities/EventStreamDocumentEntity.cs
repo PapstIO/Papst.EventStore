@@ -1,16 +1,20 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using Papst.EventStore.Abstractions;
 using System;
 
-namespace Papst.EventStore.Abstractions
+namespace Papst.EventStore.CosmosDb.Entities
 {
-    public class EventStreamDocument
+    public class EventStreamDocumentEntity
     {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+
         /// <summary>
         /// The Unique Event Id
         /// </summary>
-        public Guid Id { get; set; }
+        public Guid DocumentId { get; set; }
 
         /// <summary>
         /// The Event Stream Id

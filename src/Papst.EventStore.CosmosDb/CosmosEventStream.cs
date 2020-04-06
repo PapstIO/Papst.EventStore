@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using Papst.EventStore.Abstractions;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace Papst.EventStore.Abstractions
+namespace Papst.EventStore.CosmosDb
 {
     /// <inheritdoc/>
-    internal class EventStream : IEventStream
+    class CosmosEventStream : IEventStream
     {
         private List<EventStreamDocument> _documents;
 
@@ -14,10 +15,9 @@ namespace Papst.EventStore.Abstractions
         /// <inheritdoc/>
         public IReadOnlyList<EventStreamDocument> Stream => _documents;
 
-        public EventStream(IEnumerable<EventStreamDocument> documents)
+        public CosmosEventStream(IEnumerable<EventStreamDocument> documents)
         {
-            _documents = documents.ToList();
+            _documents = documents as List<EventStreamDocument> ?? documents.ToList();
         }
-        
     }
 }
