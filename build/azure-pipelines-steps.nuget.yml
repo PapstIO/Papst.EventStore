@@ -64,7 +64,7 @@ steps:
   displayName: 'Push Nuget Package: Papst.EventStore.CosmosDb'
   inputs:
     command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.Abstractions*.nupkg'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.CosmosDb*.nupkg'
     publishVstsFeed: '9ff821ff-1092-4497-81c4-0f172e1b6f00'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
