@@ -1,0 +1,76 @@
+parameters:
+  GitVersionVersion: ''
+  NuGetVersion: ''
+  ToolPath: $(Build.BinariesDirectory)
+  BuildConfiguration: 'Release'
+  outputDirectory: ''
+  projects: []
+  deploy: false
+
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk'
+  inputs:
+    packageType: sdk
+    version: 3.1.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- task: NuGetToolInstaller@0
+  displayName: 'Install Nuget Tooling ${{ parameters.NuGetVersion }}'
+  inputs:
+    versionSpec: ${{ parameters.NuGetVersion }}
+
+- script: dotnet tool update GitVersion.Tool --version ${{ parameters.GitVersionVersion }} --tool-path ${{ parameters.ToolPath }}/gitversion
+  displayName: 'GitVersion - Install'
+
+- script: ${{ parameters.ToolPath }}/gitversion/dotnet-gitversion $(Build.SourcesDirectory) /output buildserver /nofetch
+  displayName: 'GitVersion - Execute'
+
+- script: echo $(GitVersion.SemVer)
+  displayName: 'GitVersion - Print'
+
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: '**/*.csproj'
+    arguments: '-c Release -p:Version=$(GitVersion.NuGetVersion)'
+
+- task: DotNetCoreCLI@2
+  displayName: Test
+  inputs:
+    command: test
+    projects: '**/*Tests.csproj'
+    arguments: '--no-build -c Release'
+
+- script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
+  displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+
+- task: NugetCommand@2
+  displayName: 'Push Nuget Package: Papst.EventStore.Abstractions'
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.Abstractions*.nupkg'
+    publishVstsFeed: '9ff821ff-1092-4497-81c4-0f172e1b6f00'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  
+- script: dotnet pack ./src/Papst.EventStore.CosmosDb/Papst.EventStore.CosmosDb.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
+  displayName: 'Pack Nuget Package: Papst.EventStore.CosmosDb'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+
+- task: NugetCommand@2
+  displayName: 'Push Nuget Package: Papst.EventStore.CosmosDb'
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.Abstractions*.nupkg'
+    publishVstsFeed: '9ff821ff-1092-4497-81c4-0f172e1b6f00'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+
+- task: PublishSymbols@2
+  displayName: 'Publish symbols path'
+  inputs:
+    SymbolServerType: TeamServices
+    TreatNotIndexedAsWarning: true
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
