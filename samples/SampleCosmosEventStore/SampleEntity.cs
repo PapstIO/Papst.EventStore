@@ -11,5 +11,10 @@ namespace SampleCosmosEventStore
         public Dictionary<string, object> Foo { get; set; }
 
         public List<string> Associated { get; set; }
+
+        //public SampleEntity()
+        //{
+
+        //}
     }
 }

@@ -33,7 +33,8 @@ namespace SampleCosmosEventStore
 
             var serviceProvider = new ServiceCollection()
                 .AddCosmosEventStore(config.GetSection(_section))
-                .AddLogging(opt => {
+                .AddLogging(opt =>
+                {
                     opt.AddConsole();
                     opt.SetMinimumLevel(LogLevel.Trace);
                 })
@@ -42,7 +43,8 @@ namespace SampleCosmosEventStore
             IEventStore store = serviceProvider.GetRequiredService<IEventStore>();
 
             Guid streamGuid = Guid.NewGuid();
-            var startEvent = new SampleCreatedEvent() {
+            var startEvent = new SampleCreatedEvent()
+            {
                 EventId = Guid.NewGuid(),
                 Name = "Hallo",
                 Foo = new Dictionary<string, object>()
@@ -51,7 +53,7 @@ namespace SampleCosmosEventStore
                     ["Bar"] = "baz"
                 }
             };
-            
+
             IEventStream stream = await store.CreateEventStreamAsync<SampleCreatedEvent, SampleEntity>(
                 streamGuid,
                 nameof(SampleCreatedEvent),
@@ -89,7 +91,11 @@ namespace SampleCosmosEventStore
 
             stream = await store.ReadAsync(streamGuid);
 
-            Console.WriteLine(JsonConvert.SerializeObject(stream, Formatting.Indented));
+            //Console.WriteLine(JsonConvert.SerializeObject(stream, Formatting.Indented));
+
+            IEventStreamApplier<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamApplier<SampleEntity>>();
+
+            Console.WriteLine(JsonConvert.SerializeObject(applier.Apply(stream), Formatting.Indented));
 
         }
     }

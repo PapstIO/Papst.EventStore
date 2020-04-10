@@ -17,7 +17,7 @@ namespace Papst.EventStore.CosmosDb
         /// <summary>
         /// Mockable Constructor
         /// </summary>
-        public EventStoreCosmosClient()
+        protected EventStoreCosmosClient()
             : base()
         {
             Options = new CosmosEventStoreOptions();

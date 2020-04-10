@@ -243,7 +243,7 @@ namespace Papst.EventStore.CosmosDb
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
             {
                 _logger.LogInformation("Created {Stream}", streamId);
-                return new CosmosEventStream(new [] { Map(result.Resource) });
+                return new CosmosEventStream(streamId, new [] { Map(result.Resource) });
             }
             else if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -278,14 +278,12 @@ namespace Papst.EventStore.CosmosDb
                 documents.AddRange(result.Select(Map));
             }
 
-            return new CosmosEventStream(documents);
+            return new CosmosEventStream(streamId, documents);
         }
 
         /// <inheritdoc />
-        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default)
-        {
-            return ReadAsync(streamId, 0, token);
-        }
+        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default) 
+            => ReadAsync(streamId, 0, token);
 
         /// <inheritdoc />
         public async Task<IEventStream> ReadFromSnapshotAsync(Guid streamId, CancellationToken token = default)

@@ -1,11 +1,21 @@
-﻿using System;
+﻿using Papst.EventStore.Abstractions;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace SampleCosmosEventStore.Events
 {
-    class SampleAssociatedEvent
+    class SampleAssociatedEvent : IApplyableEvent<SampleEntity>
     {
         public string Name { get; set; }
+
+        public void Apply(SampleEntity eventInstance)
+        {
+            if (eventInstance.Associated == null)
+            {
+                eventInstance.Associated = new List<string>();
+            }
+            eventInstance.Associated.Add(Name);
+        }
     }
 }
