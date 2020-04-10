@@ -1,10 +1,3 @@
-using Castle.Core.Logging;
-using FluentAssertions;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Logging;
-using Moq;
-using System;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Papst.EventStore.CosmosDb.Tests

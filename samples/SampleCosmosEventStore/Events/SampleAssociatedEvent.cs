@@ -1,7 +1,5 @@
 ﻿using Papst.EventStore.Abstractions;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace SampleCosmosEventStore.Events
 {

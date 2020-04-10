@@ -2,14 +2,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.Extensions;
 using Papst.EventStore.CosmosDb.Extensions;
 using SampleCosmosEventStore.Events;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Papst.EventStore.Abstractions
+﻿namespace Papst.EventStore.Abstractions
 {
     /// <summary>
     /// IEventStream Applier, Applies all Event of a Stream to a Target Entity

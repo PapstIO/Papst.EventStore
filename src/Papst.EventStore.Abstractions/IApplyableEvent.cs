@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Papst.EventStore.Abstractions
+﻿namespace Papst.EventStore.Abstractions
 {
     /// <summary>
     /// Interface that ensures an Event is Applyable to a Target Type
