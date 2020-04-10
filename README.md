@@ -15,6 +15,10 @@ and comes with included compatability to the dependency injection of the .NET Co
 
 A Sample can be found in the samples directory.
 
+## Installing the Library
+
+NuGet Packages are in preparation.
+
 ## Configuring the Cosmos Db EventStore
 
 The CosmosEventStore class uses the [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1) to retrieve its configuration.
