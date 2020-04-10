@@ -2,7 +2,11 @@
 
 namespace Papst.EventStore.Abstractions
 {
-    class TypeBasedEventStreamApplier<TTargetType> : IEventStreamApplier<TTargetType>
+    /// <summary>
+    /// Reflection based Eventstream Applier that leverages from the <see cref="IApplyableEvent{TTargetType}"/> interface
+    /// </summary>
+    /// <typeparam name="TTargetType"></typeparam>
+    internal class TypeBasedEventStreamApplier<TTargetType> : IEventStreamApplier<TTargetType>
         where TTargetType : class, new()
     {
         private readonly ILogger<TypeBasedEventStreamApplier<TTargetType>> _logger;

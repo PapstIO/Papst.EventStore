@@ -5,6 +5,9 @@ using System;
 
 namespace Papst.EventStore.Abstractions
 {
+    /// <summary>
+    /// Representation of an Event Stream Entry
+    /// </summary>
     public class EventStreamDocument
     {
         /// <summary>

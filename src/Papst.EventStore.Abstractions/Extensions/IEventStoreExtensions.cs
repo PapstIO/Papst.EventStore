@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Papst.EventStore.Abstractions.Extensions
 {
+    /// <summary>
+    /// Extensions for the <see cref="IEventStore"/> Interface
+    /// </summary>
     public static class IEventStoreExtensions
     {
         /// <summary>

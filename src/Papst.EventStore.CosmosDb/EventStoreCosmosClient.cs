@@ -3,7 +3,10 @@ using Microsoft.Extensions.Options;
 
 namespace Papst.EventStore.CosmosDb
 {
-    public class EventStoreCosmosClient : CosmosClient
+    /// <summary>
+    /// Wrapper for the Cosmos Client to get a named instance
+    /// </summary>
+    internal class EventStoreCosmosClient : CosmosClient
     {
         public CosmosEventStoreOptions Options { get; internal set; }
 

@@ -22,6 +22,7 @@ namespace SampleCosmosEventStore
             var config = new ConfigurationBuilder()
                 .AddInMemoryCollection(new[]
                 {
+                    // Endpoint is local emulator
                     new KeyValuePair<string, string>($"{_section}:Endpoint", "https://localhost:8081"),
                     new KeyValuePair<string, string>($"{_section}:AccountSecret", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="),
                     new KeyValuePair<string, string>($"{_section}:InitializeOnStartup", "true"),
@@ -30,15 +31,19 @@ namespace SampleCosmosEventStore
                 }).Build();
 
             var serviceProvider = new ServiceCollection()
+                // adds the cosmos event store
                 .AddCosmosEventStore(config.GetSection(_section))
+                // adds logging, needed for CosmosEventStore
                 .AddLogging(opt =>
                 {
                     opt.AddConsole();
+                    // logs all output to the console
                     opt.SetMinimumLevel(LogLevel.Trace);
                 })
                 .BuildServiceProvider();
 
             IEventStore store = serviceProvider.GetRequiredService<IEventStore>();
+
 
             Guid streamGuid = Guid.NewGuid();
             var startEvent = new SampleCreatedEvent()
@@ -52,13 +57,12 @@ namespace SampleCosmosEventStore
                 }
             };
 
+            // creates the initial Stream
             IEventStream stream = await store.CreateEventStreamAsync<SampleCreatedEvent, SampleEntity>(
                 streamGuid,
                 nameof(SampleCreatedEvent),
                 startEvent
             );
-
-            Console.WriteLine(stream.Stream.First().Name);
 
             var result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
                 streamGuid,
@@ -89,7 +93,6 @@ namespace SampleCosmosEventStore
 
             stream = await store.ReadAsync(streamGuid);
 
-            //Console.WriteLine(JsonConvert.SerializeObject(stream, Formatting.Indented));
 
             IEventStreamApplier<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamApplier<SampleEntity>>();
 
