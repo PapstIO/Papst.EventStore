@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Papst.EventStore.Abstractions
@@ -7,6 +8,11 @@ namespace Papst.EventStore.Abstractions
     /// </summary>
     public interface IEventStream
     {
+        /// <summary>
+        /// The Event Stream Id
+        /// </summary>
+        Guid StreamId { get; }
+
         /// <summary>
         /// The Latest Snapshop that has been fetched (if available)
         /// </summary>

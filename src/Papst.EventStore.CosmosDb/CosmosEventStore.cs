@@ -20,6 +20,8 @@ namespace Papst.EventStore.CosmosDb
         private readonly ILogger<CosmosEventStore> _logger;
         private readonly EventStoreCosmosClient _client;
 
+        private bool _alreadyInitialized = false;
+
         public CosmosEventStore(EventStoreCosmosClient client, ILogger<CosmosEventStore> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -33,7 +35,7 @@ namespace Papst.EventStore.CosmosDb
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             EventStreamDocumentEntity lastStreamDoc = await container.ReadItemAsync<EventStreamDocumentEntity>(
-                $"{streamId}|{expectedVersion}",
+                GetDocumentId(streamId, EventStreamDocumentType.Event, expectedVersion),
                 new PartitionKey(streamId.ToString()),
                 cancellationToken: token
             ).ConfigureAwait(false);
@@ -97,7 +99,7 @@ namespace Papst.EventStore.CosmosDb
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             EventStreamDocumentEntity lastStreamDoc = await container.ReadItemAsync<EventStreamDocumentEntity>(
-                $"{streamId}|{expectedVersion}",
+                GetDocumentId(streamId, EventStreamDocumentType.Event, expectedVersion),
                 new PartitionKey(streamId.ToString()),
                 cancellationToken: token
             ).ConfigureAwait(false);
@@ -159,7 +161,7 @@ namespace Papst.EventStore.CosmosDb
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             EventStreamDocumentEntity lastStreamDoc = await container.ReadItemAsync<EventStreamDocumentEntity>(
-                $"{streamId}|{expectedVersion}",
+                GetDocumentId(streamId, EventStreamDocumentType.Event, expectedVersion),
                 new PartitionKey(streamId.ToString()),
                 cancellationToken: token
             ).ConfigureAwait(false);
@@ -224,13 +226,12 @@ namespace Papst.EventStore.CosmosDb
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             // try to get Stream
-            EventStreamDocumentEntity lastStreamDoc = await container.ReadItemAsync<EventStreamDocumentEntity>(
-                GetDocumentId(streamId, EventStreamDocumentType.Header, 0),
-                new PartitionKey(streamId.ToString()),
-                cancellationToken: token
-            ).ConfigureAwait(false);
-
-            if (lastStreamDoc != null)
+            QueryDefinition streamQuery = new QueryDefinition($"SELECT TOP 1 * FROM {_client.Options.Collection} e WHERE e.StreamId = @streamId")
+                .WithParameter("@streamId", streamId);
+            FeedIterator<EventStreamDocumentEntity> streamIterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(streamQuery);
+            var streamResults = await streamIterator.ReadNextAsync(token).ConfigureAwait(false);
+            
+            if (streamResults.Count > 0)
             {
                 _logger.LogWarning("Stream {Stream} already exists!", streamId);
                 throw new EventStreamAlreadyExistsException(streamId, "Stream already exists!");
@@ -242,7 +243,7 @@ namespace Papst.EventStore.CosmosDb
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
             {
                 _logger.LogInformation("Created {Stream}", streamId);
-                return new CosmosEventStream(new [] { Map(result.Resource) });
+                return new CosmosEventStream(streamId, new [] { Map(result.Resource) });
             }
             else if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -277,14 +278,12 @@ namespace Papst.EventStore.CosmosDb
                 documents.AddRange(result.Select(Map));
             }
 
-            return new CosmosEventStream(documents);
+            return new CosmosEventStream(streamId, documents);
         }
 
         /// <inheritdoc />
-        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default)
-        {
-            return ReadAsync(streamId, 0, token);
-        }
+        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default) 
+            => ReadAsync(streamId, 0, token);
 
         /// <inheritdoc />
         public async Task<IEventStream> ReadFromSnapshotAsync(Guid streamId, CancellationToken token = default)
@@ -312,7 +311,7 @@ namespace Papst.EventStore.CosmosDb
 
         private async Task<Container> InitAsync(CancellationToken token)
         {
-            if (_client.Options.InitializeOnStartup)
+            if (_client.Options.InitializeOnStartup && !_alreadyInitialized)
             {
                 _logger.LogInformation("Initializing Database");
 
@@ -321,11 +320,13 @@ namespace Papst.EventStore.CosmosDb
                 {
                     _logger.LogInformation("Created Database {Database} in Cosmos DB", _client.Options.Database);
                 }
-                ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(new ContainerProperties { Id = _client.Options.Collection }, cancellationToken: token);
+                ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(_client.Options.Collection, "/StreamId", cancellationToken: token);
                 if (container.StatusCode == System.Net.HttpStatusCode.Created)
                 {
                     _logger.LogInformation("Created Container {Container} in {Database}", _client.Options.Collection, _client.Options.Database);
                 }
+
+                _alreadyInitialized = true;
 
                 return container.Container;
             }
@@ -345,8 +346,8 @@ namespace Papst.EventStore.CosmosDb
             Time = doc.Time,
             Name = doc.Name,
             Data = doc.Data,
-            DataType = doc.DataType,
-            TargetType = doc.TargetType,
+            DataType = $"{doc.DataType.FullName},{doc.DataType.Assembly.GetName().Name}",
+            TargetType = $"{doc.TargetType.FullName},{doc.TargetType.Assembly.GetName().Name}",
             MetaData = doc.MetaData,
         };
 
@@ -359,8 +360,8 @@ namespace Papst.EventStore.CosmosDb
             Time = doc.Time,
             Name = doc.Name,
             Data = doc.Data,
-            DataType = doc.DataType,
-            TargetType = doc.TargetType,
+            DataType = Type.GetType(doc.DataType),
+            TargetType = Type.GetType(doc.TargetType),
             MetaData = doc.MetaData,
         };
 
@@ -369,8 +370,6 @@ namespace Papst.EventStore.CosmosDb
             switch (documentType)
             {
                 case EventStreamDocumentType.Event:
-                    return streamId.ToString();
-
                 case EventStreamDocumentType.Header:
                     return $"{streamId}|Document|{version}";
 
@@ -388,6 +387,8 @@ namespace Papst.EventStore.CosmosDb
             EventStreamDocumentEntity documentEntity = Map(doc);
             documentEntity.Version = lastStreamDoc.Version + 1;
             documentEntity.StreamId = lastStreamDoc.StreamId;
+            // overwrite the ID
+            documentEntity.Id = GetDocumentId(lastStreamDoc.StreamId, doc.DocumentType, documentEntity.Version);
             if (!_client.Options.AllowTimeOverride)
             {
                 documentEntity.Time = DateTimeOffset.Now;
