@@ -348,8 +348,8 @@ namespace Papst.EventStore.CosmosDb
             Time = doc.Time,
             Name = doc.Name,
             Data = doc.Data,
-            DataType = doc.DataType,
-            TargetType = doc.TargetType,
+            DataType = $"{doc.DataType.FullName},{doc.DataType.Assembly.GetName().Name}",
+            TargetType = $"{doc.TargetType.FullName},{doc.TargetType.Assembly.GetName().Name}",
             MetaData = doc.MetaData,
         };
 
@@ -362,8 +362,8 @@ namespace Papst.EventStore.CosmosDb
             Time = doc.Time,
             Name = doc.Name,
             Data = doc.Data,
-            DataType = doc.DataType,
-            TargetType = doc.TargetType,
+            DataType = Type.GetType(doc.DataType),
+            TargetType = Type.GetType(doc.TargetType),
             MetaData = doc.MetaData,
         };
 

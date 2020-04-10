@@ -51,12 +51,12 @@ namespace Papst.EventStore.CosmosDb.Entities
         /// <summary>
         /// Type of the Data
         /// </summary>
-        public Type DataType { get; set; }
+        public string DataType { get; set; }
 
         /// <summary>
         /// The type on which the Event will be applied
         /// </summary>
-        public Type TargetType { get; set; }
+        public string TargetType { get; set; }
 
         /// <summary>
         /// Metadata for the Event
