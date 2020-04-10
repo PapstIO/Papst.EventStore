@@ -4,6 +4,17 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Description>This library extends the functionality of Papst.EventStore.Abstractions with the integration of a Azure Cosmos DB</Description>
+    <Authors>Marco Papst</Authors>
+    <Title>Papst EventStore</Title>
+    <PackageId>Papst.EventStore.CosmosDb</PackageId>
+    <PackageTags>eventsourcing;eventstore</PackageTags>
+    <PackageLicenseUrl>https://github.com/MPapst/Papst.EventStore/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/MPapst/Papst.EventStore</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.7.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="3.1.3" />
