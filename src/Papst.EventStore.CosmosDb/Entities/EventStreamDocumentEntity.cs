@@ -6,6 +6,9 @@ using System;
 
 namespace Papst.EventStore.CosmosDb.Entities
 {
+    /// <summary>
+    /// CosmosDb Entity that represents a <see cref="EventStreamDocument"/>
+    /// </summary>
     public class EventStreamDocumentEntity
     {
         [JsonProperty("id")]

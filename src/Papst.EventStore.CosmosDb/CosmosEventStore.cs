@@ -32,8 +32,9 @@ namespace Papst.EventStore.CosmosDb
         /// <inheritdoc />
         public async Task<EventStoreResult> AppendAsync(Guid streamId, ulong expectedVersion, EventStreamDocument doc, CancellationToken token = default)
         {
-            Container container = await InitAsync(token).ConfigureAwait(false);
+            _logger.LogDebug("Start appending single event to {StreamId} with Expected Version {Version}", streamId, expectedVersion);
 
+            Container container = await InitAsync(token).ConfigureAwait(false);
             EventStreamDocumentEntity lastStreamDoc = await container.ReadItemAsync<EventStreamDocumentEntity>(
                 GetDocumentId(streamId, EventStreamDocumentType.Event, expectedVersion),
                 new PartitionKey(streamId.ToString()),
@@ -68,7 +69,7 @@ namespace Papst.EventStore.CosmosDb
                     documentEntity.Version,
                     streamId
                 );
-                throw new EventStreamVersionMismatchException(streamId, "A Document with that Version already exists");
+                throw new EventStreamVersionMismatchException(streamId, expectedVersion, documentEntity.Version, "A Document with that Version already exists");
             }
             else
             {
@@ -91,6 +92,8 @@ namespace Papst.EventStore.CosmosDb
 
         public async Task<EventStoreResult> AppendAsync(Guid streamId, ulong expectedVersion, IEnumerable<EventStreamDocument> documents, CancellationToken token = default)
         {
+            _logger.LogDebug("Start appending multiple events to {StreamId} with Expected Version {Version}", streamId, expectedVersion);
+
             if (!documents.Any())
             {
                 throw new NotSupportedException("Document Collection must not be empty");
@@ -195,7 +198,7 @@ namespace Papst.EventStore.CosmosDb
                     documentEntity.Version,
                     streamId
                 );
-                throw new EventStreamVersionMismatchException(streamId, "A Document with that Version already exists");
+                throw new EventStreamVersionMismatchException(streamId, expectedVersion, documentEntity.Version, "A Document with that Version already exists");
             }
             else
             {

@@ -2,6 +2,9 @@
 
 namespace Papst.EventStore.Abstractions.Exceptions
 {
+    /// <summary>
+    /// EventStreamException
+    /// </summary>
     public class EventStreamException : Exception
     {
         public Guid StreamId { get; set; } = Guid.Empty;
@@ -16,16 +19,10 @@ namespace Papst.EventStore.Abstractions.Exceptions
             StreamId = streamId;
         }
 
-        public EventStreamException()
-        {
-        }
+        public EventStreamException() { }
 
-        public EventStreamException(string message) : base(message)
-        {
-        }
+        public EventStreamException(string message) : base(message) { }
 
-        public EventStreamException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+        public EventStreamException(string message, Exception innerException) : base(message, innerException) { }
     }
 }

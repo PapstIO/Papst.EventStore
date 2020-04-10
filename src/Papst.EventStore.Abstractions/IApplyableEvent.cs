@@ -8,6 +8,10 @@
     public interface IApplyableEvent<TTargetType>
         where TTargetType: class, new()
     {
+        /// <summary>
+        /// Apply the Event to the Target Instance
+        /// </summary>
+        /// <param name="eventInstance"></param>
         void Apply(TTargetType eventInstance);
     }
 }
