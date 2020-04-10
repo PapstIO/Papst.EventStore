@@ -19,6 +19,7 @@ namespace Papst.EventStore.CosmosDb.Entities
         /// <summary>
         /// The Event Stream Id
         /// </summary>
+        [JsonProperty("StreamId")]
         public Guid StreamId { get; set; }
 
         /// <summary>
