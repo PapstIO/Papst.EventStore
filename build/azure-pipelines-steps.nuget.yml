@@ -53,8 +53,10 @@ steps:
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.Abstractions*.nupkg'
+    nuGetFeedType: 'external'
+    publishFeedCredentials: 'NuGet Papst'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
-  
+
 - script: dotnet pack ./src/Papst.EventStore.CosmosDb/Papst.EventStore.CosmosDb.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
   displayName: 'Pack Nuget Package: Papst.EventStore.CosmosDb'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
@@ -64,6 +66,8 @@ steps:
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.CosmosDb*.nupkg'
+    nuGetFeedType: 'external'
+    publishFeedCredentials: 'NuGet Papst'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
 - task: PublishSymbols@2
