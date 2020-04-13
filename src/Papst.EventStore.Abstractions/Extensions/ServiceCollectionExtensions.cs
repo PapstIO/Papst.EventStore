@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Papst.EventStore.Abstractions.Extensions
 {
@@ -9,7 +10,14 @@ namespace Papst.EventStore.Abstractions.Extensions
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddEvenStreamApplier(this IServiceCollection services) 
-            => services.AddTransient(typeof(IEventStreamApplier<>), typeof(TypeBasedEventStreamApplier<>));
+        public static IServiceCollection AddEvenStreamApplier(this IServiceCollection services, IConfigurationSection config)
+        {
+            services
+                .AddTransient(typeof(IEventStreamApplier<>), typeof(TypeBasedEventStreamApplier<>))
+                .Configure<EventStoreOptions>(c => config.Bind(c))
+                ;
+
+            return services;
+        }
     }
 }

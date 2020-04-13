@@ -27,7 +27,8 @@ namespace SampleCosmosEventStore
                     new KeyValuePair<string, string>($"{_section}:AccountSecret", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="),
                     new KeyValuePair<string, string>($"{_section}:InitializeOnStartup", "true"),
                     new KeyValuePair<string, string>($"{_section}:Database", "EventStoreSample"),
-                    new KeyValuePair<string, string>($"{_section}:Collection", "Events")
+                    new KeyValuePair<string, string>($"{_section}:Collection", "Events"),
+                    new KeyValuePair<string, string>($"{_section}:StartVersion", "0") // start with version 1 for new streams
                 }).Build();
 
             var serviceProvider = new ServiceCollection()
