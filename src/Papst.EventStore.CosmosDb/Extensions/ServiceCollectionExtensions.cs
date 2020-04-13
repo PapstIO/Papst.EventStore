@@ -19,18 +19,7 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// <returns></returns>
         public static IServiceCollection AddCosmosEventStore(this IServiceCollection services, IConfigurationSection config) => services
             .Configure<CosmosEventStoreOptions>(c => config.Bind(c))
-            .AddCosmosServices()
-            ;
-
-        /// <summary>
-        /// Add the Cosmos Database SQL Api EventStore
-        /// </summary>
-        /// <param name="services"></param>
-        /// <param name="configure"></param>
-        /// <returns></returns>
-        public static IServiceCollection AddCosmosEventStore(this IServiceCollection services, Action<CosmosEventStoreOptions> configure) => services
-            .Configure(configure)
-            .AddCosmosServices()
+            .AddCosmosServices(config)
             ;
 
         /// <summary>
@@ -38,10 +27,10 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        private static IServiceCollection AddCosmosServices(this IServiceCollection services) => services
+        private static IServiceCollection AddCosmosServices(this IServiceCollection services, IConfigurationSection config) => services
             .AddSingleton<EventStoreCosmosClient>()     // add the Cosmos Database Client
             .AddScoped<IEventStore, CosmosEventStore>() // Add the Cosmos EventStore
-            .AddEvenStreamApplier()                     // Add the EventStreamApplier
+            .AddEvenStreamApplier(config)               // Add the EventStreamApplier & general config
             ;
     }
 }
