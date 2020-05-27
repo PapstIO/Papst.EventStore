@@ -48,7 +48,7 @@ namespace Papst.EventStore.CosmosDb
 
             EventStreamDocumentEntity documentEntity = PrepareDocument(lastStreamDoc, doc);
 
-            var result = await container.CreateItemAsync(documentEntity, new PartitionKey(lastStreamDoc.StreamId.ToString()), cancellationToken: token).ConfigureAwait(false);
+            ItemResponse<EventStreamDocumentEntity> result = await container.CreateItemAsync(documentEntity, new PartitionKey(lastStreamDoc.StreamId.ToString()), cancellationToken: token).ConfigureAwait(false);
 
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
             {
@@ -64,7 +64,7 @@ namespace Papst.EventStore.CosmosDb
             else if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
                 _logger.LogWarning(
-                    "Inserting {Documet} with {Version} to {Stream} failed because of Version Conflict",
+                    "Inserting {Document} with {Version} to {Stream} failed because of Version Conflict",
                     documentEntity.DocumentId,
                     documentEntity.Version,
                     streamId
