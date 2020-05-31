@@ -108,7 +108,7 @@ namespace Papst.EventStore.Abstractions.Extensions
                 {
                     Id = Guid.NewGuid(),
                     StreamId = streamId,
-                    DocumentType = EventStreamDocumentType.Header,
+                    DocumentType = EventStreamDocumentType.Event,
                     Data = JObject.FromObject(document),
                     DataType = typeof(TDocument),
                     TargetType = typeof(TTargetType),

@@ -223,11 +223,6 @@ namespace Papst.EventStore.CosmosDb
         /// <inheritdoc />
         public async Task<IEventStream> CreateAsync(Guid streamId, EventStreamDocument doc, CancellationToken token = default)
         {
-            if (doc.DocumentType != EventStreamDocumentType.Header)
-            {
-                throw new NotSupportedException("First Document must be of Type Header");
-            }
-
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             // try to get Stream
@@ -299,7 +294,7 @@ namespace Papst.EventStore.CosmosDb
             QueryDefinition query = new QueryDefinition($"SELECT * FROM {container.Id} d WHERE d.StreamId = @streamId AND (d.DocumentType = @snaphotType OR d.DocumentType = @headerType) ORDER BY d.Version DESC OFFSET 0 LIMIT 1");
             query.WithParameter("@streamId", streamId)
                 .WithParameter("@snapshotType", EventStreamDocumentType.Snapshot.ToString())
-                .WithParameter("@headerType", EventStreamDocumentType.Header.ToString());
+                .WithParameter("@headerType", EventStreamDocumentType.Event.ToString());
 
             FeedIterator<EventStreamDocumentEntity> iterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(query);
             FeedResponse<EventStreamDocumentEntity> items = await iterator.ReadNextAsync(token).ConfigureAwait(false);
@@ -376,7 +371,6 @@ namespace Papst.EventStore.CosmosDb
             switch (documentType)
             {
                 case EventStreamDocumentType.Event:
-                case EventStreamDocumentType.Header:
                     return $"{streamId}|Document|{version}";
 
                 case EventStreamDocumentType.Snapshot:
