@@ -6,9 +6,9 @@ using System.Linq;
 namespace Papst.EventStore.CosmosDb
 {
     /// <inheritdoc/>
-    class CosmosEventStream : IEventStream
+    internal class CosmosEventStream : IEventStream
     {
-        private List<EventStreamDocument> _documents;
+        private readonly List<EventStreamDocument> _documents;
 
         public Guid StreamId { get; }
 
