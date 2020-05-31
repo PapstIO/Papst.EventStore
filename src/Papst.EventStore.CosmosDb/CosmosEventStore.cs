@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.Exceptions;
 using Papst.EventStore.CosmosDb.Entities;
@@ -19,14 +20,15 @@ namespace Papst.EventStore.CosmosDb
     {
         private readonly ILogger<CosmosEventStore> _logger;
         private readonly EventStoreCosmosClient _client;
-
+        private readonly IOptions<EventStoreOptions> _options;
         private bool _alreadyInitialized = false;
 
-        public CosmosEventStore(EventStoreCosmosClient client, ILogger<CosmosEventStore> logger)
+        public CosmosEventStore(EventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _client = client;
+            _options = options;
         }
 
         /// <inheritdoc />
@@ -240,6 +242,7 @@ namespace Papst.EventStore.CosmosDb
                 throw new EventStreamAlreadyExistsException(streamId, "Stream already exists!");
             }
             var documentEntity = Map(doc);
+            documentEntity.Version = _options.Value.StartVersion;
 
             var result = await container.CreateItemAsync(documentEntity, new PartitionKey(streamId.ToString()), cancellationToken: token);
 

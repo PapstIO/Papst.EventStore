@@ -17,7 +17,9 @@ A Sample can be found in the samples directory.
 
 ## Installing the Library
 
-NuGet Packages are in preparation.
+- Papst.EventStore.Abstractions ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.Abstractions?style=plastic)
+- Papst.EventStore.CosmosDb ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.CosmosDb?style=plastic)
+
 
 ## Configuring the Cosmos Db EventStore
 
