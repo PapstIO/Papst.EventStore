@@ -8,7 +8,6 @@ using Papst.EventStore.CosmosDb.Extensions;
 using SampleCosmosEventStore.Events;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace SampleCosmosEventStore

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.Extensions;
-using System;
 
 namespace Papst.EventStore.CosmosDb.Extensions
 {
@@ -30,7 +29,7 @@ namespace Papst.EventStore.CosmosDb.Extensions
         private static IServiceCollection AddCosmosServices(this IServiceCollection services, IConfigurationSection config) => services
             .AddSingleton<EventStoreCosmosClient>()     // add the Cosmos Database Client
             .AddScoped<IEventStore, CosmosEventStore>() // Add the Cosmos EventStore
-            .AddEvenStreamApplier(config)               // Add the EventStreamApplier & general config
+            .AddEventStreamApplier()                     // Add the EventStreamApplier
             ;
     }
 }
