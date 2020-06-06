@@ -18,7 +18,7 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// <returns></returns>
         public static IServiceCollection AddCosmosEventStore(this IServiceCollection services, IConfigurationSection config) => services
             .Configure<CosmosEventStoreOptions>(c => config.Bind(c))
-            .AddCosmosServices(config)
+            .AddCosmosServices()
             ;
 
         /// <summary>
@@ -26,10 +26,10 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        private static IServiceCollection AddCosmosServices(this IServiceCollection services, IConfigurationSection config) => services
+        private static IServiceCollection AddCosmosServices(this IServiceCollection services) => services
             .AddSingleton<EventStoreCosmosClient>()     // add the Cosmos Database Client
             .AddScoped<IEventStore, CosmosEventStore>() // Add the Cosmos EventStore
-            .AddEventStreamApplier()                     // Add the EventStreamApplier
+            //.AddEventStreamApplier()                     // Add the EventStreamApplier
             ;
     }
 }

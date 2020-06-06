@@ -29,8 +29,8 @@ namespace Papst.EventStore.Abstractions.Extensions
         /// <param name="token">Cancellation Token for the operation</param>
         /// <returns></returns>
         public static Task<EventStoreResult> AppendEventAsync<TDocument, TTargetType>(
-            this IEventStore store, 
-            Guid streamId, 
+            this IEventStore store,
+            Guid streamId,
             string name,
             ulong expectedVersion,
             TDocument document,
