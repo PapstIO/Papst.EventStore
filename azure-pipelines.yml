@@ -1,13 +1,7 @@
 trigger:
   branches:
     include:
-    - master
-
-pr:
-  branches:
-    include:
-    - master
-    - feature/*
+    - main
 
 
 variables:
@@ -26,4 +20,4 @@ jobs:
       NuGetVersion: $(NuGetVersion)
       BuildConfiguration: $(BuildConfiguration)
       outputDirectory: $(Build.ArtifactStagingDirectory)
-      deploy: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_DEPLOY']))) 
+      deploy: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_DEPLOY']))) 
