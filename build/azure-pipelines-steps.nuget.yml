@@ -42,7 +42,7 @@ steps:
 
 - script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
 - task: NugetCommand@2
   displayName: 'Push Nuget Package: Papst.EventStore.Abstractions'
@@ -51,11 +51,11 @@ steps:
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.Abstractions*.nupkg'
     nuGetFeedType: 'external'
     publishFeedCredentials: 'NuGet Papst'
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
 - script: dotnet pack ./src/Papst.EventStore.CosmosDb/Papst.EventStore.CosmosDb.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
   displayName: 'Pack Nuget Package: Papst.EventStore.CosmosDb'
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
 - task: NugetCommand@2
   displayName: 'Push Nuget Package: Papst.EventStore.CosmosDb'
@@ -64,11 +64,11 @@ steps:
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/Papst.EventStore.CosmosDb*.nupkg'
     nuGetFeedType: 'external'
     publishFeedCredentials: 'NuGet Papst'
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
 - task: PublishSymbols@2
   displayName: 'Publish symbols path'
   inputs:
     SymbolServerType: TeamServices
     TreatNotIndexedAsWarning: true
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))

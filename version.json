@@ -5,5 +5,9 @@
   ],
   "nugetPackageVersion": {
     "semVer": 2
+  },
+  "cloudBuild": {
+    "setVersionVariables": true,
+    "setAllVariables": true
   }
 }

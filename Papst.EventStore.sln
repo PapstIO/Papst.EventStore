@@ -28,6 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{3983623E
 		build\azure-pipelines-steps.nuget.yml = build\azure-pipelines-steps.nuget.yml
 		azure-pipelines.yml = azure-pipelines.yml
 		GitVersion.yml = GitVersion.yml
+		version.json = version.json
 	EndProjectSection
 EndProject
 Global
