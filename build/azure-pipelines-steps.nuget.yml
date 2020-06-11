@@ -30,7 +30,7 @@ steps:
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '-c Release
+    arguments: '-c Release'
 
 - task: DotNetCoreCLI@2
   displayName: Test
