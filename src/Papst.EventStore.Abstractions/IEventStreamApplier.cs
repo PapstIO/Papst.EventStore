@@ -1,4 +1,6 @@
-﻿namespace Papst.EventStore.Abstractions
+﻿using System.Threading.Tasks;
+
+namespace Papst.EventStore.Abstractions
 {
     /// <summary>
     /// IEventStream Applier, Applies all Event of a Stream to a Target Entity
@@ -12,7 +14,7 @@
         /// </summary>
         /// <param name="stream">The Stream</param>
         /// <returns></returns>
-        TTargetType Apply(IEventStream stream);
+        Task<TTargetType> ApplyAsync(IEventStream stream);
 
         /// <summary>
         /// Apply the Stream to an existing entity
@@ -20,6 +22,6 @@
         /// <param name="stream">The Stream</param>
         /// <param name="target">The Target Entity Instance</param>
         /// <returns></returns>
-        TTargetType Apply(IEventStream stream, TTargetType target);
+        Task<TTargetType> ApplyAsync(IEventStream stream, TTargetType target);
     }
 }
