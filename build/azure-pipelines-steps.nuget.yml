@@ -40,7 +40,11 @@ steps:
     projects: '**/*Tests.csproj'
     arguments: '--no-build -c Release'
 
-- script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
+- powershell: |
+    $version = .\nbgv get-version -f json |ConvertFrom-Json
+    Write-Host $version.NuGetPackageVersion
+
+- script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
@@ -53,7 +57,7 @@ steps:
     publishFeedCredentials: 'NuGet Papst'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
-- script: dotnet pack ./src/Papst.EventStore.CosmosDb/Papst.EventStore.CosmosDb.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory) -p:PackageVersion=$(GitVersion.NuGetVersion)
+- script: dotnet pack ./src/Papst.EventStore.CosmosDb/Papst.EventStore.CosmosDb.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.CosmosDb'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
