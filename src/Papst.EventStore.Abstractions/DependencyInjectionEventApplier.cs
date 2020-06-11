@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading.Tasks;
 
 namespace Papst.EventStore.Abstractions
 {
@@ -16,10 +17,10 @@ namespace Papst.EventStore.Abstractions
             _logger = logger;
         }
 
-        public TEntity Apply(IEventStream stream)
+        public async Task<TEntity> ApplyAsync(IEventStream stream)
         {
             _logger.LogDebug("Creating new Entity");
-            return Apply(stream, new TEntity());
+            return await ApplyAsync(stream, new TEntity()).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -28,7 +29,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="stream"></param>
         /// <param name="target"></param>
         /// <returns></returns>
-        public TEntity Apply(IEventStream stream, TEntity target)
+        public async Task<TEntity> ApplyAsync(IEventStream stream, TEntity target)
         {
             // the interface type to retrieve from DI
             Type eventApplierType = typeof(IEventApplier<,>);
@@ -42,7 +43,13 @@ namespace Papst.EventStore.Abstractions
                 {
                     IEventApplier<TEntity> applier = _services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventApplier<TEntity>;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
-                    applier.ApplyAsync(evt.Data, target);
+                    target = await applier.ApplyAsync(evt.Data, target).ConfigureAwait(false);
+
+                    if (target == null)
+                    {
+                        _logger.LogInformation("Entity has been deleted");
+                        break;
+                    }
                 }
                 catch (InvalidOperationException exc)
                 {

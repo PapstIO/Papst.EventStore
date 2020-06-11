@@ -14,7 +14,7 @@ namespace Papst.EventStore.Abstractions.Tests
     public class DependencyInjectionEventApplierTests
     {
         [Fact]
-        public void TestApply()
+        public async Task TestApply()
         {
             var loggerMock = new Mock<ILogger<DependencyInjectionEventApplier<TestEntity>>>();
 
@@ -36,7 +36,7 @@ namespace Papst.EventStore.Abstractions.Tests
 
             TestEntity entity = new TestEntity { Foo = 15 };
 
-            applier.Apply(mock.Object, entity);
+            entity = await applier.ApplyAsync(mock.Object, entity).ConfigureAwait(false);
 
             entity.Foo.Should().Be(16);
         }
@@ -52,14 +52,14 @@ namespace Papst.EventStore.Abstractions.Tests
 
         private class TestEventApplier : IEventApplier<TestEntity, TestEvent>
         {
-            public Task ApplyAsync(TestEvent eventInstance, TestEntity entityInstance)
+            public Task<TestEntity> ApplyAsync(TestEvent eventInstance, TestEntity entityInstance)
             {
                 entityInstance.Foo++;
 
-                return Task.CompletedTask;
+                return Task.FromResult(entityInstance);
             }
 
-            public Task ApplyAsync(JObject eventInstance, TestEntity entityInstance) => ApplyAsync(eventInstance.ToObject<TestEvent>(), entityInstance);
+            public Task<TestEntity> ApplyAsync(JObject eventInstance, TestEntity entityInstance) => ApplyAsync(eventInstance.ToObject<TestEvent>(), entityInstance);
         }
     }
 }

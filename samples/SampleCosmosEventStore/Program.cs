@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SampleCosmosEventStore
 {
-    class Program
+    static class Program
     {
         private static readonly string _section = "cosmos";
 
@@ -96,7 +96,7 @@ namespace SampleCosmosEventStore
 
             IEventStreamApplier<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamApplier<SampleEntity>>();
 
-            Console.WriteLine(JsonConvert.SerializeObject(applier.Apply(stream), Formatting.Indented));
+            Console.WriteLine(JsonConvert.SerializeObject(applier.ApplyAsync(stream), Formatting.Indented));
 
         }
     }

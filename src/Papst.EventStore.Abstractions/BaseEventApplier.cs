@@ -10,9 +10,10 @@ namespace Papst.EventStore.Abstractions
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TEvent"></typeparam>
     public abstract class BaseEventApplier<TEntity, TEvent> : IEventApplier<TEntity, TEvent>
+        where TEntity: class
     {
         /// <inheritdoc/>
-        public abstract Task ApplyAsync(TEvent eventInstance, TEntity entityInstance);
+        public abstract Task<TEntity> ApplyAsync(TEvent eventInstance, TEntity entityInstance);
 
         /// <summary>
         /// Calls <see cref="ApplyAsync(TEvent, TEntity)"/> by converting the <see cref="JObject"/> to <see cref="TEvent"/>
@@ -20,7 +21,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="eventInstance"></param>
         /// <param name="entityInstance"></param>
         /// <returns></returns>
-        public Task ApplyAsync(JObject eventInstance, TEntity entityInstance)
+        public Task<TEntity> ApplyAsync(JObject eventInstance, TEntity entityInstance)
             => ApplyAsync(eventInstance.ToObject<TEvent>(), entityInstance);
     }
 }
