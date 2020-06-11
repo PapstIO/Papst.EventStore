@@ -1,0 +1,9 @@
+{
+  "version": "2.8",
+  "publicReleaseRefSpec": [
+    "^refs/heads/main", // we release out of master
+  ],
+  "nugetPackageVersion": {
+    "semVer": 2
+  }
+}

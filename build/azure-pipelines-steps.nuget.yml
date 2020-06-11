@@ -16,19 +16,15 @@ steps:
     version: 3.1.x
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
-- task: NuGetToolInstaller@0
-  displayName: 'Install Nuget Tooling ${{ parameters.NuGetVersion }}'
+- task: DotNetCoreCLI@2
+  displayName: Install NBGV tool
   inputs:
-    versionSpec: ${{ parameters.NuGetVersion }}
+    command: custom
+    custom: tool
+    arguments: install --tool-path . nbgv
 
-- script: dotnet tool update GitVersion.Tool --version ${{ parameters.GitVersionVersion }} --tool-path ${{ parameters.ToolPath }}/gitversion
-  displayName: 'GitVersion - Install'
-
-- script: ${{ parameters.ToolPath }}/gitversion/dotnet-gitversion $(Build.SourcesDirectory) /output buildserver /nofetch
-  displayName: 'GitVersion - Execute'
-
-- script: echo $(GitVersion.SemVer)
-  displayName: 'GitVersion - Print'
+- script: nbgv cloud
+  displayName: Set Version
 
 - task: DotNetCoreCLI@2
   displayName: Build
