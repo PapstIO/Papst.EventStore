@@ -1,5 +1,4 @@
 parameters:
-  GitVersionVersion: ''
   NuGetVersion: ''
   ToolPath: $(Build.BinariesDirectory)
   BuildConfiguration: 'Release'
@@ -31,7 +30,7 @@ steps:
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '-c Release -p:Version=$(GitVersion.NuGetVersion)'
+    arguments: '-c Release
 
 - task: DotNetCoreCLI@2
   displayName: Test
