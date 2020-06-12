@@ -28,9 +28,9 @@ steps:
 - powershell: |
     Write-Host $(Build.BuildNumber) BuildNumber
     Write-Host $(Build.BuildId) BuildId
-    Write-Host $(GitBuildVersion) GitBuildVersion
-    Write-Host $(GitBuildVersionSimple) GitBuildVersionSimple
-    Write-Host $(GitAssemblyInformationalVersion) GitAssemblyInformationalVersion
+    Write-Host $env:GitBuildVersion
+    Write-Host $env:GitBuildVersionSimple 
+    Write-Host $env:GitAssemblyInformationalVersion 
 
 - task: DotNetCoreCLI@2
   displayName: Build
