@@ -35,7 +35,7 @@ steps:
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '-c Release /p:Version:$(versionNumber)'
+    arguments: '-c Release /p:Version:$($env:versionNumber)'
 
 - task: DotNetCoreCLI@2
   displayName: Test
