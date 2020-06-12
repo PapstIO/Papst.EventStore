@@ -26,11 +26,8 @@ steps:
   displayName: Set Version
 
 - powershell: |
-    Write-Host $(Build.BuildNumber) BuildNumber
-    Write-Host $(Build.BuildId) BuildId
-    Write-Host $env:GitBuildVersion
-    Write-Host $env:GitBuildVersionSimple 
-    Write-Host $env:GitAssemblyInformationalVersion 
+    $version = .\nbgv get-version -f json | ConvertFrom-Json
+    Write-Host $version
 
 - task: DotNetCoreCLI@2
   displayName: Build
@@ -46,9 +43,7 @@ steps:
     projects: '**/*Tests.csproj'
     arguments: '--no-build -c Release'
 
-- powershell: |
-    $version = .\nbgv get-version -f json |ConvertFrom-Json
-    Write-Host $version.NuGetPackageVersion
+
 
 - script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
