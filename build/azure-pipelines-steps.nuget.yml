@@ -26,15 +26,16 @@ steps:
   displayName: Set Version
 
 - powershell: |
-    $version = .\nbgv get-version -f json | ConvertFrom-Json
-    Write-Host $version
+    $versionInformation = .\nbgv get-version -f json | ConvertFrom-Json
+    Write-Host ##vso[task.setvariable variable=versionNumber;]$versionInformation.Version
+    Write-Host ##vso[task.setvariable variable=versionNumberNuGet;]$versionInformation.NuGetPackageVersion
 
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '-c Release /p:Version:$(Build.BuildNumber)'
+    arguments: '-c Release /p:Version:$(versionNumber)'
 
 - task: DotNetCoreCLI@2
   displayName: Test
@@ -42,8 +43,6 @@ steps:
     command: test
     projects: '**/*Tests.csproj'
     arguments: '--no-build -c Release'
-
-
 
 - script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
