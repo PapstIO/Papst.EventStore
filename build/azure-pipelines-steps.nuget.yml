@@ -8,12 +8,12 @@ parameters:
 
 
 steps:
-- task: UseDotNet@2
-  displayName: 'Use .NET Core sdk'
-  inputs:
-    packageType: sdk
-    version: 3.1.x
-    installationPath: $(Agent.ToolsDirectory)/dotnet
+#- task: UseDotNet@2
+#  displayName: 'Use .NET Core sdk'
+#  inputs:
+#    packageType: sdk
+#    version: 3.1.x
+#    installationPath: $(Agent.ToolsDirectory)/dotnet
 
 - task: DotNetCoreCLI@2
   displayName: Install NBGV tool
@@ -25,12 +25,16 @@ steps:
 - script: nbgv cloud
   displayName: Set Version
 
+- powershell: |
+    Write-Host $(Build.BuildNumber) BuildNumber
+    Write-Host $(Build.BuildId) BuildId
+
 - task: DotNetCoreCLI@2
   displayName: Build
   inputs:
     command: build
     projects: '**/*.csproj'
-    arguments: '-c Release'
+    arguments: '-c Release /p:Version:$(Build.BuildNumber)'
 
 - task: DotNetCoreCLI@2
   displayName: Test
