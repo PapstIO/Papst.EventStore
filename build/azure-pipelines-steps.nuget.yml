@@ -31,8 +31,6 @@ steps:
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
 
-- powershell: Get-ChildItem $(Build.ArtifactStagingDirectory)
-
 - task: NugetCommand@2
   displayName: 'Push Nuget Package: Papst.EventStore.Abstractions'
   inputs:
