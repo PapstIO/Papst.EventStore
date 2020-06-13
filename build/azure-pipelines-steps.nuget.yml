@@ -1,20 +1,8 @@
 parameters:
-  NuGetVersion: ''
   ToolPath: $(Build.BinariesDirectory)
-  BuildConfiguration: 'Release'
-  outputDirectory: ''
-  projects: []
-  deploy: false
 
 
 steps:
-- task: UseDotNet@2
-  displayName: 'Use .NET Core sdk'
-  inputs:
-    packageType: sdk
-    version: 3.1.x
-    installationPath: $(Agent.ToolsDirectory)/dotnet
-
 - task: DotNetCoreCLI@2
   displayName: Install NBGV tool
   inputs:
@@ -38,10 +26,6 @@ steps:
     command: test
     projects: '**/*Tests.csproj'
     arguments: '--no-build -c Release'
-
-- powershell: |
-    $version = .\nbgv get-version -f json |ConvertFrom-Json
-    Write-Host $version.NuGetPackageVersion
 
 - script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
