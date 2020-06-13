@@ -8,13 +8,6 @@ parameters:
 
 
 steps:
-#- task: UseDotNet@2
-#  displayName: 'Use .NET Core sdk'
-#  inputs:
-#    packageType: sdk
-#    version: 3.1.x
-#    installationPath: $(Agent.ToolsDirectory)/dotnet
-
 - task: DotNetCoreCLI@2
   displayName: Install NBGV tool
   inputs:
@@ -46,7 +39,9 @@ steps:
 
 - script: dotnet pack ./src/Papst.EventStore.Abstractions/Papst.EventStore.Abstractions.csproj -c Release --no-build -o $(Build.ArtifactStagingDirectory)
   displayName: 'Pack Nuget Package: Papst.EventStore.Abstractions'
-  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
+  #condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('true', variables['FORCE_PUSH_NUGET'])))
+
+- powershell: Get-ChildItem $(Build.ArtifactStagingDirectory)
 
 - task: NugetCommand@2
   displayName: 'Push Nuget Package: Papst.EventStore.Abstractions'
