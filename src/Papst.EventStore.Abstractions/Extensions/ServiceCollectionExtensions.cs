@@ -27,6 +27,7 @@ namespace Papst.EventStore.Abstractions.Extensions
                 .Distinct()
                 .Where(t =>
                     t.IsClass &&
+                    !t.IsAbstract &&
                     t.ImplementedInterfaces.Any(itrf => itrf.IsGenericType && itrf.GetGenericTypeDefinition() == interfaceType)
                 );
 
