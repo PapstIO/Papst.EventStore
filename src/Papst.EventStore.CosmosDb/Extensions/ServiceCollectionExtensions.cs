@@ -27,9 +27,9 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// <param name="services"></param>
         /// <returns></returns>
         private static IServiceCollection AddCosmosServices(this IServiceCollection services) => services
-            .AddSingleton<EventStoreCosmosClient>()     // add the Cosmos Database Client
-            .AddScoped<IEventStore, CosmosEventStore>() // Add the Cosmos EventStore
-            //.AddEventStreamApplier()                     // Add the EventStreamApplier
+            .AddSingleton<EventStoreCosmosClient>()         // add the Cosmos Database Client
+            .AddTransient<IEventStore, CosmosEventStore>()  // Add the Cosmos EventStore
+            //.AddEventStreamApplier()                      // Add the EventStreamApplier
             ;
     }
 }
