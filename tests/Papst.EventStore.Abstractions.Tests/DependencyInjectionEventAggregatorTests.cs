@@ -22,10 +22,7 @@ namespace Papst.EventStore.Abstractions.Tests
 
             IServiceProvider services = ((IServiceCollection)new ServiceCollection())
                .AddSingleton<ILogger<DependencyInjectionEventApplier<TestEntity>>>(loggerMock.Object)
-               .Configure<EventStoreOptions>(options =>
-               {
-                   options.StartVersion = 0;
-               })
+               .Configure<EventStoreOptions>(options => options.StartVersion = 0)
                .AddEventStreamApplier(GetType().Assembly)
                .BuildServiceProvider();
 
@@ -54,10 +51,7 @@ namespace Papst.EventStore.Abstractions.Tests
 
             IServiceProvider services = ((IServiceCollection)new ServiceCollection())
                 .AddSingleton<ILogger<DependencyInjectionEventApplier<TestEntity>>>(loggerMock.Object)
-                .Configure<EventStoreOptions>(options =>
-                {
-                    options.StartVersion = 0;
-                })
+                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
                 .AddEventStreamApplier(GetType().Assembly)
                 .BuildServiceProvider();
             var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
