@@ -43,7 +43,6 @@ namespace Papst.EventStore.Abstractions.Extensions
         )
             where TDocument: class
         {
-
             return store.AppendAsync(
                 streamId,
                 expectedVersion,
@@ -69,7 +68,6 @@ namespace Papst.EventStore.Abstractions.Extensions
                 },
                 token
             );
-
         }
 
         /// <summary>

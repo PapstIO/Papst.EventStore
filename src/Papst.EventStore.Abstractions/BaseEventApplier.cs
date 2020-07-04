@@ -4,12 +4,12 @@ using System.Threading.Tasks;
 namespace Papst.EventStore.Abstractions
 {
     /// <summary>
-    /// Base Implementation for <see cref="IEventApplier{TEntity, TEvent}"/> that provides
+    /// Base Implementation for <see cref="IEventAggregator{TEntity, TEvent}"/> that provides
     /// basic mapping between <see cref="JObject"/> and <see cref="TEvent"/>
     /// </summary>
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TEvent"></typeparam>
-    public abstract class BaseEventApplier<TEntity, TEvent> : IEventApplier<TEntity, TEvent>
+    public abstract class BaseEventApplier<TEntity, TEvent> : IEventAggregator<TEntity, TEvent>
         where TEntity: class
     {
         /// <inheritdoc/>

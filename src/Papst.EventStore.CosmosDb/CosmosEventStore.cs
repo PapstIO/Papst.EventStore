@@ -307,7 +307,6 @@ namespace Papst.EventStore.CosmosDb
             var snapShotOrHeader = items.First();
 
             return await ReadAsync(streamId, snapShotOrHeader.Version, token).ConfigureAwait(false);
-
         }
 
         private async Task<Container> InitAsync(CancellationToken token)

@@ -65,6 +65,5 @@ namespace Papst.EventStore.CosmosDb.Entities
         /// Metadata for the Event
         /// </summary>
         public EventStreamMetaData MetaData { get; set; }
-
     }
 }

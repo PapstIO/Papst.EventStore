@@ -3,17 +3,13 @@ using System.Collections.Generic;
 
 namespace SampleCosmosEventStore.Events
 {
-    class SampleAssociatedEvent : IApplyableEvent<SampleEntity>
+    internal class SampleAssociatedEvent : IAggregatableEvent<SampleEntity>
     {
         public string Name { get; set; }
 
         public void Apply(SampleEntity eventInstance)
         {
-            if (eventInstance.Associated == null)
-            {
-                eventInstance.Associated = new List<string>();
-            }
-            eventInstance.Associated.Add(Name);
+            (eventInstance.Associated ??= new List<string>()).Add(Name);
         }
     }
 }

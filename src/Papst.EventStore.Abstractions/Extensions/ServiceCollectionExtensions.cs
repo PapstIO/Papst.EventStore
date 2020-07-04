@@ -19,7 +19,7 @@ namespace Papst.EventStore.Abstractions.Extensions
                 throw new NotSupportedException("At least one Assembly to scan is necessary!");
             }
 
-            Type interfaceType = typeof(IEventApplier<,>);
+            Type interfaceType = typeof(IEventAggregator<,>);
 
             // scan the assemblies for types that implement IEventApplier<>
             var types = assemblies
@@ -39,7 +39,7 @@ namespace Papst.EventStore.Abstractions.Extensions
                     services.AddTransient(itrf, type.AsType());
                 }
             }
-            return services.AddTransient(typeof(IEventStreamApplier<>), typeof(DependencyInjectionEventApplier<>));
+            return services.AddTransient(typeof(IEventStreamAggregator<>), typeof(DependencyInjectionEventApplier<>));
         }
     }
 }
