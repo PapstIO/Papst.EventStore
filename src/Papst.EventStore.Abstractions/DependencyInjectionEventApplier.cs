@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Papst.EventStore.Abstractions
 {
     internal class DependencyInjectionEventApplier<TEntity> : IEventStreamApplier<TEntity>
-        where TEntity : class, new()
+        where TEntity : class, IEntity, new()
     {
         private readonly IServiceProvider _services;
         private readonly ILogger<DependencyInjectionEventApplier<TEntity>> _logger;
@@ -43,12 +43,19 @@ namespace Papst.EventStore.Abstractions
                 {
                     IEventApplier<TEntity> applier = _services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventApplier<TEntity>;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
+                    ulong previousVersion = target.Version;
                     target = await applier.ApplyAsync(evt.Data, target).ConfigureAwait(false);
-
+                    
                     if (target == null)
                     {
-                        _logger.LogInformation("Entity has been deleted");
+                        _logger.LogInformation("Entity has been deleted at {Version}", previousVersion);
                         break;
+                    }
+                    else if (target.Version == previousVersion)
+                    {
+                        // increment the version only if it is not done by the event Applier
+                        // note this will affect the version on creation: First Version will be incremented
+                        target.Version++;
                     }
                 }
                 catch (InvalidOperationException exc)
