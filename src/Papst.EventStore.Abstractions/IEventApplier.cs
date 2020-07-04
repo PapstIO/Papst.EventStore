@@ -11,12 +11,12 @@ namespace Papst.EventStore.Abstractions
     public interface IEventApplier<TEntity, TEvent> : IEventApplier<TEntity>
         where TEntity: class
     {
-        Task<TEntity> ApplyAsync(TEvent eventInstance, TEntity entityInstance);
+        Task<TEntity> ApplyAsync(TEvent evt, TEntity entity);
     }
 
     public interface IEventApplier<TEntity>
         where TEntity: class
     {
-        Task<TEntity> ApplyAsync(JObject eventInstance, TEntity entityInstance);
+        Task<TEntity> ApplyAsync(JObject evt, TEntity entity);
     }
 }
