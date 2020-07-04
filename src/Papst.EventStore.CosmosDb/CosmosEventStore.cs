@@ -16,7 +16,7 @@ namespace Papst.EventStore.CosmosDb
     /// Cosmos DB Implementation for <see cref="IEventStore"/>
     /// </summary>
     /// <inheritdoc />
-    class CosmosEventStore : IEventStore
+    internal class CosmosEventStore : IEventStore
     {
         private readonly ILogger<CosmosEventStore> _logger;
         private readonly EventStoreCosmosClient _client;
@@ -178,7 +178,6 @@ namespace Papst.EventStore.CosmosDb
 
             EventStreamDocumentEntity documentEntity = PrepareDocument(lastStreamDoc, snapshot);
 
-
             var result = await container.CreateItemAsync(documentEntity, new PartitionKey(lastStreamDoc.StreamId.ToString()), cancellationToken: token).ConfigureAwait(false);
 
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
@@ -230,7 +229,7 @@ namespace Papst.EventStore.CosmosDb
                 .WithParameter("@streamId", streamId);
             FeedIterator<EventStreamDocumentEntity> streamIterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(streamQuery);
             var streamResults = await streamIterator.ReadNextAsync(token).ConfigureAwait(false);
-            
+
             if (streamResults.Count > 0)
             {
                 _logger.LogWarning("Stream {Stream} already exists!", streamId);
@@ -239,7 +238,7 @@ namespace Papst.EventStore.CosmosDb
             var documentEntity = Map(doc);
             documentEntity.Version = _options.Value.StartVersion;
 
-            var result = await container.CreateItemAsync(documentEntity, new PartitionKey(streamId.ToString()), cancellationToken: token);
+            var result = await container.CreateItemAsync(documentEntity, new PartitionKey(streamId.ToString()), cancellationToken: token).ConfigureAwait(false);
 
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
             {
@@ -266,9 +265,8 @@ namespace Papst.EventStore.CosmosDb
             QueryDefinition query = new QueryDefinition($"SELECT * FROM {container.Id} d WHERE d.StreamId = @streamId AND d.Version >= @version ORDER BY d.Version ASC");
             query.WithParameter("@streamId", streamId)
                 .WithParameter("@version", fromVersion);
-            string continuationToken = null;
 
-            var iterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(query, continuationToken);
+            var iterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(query);
 
             List<EventStreamDocument> documents = new List<EventStreamDocument>();
 
@@ -283,7 +281,7 @@ namespace Papst.EventStore.CosmosDb
         }
 
         /// <inheritdoc />
-        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default) 
+        public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default)
             => ReadAsync(streamId, 0, token);
 
         /// <inheritdoc />
@@ -293,8 +291,8 @@ namespace Papst.EventStore.CosmosDb
 
             QueryDefinition query = new QueryDefinition($"SELECT * FROM {container.Id} d WHERE d.StreamId = @streamId AND (d.DocumentType = @snaphotType OR d.DocumentType = @headerType) ORDER BY d.Version DESC OFFSET 0 LIMIT 1");
             query.WithParameter("@streamId", streamId)
-                .WithParameter("@snapshotType", EventStreamDocumentType.Snapshot.ToString())
-                .WithParameter("@headerType", EventStreamDocumentType.Event.ToString());
+                .WithParameter("@snapshotType", nameof(EventStreamDocumentType.Snapshot))
+                .WithParameter("@headerType", nameof(EventStreamDocumentType.Event));
 
             FeedIterator<EventStreamDocumentEntity> iterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(query);
             FeedResponse<EventStreamDocumentEntity> items = await iterator.ReadNextAsync(token).ConfigureAwait(false);
@@ -315,12 +313,12 @@ namespace Papst.EventStore.CosmosDb
             {
                 _logger.LogInformation("Initializing Database");
 
-                DatabaseResponse db = await _client.CreateDatabaseIfNotExistsAsync(_client.Options.Database, cancellationToken: token);
+                DatabaseResponse db = await _client.CreateDatabaseIfNotExistsAsync(_client.Options.Database, cancellationToken: token).ConfigureAwait(false);
                 if (db.StatusCode == System.Net.HttpStatusCode.Created)
                 {
                     _logger.LogInformation("Created Database {Database} in Cosmos DB", _client.Options.Database);
                 }
-                ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(_client.Options.Collection, "/StreamId", cancellationToken: token);
+                ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(_client.Options.Collection, "/StreamId", cancellationToken: token).ConfigureAwait(false);
                 if (container.StatusCode == System.Net.HttpStatusCode.Created)
                 {
                     _logger.LogInformation("Created Container {Container} in {Database}", _client.Options.Collection, _client.Options.Database);
@@ -366,19 +364,12 @@ namespace Papst.EventStore.CosmosDb
         };
 
         private string GetDocumentId(Guid streamId, EventStreamDocumentType documentType, ulong version)
-        {
-            switch (documentType)
+            => documentType switch
             {
-                case EventStreamDocumentType.Event:
-                    return $"{streamId}|Document|{version}";
-
-                case EventStreamDocumentType.Snapshot:
-                    return $"{streamId}|Snap|{version}";
-
-                default:
-                    throw new NotSupportedException($"EventStreamDocumentType {documentType} is not Supported!");
-            }
-        }
+                EventStreamDocumentType.Event => $"{streamId}|Document|{version}",
+                EventStreamDocumentType.Snapshot => $"{streamId}|Snap|{version}",
+                _ => throw new NotSupportedException($"EventStreamDocumentType {documentType} is not Supported!"),
+            };
 
         private EventStreamDocumentEntity PrepareDocument(EventStreamDocumentEntity lastStreamDoc, EventStreamDocument doc)
         {

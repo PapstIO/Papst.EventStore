@@ -41,6 +41,8 @@ namespace Papst.EventStore.Abstractions
             // the entity type as first type argument to the IEventApplier<,>
             Type entityType = target.GetType();
 
+            bool isFirstEvent = true;
+
             foreach (var evt in stream.Stream)
             {
                 try
@@ -55,12 +57,14 @@ namespace Papst.EventStore.Abstractions
                         _logger.LogInformation("Entity has been deleted at {Version}", previousVersion);
                         break;
                     }
-                    else if (target.Version == previousVersion)
+                    else if (target.Version == previousVersion && (previousVersion > _options.Value.StartVersion || !isFirstEvent))
                     {
-                        // increment the version only if it is not done by the event Applier
-                        // note this will affect the version on creation: First Version will be incremented
+                        // --> Version is incremented when not done by custom logic and its not the first event
+                        // --> When the Version is already greater StartVersion, it is rebuild from a SnapShot -> increment the version then
                         target.Version++;
                     }
+
+                    isFirstEvent = false;
                 }
                 catch (InvalidOperationException exc)
                 {
