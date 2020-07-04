@@ -57,9 +57,10 @@ namespace Papst.EventStore.Abstractions
                         _logger.LogInformation("Entity has been deleted at {Version}", previousVersion);
                         break;
                     }
-                    else if (target.Version == previousVersion && !isFirstEvent)
+                    else if (target.Version == previousVersion && (previousVersion > _options.Value.StartVersion || !isFirstEvent))
                     {
                         // --> Version is incremented when not done by custom logic and its not the first event
+                        // --> When the Version is already greater StartVersion, it is rebuild from a SnapShot -> increment the version then
                         target.Version++;
                     }
 
