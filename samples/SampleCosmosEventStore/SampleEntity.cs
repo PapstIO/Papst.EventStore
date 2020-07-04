@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Papst.EventStore.Abstractions;
+using System;
 using System.Collections.Generic;
 
 namespace SampleCosmosEventStore
 {
-    class SampleEntity
+    class SampleEntity : IEntity
     {
-        public Guid EventId { get; set; }
+        public Guid Id { get; set; }
+        public ulong Version { get; set; }
         public string Name { get; set; }
         public Dictionary<string, object> Foo { get; set; }
 
