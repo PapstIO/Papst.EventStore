@@ -14,7 +14,6 @@ namespace Papst.EventStore.CosmosDb
             : base(options.Value.Endpoint, options.Value.AccountSecret)
         {
             Options = options.Value;
-            
         }
 
         /// <summary>

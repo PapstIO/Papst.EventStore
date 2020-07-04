@@ -12,7 +12,7 @@ using AutoFixture.Xunit2;
 
 namespace Papst.EventStore.Abstractions.Tests
 {
-    public class DependencyInjectionEventApplierTests
+    public class DependencyInjectionEventAggregatorTests
     {
         [Fact]
         public async Task ShouldApply()
@@ -24,8 +24,8 @@ namespace Papst.EventStore.Abstractions.Tests
                .AddEventStreamApplier(GetType().Assembly)
                .BuildServiceProvider();
 
-            var applier = services.GetRequiredService<IEventStreamApplier<TestEntity>>();
-            var applierInstance = services.GetRequiredService<IEventApplier<TestEntity, TestSelfVersionIncrementingEvent>>();
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
             applierInstance.Should().NotBeNull();
 
@@ -51,8 +51,8 @@ namespace Papst.EventStore.Abstractions.Tests
                 .AddSingleton<ILogger<DependencyInjectionEventApplier<TestEntity>>>(loggerMock.Object)
                 .AddEventStreamApplier(GetType().Assembly)
                 .BuildServiceProvider();
-            var applier = services.GetRequiredService<IEventStreamApplier<TestEntity>>();
-            var applierInstance = services.GetRequiredService<IEventApplier<TestEntity, TestSelfVersionIncrementingEvent>>();
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
             var mock = new Mock<IEventStream>();
             mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
@@ -77,7 +77,7 @@ namespace Papst.EventStore.Abstractions.Tests
             public int Foo { get; set; }
         }
 
-        private class TestSelfVersionIncrementingEventApplier : IEventApplier<TestEntity, TestSelfVersionIncrementingEvent>
+        private class TestSelfVersionIncrementingEventApplier : IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>
         {
             public Task<TestEntity> ApplyAsync(TestSelfVersionIncrementingEvent eventInstance, TestEntity entityInstance)
             {
@@ -92,7 +92,7 @@ namespace Papst.EventStore.Abstractions.Tests
         private class TestEvent
         { }
 
-        private class TestEventApplier : IEventApplier<TestEntity, TestEvent>
+        private class TestEventApplier : IEventAggregator<TestEntity, TestEvent>
         {
             public Task<TestEntity> ApplyAsync(TestEvent eventInstance, TestEntity entityInstance)
             {

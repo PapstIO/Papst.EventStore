@@ -85,6 +85,5 @@ namespace Papst.EventStore.Abstractions
         /// <exception cref="Exceptions.EventStreamAlreadyExistsException">Thrown when the StreamId is already taken</exception>
         /// <returns></returns>
         Task<IEventStream> CreateAsync(Guid streamId, EventStreamDocument doc, CancellationToken token = default);
-
     }
 }

@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 
 namespace SampleCosmosEventStore
 {
-    static class Program
+    public static class Program
     {
-        private static readonly string _section = "cosmos";
+        private const string _section = "cosmos";
 
-        static async Task Main()
+        public static async Task Main()
         {
             var config = new ConfigurationBuilder()
                 .AddInMemoryCollection(new[]
@@ -44,7 +44,6 @@ namespace SampleCosmosEventStore
 
             IEventStore store = serviceProvider.GetRequiredService<IEventStore>();
 
-
             Guid streamGuid = Guid.NewGuid();
             var startEvent = new SampleCreatedEvent()
             {
@@ -62,14 +61,14 @@ namespace SampleCosmosEventStore
                 streamGuid,
                 nameof(SampleCreatedEvent),
                 startEvent
-            );
+            ).ConfigureAwait(false);
 
             var result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
                 streamGuid,
                 nameof(SampleAssociatedEvent),
                 0,
                 new SampleAssociatedEvent { Name = "Hallo" }
-                );
+                ).ConfigureAwait(false);
 
             Console.WriteLine(JsonConvert.SerializeObject(result));
 
@@ -78,7 +77,7 @@ namespace SampleCosmosEventStore
                 nameof(SampleAssociatedEvent),
                 1,
                 new SampleAssociatedEvent { Name = "Papst" }
-            );
+            ).ConfigureAwait(false);
 
             Console.WriteLine(JsonConvert.SerializeObject(result));
 
@@ -87,17 +86,15 @@ namespace SampleCosmosEventStore
                 nameof(SampleAssociationRemovedEvent),
                 2,
                 new SampleAssociationRemovedEvent { Name = "Hallo" }
-            );
+            ).ConfigureAwait(false);
 
             Console.WriteLine(JsonConvert.SerializeObject(result));
 
-            stream = await store.ReadAsync(streamGuid);
+            stream = await store.ReadAsync(streamGuid).ConfigureAwait(false);
 
-
-            IEventStreamApplier<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamApplier<SampleEntity>>();
+            IEventStreamAggregator<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamAggregator<SampleEntity>>();
 
             Console.WriteLine(JsonConvert.SerializeObject(applier.ApplyAsync(stream), Formatting.Indented));
-
         }
     }
 }

@@ -60,6 +60,5 @@ namespace Papst.EventStore.Abstractions
         /// Metadata for the Event
         /// </summary>
         public EventStreamMetaData MetaData { get; set; }
-
     }
 }

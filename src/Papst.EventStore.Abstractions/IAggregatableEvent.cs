@@ -5,13 +5,13 @@
     /// Allows the <see cref="IEventStore"/> to apply all events to a given Targettype
     /// </summary>
     /// <typeparam name="TTargetType"></typeparam>
-    public interface IApplyableEvent<TTargetType>
+    public interface IAggregatableEvent<TTargetType>
         where TTargetType: class, new()
     {
         /// <summary>
         /// Apply the Event to the Target Instance
         /// </summary>
-        /// <param name="eventInstance"></param>
-        void Apply(TTargetType eventInstance);
+        /// <param name="evt"></param>
+        void Apply(TTargetType evt);
     }
 }

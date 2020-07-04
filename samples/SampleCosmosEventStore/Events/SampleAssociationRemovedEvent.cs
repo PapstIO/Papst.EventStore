@@ -2,7 +2,7 @@
 
 namespace SampleCosmosEventStore.Events
 {
-    class SampleAssociationRemovedEvent : IApplyableEvent<SampleEntity>
+    class SampleAssociationRemovedEvent : IAggregatableEvent<SampleEntity>
     {
         public string Name { get; set; }
 

@@ -3,10 +3,10 @@
 namespace Papst.EventStore.Abstractions
 {
     /// <summary>
-    /// IEventStream Applier, Applies all Event of a Stream to a Target Entity
+    /// IEventStream Aggregator, Applies all Event of a Stream to a Target Entity
     /// </summary>
     /// <typeparam name="TTargetType"></typeparam>
-    public interface IEventStreamApplier<TTargetType>
+    public interface IEventStreamAggregator<TTargetType>
         where TTargetType: class, new()
     {
         /// <summary>

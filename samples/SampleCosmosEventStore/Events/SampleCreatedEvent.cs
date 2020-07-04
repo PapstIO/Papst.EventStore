@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SampleCosmosEventStore.Events
 {
-    class SampleCreatedEvent : IApplyableEvent<SampleEntity>
+    class SampleCreatedEvent : IAggregatableEvent<SampleEntity>
     {
         public Guid EventId { get; set; }
         public string Name { get; set; }
