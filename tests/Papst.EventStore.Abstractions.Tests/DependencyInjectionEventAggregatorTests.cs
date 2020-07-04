@@ -70,6 +70,33 @@ namespace Papst.EventStore.Abstractions.Tests
             entity.Version.Should().Be(startVersion + 1);
         }
 
+        [Theory, AutoData]
+        public async Task ShouldNotIncrementVersionWhenAlreadyDone(ulong startVersion)
+        {
+            var loggerMock = new Mock<ILogger<DependencyInjectionEventApplier<TestEntity>>>();
+
+            IServiceProvider services = ((IServiceCollection)new ServiceCollection())
+                .AddSingleton<ILogger<DependencyInjectionEventApplier<TestEntity>>>(loggerMock.Object)
+                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+                .AddEventStreamApplier(GetType().Assembly)
+                .BuildServiceProvider();
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
+
+            var mock = new Mock<IEventStream>();
+            mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
+                Data = JObject.FromObject(new TestEvent()),
+                DataType = typeof(TestEvent)
+            } });
+
+            TestEntity entity = new TestEntity { Foo = 15, Version = startVersion };
+
+            entity = await applier.ApplyAsync(mock.Object, entity).ConfigureAwait(false);
+
+            // startversion + 1 --> done in Aggregator
+            entity.Version.Should().Be(startVersion + 1);
+        }
+
         public class TestSelfVersionIncrementingEvent
         {
         }

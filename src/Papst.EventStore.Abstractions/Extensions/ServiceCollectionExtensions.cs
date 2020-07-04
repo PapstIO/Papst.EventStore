@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 
@@ -22,14 +23,16 @@ namespace Papst.EventStore.Abstractions.Extensions
             Type interfaceType = typeof(IEventAggregator<,>);
 
             // scan the assemblies for types that implement IEventApplier<>
-            var types = assemblies
+            var allTypes = assemblies
                 .SelectMany(a => a.DefinedTypes)
                 .Distinct()
                 .Where(t =>
                     t.IsClass &&
-                    !t.IsAbstract &&
-                    t.ImplementedInterfaces.Any(itrf => itrf.IsGenericType && itrf.GetGenericTypeDefinition() == interfaceType)
-                );
+                    !t.IsAbstract
+                )
+                .ToList();
+            var types = allTypes
+                .Where(t => t.ImplementedInterfaces.Any(itrf => itrf.IsGenericType && itrf.GetGenericTypeDefinition() == interfaceType));
 
             foreach (TypeInfo type in types)
             {
