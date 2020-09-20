@@ -2,18 +2,19 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Papst.EventStore.Abstractions
 {
-    internal class DependencyInjectionEventApplier<TEntity> : IEventStreamAggregator<TEntity>
+    internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggregator<TEntity>
         where TEntity : class, IEntity, new()
     {
         private readonly IServiceProvider _services;
-        private readonly ILogger<DependencyInjectionEventApplier<TEntity>> _logger;
+        private readonly ILogger<DependencyInjectionEventAggregator<TEntity>> _logger;
         private readonly IOptions<EventStoreOptions> _options;
 
-        public DependencyInjectionEventApplier(IServiceProvider services, ILogger<DependencyInjectionEventApplier<TEntity>> logger, IOptions<EventStoreOptions> options)
+        public DependencyInjectionEventAggregator(IServiceProvider services, ILogger<DependencyInjectionEventAggregator<TEntity>> logger, IOptions<EventStoreOptions> options)
         {
             _services = services;
             _logger = logger;
@@ -42,6 +43,7 @@ namespace Papst.EventStore.Abstractions
             Type entityType = target.GetType();
 
             bool isFirstEvent = true;
+            IAggregatorStreamContext context = new DependencyInjectionEventAggregatorStreamContext(stream.StreamId, stream.Stream.Last().Version);
 
             foreach (var evt in stream.Stream)
             {
@@ -50,7 +52,7 @@ namespace Papst.EventStore.Abstractions
                     IEventAggregator<TEntity> applier = _services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
                     ulong previousVersion = target.Version;
-                    target = await applier.ApplyAsync(evt.Data, target).ConfigureAwait(false);
+                    target = await applier.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
 
                     if (target == null)
                     {

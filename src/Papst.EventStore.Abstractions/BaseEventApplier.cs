@@ -13,15 +13,16 @@ namespace Papst.EventStore.Abstractions
         where TEntity: class
     {
         /// <inheritdoc/>
-        public abstract Task<TEntity> ApplyAsync(TEvent eventInstance, TEntity entityInstance);
+        public abstract Task<TEntity> ApplyAsync(TEvent eventInstance, TEntity entityInstance, IAggregatorStreamContext context);
 
         /// <summary>
         /// Calls <see cref="ApplyAsync(TEvent, TEntity)"/> by converting the <see cref="JObject"/> to <see cref="TEvent"/>
         /// </summary>
         /// <param name="eventInstance"></param>
         /// <param name="entityInstance"></param>
+        /// <param name="context"></param>
         /// <returns></returns>
-        public Task<TEntity> ApplyAsync(JObject eventInstance, TEntity entityInstance)
-            => ApplyAsync(eventInstance.ToObject<TEvent>(), entityInstance);
+        public Task<TEntity> ApplyAsync(JObject eventInstance, TEntity entityInstance, IAggregatorStreamContext context)
+            => ApplyAsync(eventInstance.ToObject<TEvent>(), entityInstance, context);
     }
 }

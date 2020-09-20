@@ -42,7 +42,7 @@ namespace Papst.EventStore.Abstractions.Extensions
                     services.AddTransient(itrf, type.AsType());
                 }
             }
-            return services.AddTransient(typeof(IEventStreamAggregator<>), typeof(DependencyInjectionEventApplier<>));
+            return services.AddTransient(typeof(IEventStreamAggregator<>), typeof(DependencyInjectionEventAggregator<>));
         }
     }
 }
