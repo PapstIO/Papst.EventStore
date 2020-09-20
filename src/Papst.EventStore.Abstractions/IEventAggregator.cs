@@ -11,7 +11,7 @@ namespace Papst.EventStore.Abstractions
     public interface IEventAggregator<TEntity, TEvent> : IEventAggregator<TEntity>
         where TEntity: class
     {
-        Task<TEntity> ApplyAsync(TEvent evt, TEntity entity);
+        Task<TEntity> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext context);
     }
 
     /// <summary>
@@ -21,6 +21,6 @@ namespace Papst.EventStore.Abstractions
     public interface IEventAggregator<TEntity>
         where TEntity: class
     {
-        Task<TEntity> ApplyAsync(JObject evt, TEntity entity);
+        Task<TEntity> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext context);
     }
 }
