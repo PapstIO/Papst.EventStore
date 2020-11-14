@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 
@@ -9,11 +8,11 @@ namespace Papst.EventStore.Abstractions.Extensions
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Add Event Stream Applier
+        /// Add Event Stream Aggregator
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public static IServiceCollection AddEventStreamApplier(this IServiceCollection services, params Assembly[] assemblies)
+        public static IServiceCollection AddEventStreamAggregator(this IServiceCollection services, params Assembly[] assemblies)
         {
             if (assemblies.Length == 0)
             {
@@ -44,5 +43,16 @@ namespace Papst.EventStore.Abstractions.Extensions
             }
             return services.AddTransient(typeof(IEventStreamAggregator<>), typeof(DependencyInjectionEventAggregator<>));
         }
+
+        /// <summary>
+        /// Add Event Stream Applies
+        /// Obsolete, use <see cref="AddEventStreamAggregator(IServiceCollection, Assembly[])"/> instead
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="assemblies"></param>
+        /// <returns></returns>
+        [Obsolete("Use AddEventStreamAggregator instead")]
+        public static IServiceCollection AddEventStreamApplier(this IServiceCollection services, params Assembly[] assemblies)
+            => services.AddEventStreamAggregator(assemblies);
     }
 }

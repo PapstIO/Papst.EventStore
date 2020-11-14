@@ -14,7 +14,7 @@ namespace Papst.EventStore.Abstractions
         /// </summary>
         /// <param name="stream">The Stream</param>
         /// <returns></returns>
-        Task<TTargetType> ApplyAsync(IEventStream stream);
+        Task<TTargetType> AggregateAsync(IEventStream stream);
 
         /// <summary>
         /// Apply the Stream to an existing entity
@@ -22,6 +22,6 @@ namespace Papst.EventStore.Abstractions
         /// <param name="stream">The Stream</param>
         /// <param name="target">The Target Entity Instance</param>
         /// <returns></returns>
-        Task<TTargetType> ApplyAsync(IEventStream stream, TTargetType target);
+        Task<TTargetType> AggregateAsync(IEventStream stream, TTargetType target);
     }
 }
