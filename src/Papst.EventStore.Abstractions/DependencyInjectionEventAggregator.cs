@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Papst.EventStore.Abstractions
@@ -21,11 +20,11 @@ namespace Papst.EventStore.Abstractions
             _options = options;
         }
 
-        public async Task<TEntity> ApplyAsync(IEventStream stream)
+        public async Task<TEntity> AggregateAsync(IEventStream stream)
         {
             _logger.LogDebug("Creating new Entity");
             // create the Entity using the StartVersion - 1 because the Aggregator will increment it after applying the first Event
-            return await ApplyAsync(stream, new TEntity() { Version = _options.Value.StartVersion == 0 ? 0 : _options.Value.StartVersion - 1 }).ConfigureAwait(false);
+            return await AggregateAsync(stream, new TEntity() { Version = _options.Value.StartVersion == 0 ? 0 : _options.Value.StartVersion - 1 }).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -34,7 +33,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="stream"></param>
         /// <param name="target"></param>
         /// <returns></returns>
-        public async Task<TEntity> ApplyAsync(IEventStream stream, TEntity target)
+        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity target)
         {
             // the interface type to retrieve from DI
             Type eventApplierType = typeof(IEventAggregator<,>);
@@ -43,21 +42,45 @@ namespace Papst.EventStore.Abstractions
             Type entityType = target.GetType();
 
             bool isFirstEvent = true;
-            IAggregatorStreamContext context = new DependencyInjectionEventAggregatorStreamContext(stream.StreamId, stream.Stream.Last().Version);
+            DependencyInjectionEventAggregatorStreamContext context = new DependencyInjectionEventAggregatorStreamContext
+            {
+                StreamId = stream.StreamId,
+                TargetVersion = stream.Stream[stream.Stream.Count - 1].Version,
+                CurrentVersion = stream.Stream[0].Version,
+                StreamCreated = stream.Stream[0].Time
+            };
+
+            bool hasBeenDeleted = false;
 
             foreach (var evt in stream.Stream)
             {
                 try
                 {
+                    // retrieve the Aggregator
                     IEventAggregator<TEntity> applier = _services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
-                    ulong previousVersion = target.Version;
+
+                    ulong previousVersion = (hasBeenDeleted ? evt.Version :  target.Version);
+
+                    // create a context for the current event which is aggregated
+                    context = context with
+                    {
+                        CurrentVersion = evt.Version,
+                        EventTime = evt.Time
+                    };
+
+                    // reset hasBeenDeleted flag
+                    if (hasBeenDeleted)
+                    {
+                        hasBeenDeleted = false;
+                    }
+
                     target = await applier.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
 
                     if (target == null)
                     {
                         _logger.LogInformation("Entity has been deleted at {Version}", previousVersion);
-                        break;
+                        hasBeenDeleted = true;
                     }
                     else if (target.Version == previousVersion && (previousVersion > _options.Value.StartVersion || !isFirstEvent))
                     {

@@ -1,15 +1,15 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using AutoFixture.Xunit2;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Newtonsoft.Json.Linq;
+using Papst.EventStore.Abstractions.Extensions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Xunit;
-using Papst.EventStore.Abstractions.Extensions;
-using Moq;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using AutoFixture.Xunit2;
-using Microsoft.Extensions.Configuration;
 
 namespace Papst.EventStore.Abstractions.Tests
 {
@@ -23,7 +23,7 @@ namespace Papst.EventStore.Abstractions.Tests
             IServiceProvider services = ((IServiceCollection)new ServiceCollection())
                .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-               .AddEventStreamApplier(GetType().Assembly)
+               .AddEventStreamAggregator(GetType().Assembly)
                .BuildServiceProvider();
 
             var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
@@ -39,20 +39,71 @@ namespace Papst.EventStore.Abstractions.Tests
 
             TestEntity entity = new TestEntity { Foo = 15 };
 
-            entity = await applier.ApplyAsync(mock.Object, entity).ConfigureAwait(false);
+            entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
             entity.Foo.Should().Be(16);
         }
 
         [Theory, AutoData]
+        public async Task ShouldDeleteEntity(TestEntity entity)
+        {
+            Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
+            IServiceProvider services = ((IServiceCollection)new ServiceCollection())
+                .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+                .AddEventStreamAggregator(GetType().Assembly)
+                .BuildServiceProvider();
+
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
+
+            var mock = new Mock<IEventStream>();
+            mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
+            {
+                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = typeof(TestDeletedEvent) }
+            });
+
+            entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
+
+            entity.Should().BeNull();
+        }
+
+        [Theory, AutoData]
+        public async Task ShouldResumeAfterDeletion(TestEntity entity)
+        {
+            Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
+            IServiceProvider services = ((IServiceCollection)new ServiceCollection())
+                .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+                .AddEventStreamAggregator(GetType().Assembly)
+                .BuildServiceProvider();
+
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
+
+            var mock = new Mock<IEventStream>();
+            mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
+            {
+                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = typeof(TestDeletedEvent) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestRestoredEvent()), DataType = typeof(TestRestoredEvent)}
+            });
+
+            entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
+
+            entity.Should().NotBeNull();
+        }
+
+        [Theory, AutoData]
         public async Task ShouldIncrementVersion(ulong startVersion)
         {
-            var loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
+            Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
 
             IServiceProvider services = ((IServiceCollection)new ServiceCollection())
                 .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
                 .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-                .AddEventStreamApplier(GetType().Assembly)
+                .AddEventStreamAggregator(GetType().Assembly)
                 .BuildServiceProvider();
             var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
             var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
@@ -65,7 +116,7 @@ namespace Papst.EventStore.Abstractions.Tests
 
             TestEntity entity = new TestEntity { Foo = 15, Version = startVersion };
 
-            entity = await applier.ApplyAsync(mock.Object, entity).ConfigureAwait(false);
+            entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
             entity.Version.Should().Be(startVersion + 1);
         }
@@ -104,6 +155,37 @@ namespace Papst.EventStore.Abstractions.Tests
 
             public Task<TestEntity> ApplyAsync(JObject eventInstance, TestEntity entityInstance, IAggregatorStreamContext context)
                 => ApplyAsync(eventInstance.ToObject<TestEvent>(), entityInstance, context);
+        }
+
+        private class TestDeletedEvent
+        { }
+
+        private class TestDeletedEventAggregator : IEventAggregator<TestEntity, TestDeletedEvent>
+        {
+            public Task<TestEntity> ApplyAsync(TestDeletedEvent evt, TestEntity entity, IAggregatorStreamContext ctx)
+            {
+                entity = null;
+
+                return Task.FromResult(entity);
+            }
+
+            public Task<TestEntity> ApplyAsync(JObject evt, TestEntity entity, IAggregatorStreamContext ctx)
+                => ApplyAsync(evt.ToObject<TestDeletedEvent>(), entity, ctx);
+        }
+
+        private class TestRestoredEvent { }
+
+        private class TestRestoredEventAggregator : IEventAggregator<TestEntity, TestRestoredEvent>
+        {
+            public Task<TestEntity> ApplyAsync(TestRestoredEvent evt, TestEntity entity, IAggregatorStreamContext ctx)
+            {
+                entity = new TestEntity();
+
+                return Task.FromResult(entity);
+            }
+
+            public Task<TestEntity> ApplyAsync(JObject evt, TestEntity entity, IAggregatorStreamContext ctx)
+            => ApplyAsync(evt.ToObject<TestRestoredEvent>(), entity, ctx);
         }
     }
 }

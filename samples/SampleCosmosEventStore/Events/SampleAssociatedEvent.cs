@@ -1,15 +1,20 @@
 ﻿using Papst.EventStore.Abstractions;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SampleCosmosEventStore.Events
 {
-    internal class SampleAssociatedEvent : IAggregatableEvent<SampleEntity>
+    public class SampleAssociatedEvent
     {
         public string Name { get; set; }
+    }
 
-        public void Apply(SampleEntity eventInstance)
+    internal class SampleAssociatedEventAggregator : EventAggregatorBase<SampleEntity, SampleAssociatedEvent>
+    {
+        public override Task<SampleEntity> ApplyAsync(SampleAssociatedEvent evt, SampleEntity entity, IAggregatorStreamContext ctx)
         {
-            (eventInstance.Associated ??= new List<string>()).Add(Name);
+            (entity.Associated ??= new List<string>()).Add(evt.Name);
+            return Task.FromResult(entity);
         }
     }
 }

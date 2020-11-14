@@ -21,7 +21,6 @@ namespace Papst.EventStore.CosmosDb
         private readonly ILogger<CosmosEventStore> _logger;
         private readonly EventStoreCosmosClient _client;
         private readonly IOptions<EventStoreOptions> _options;
-        private bool _alreadyInitialized = false;
 
         public CosmosEventStore(EventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options)
         {
@@ -309,29 +308,11 @@ namespace Papst.EventStore.CosmosDb
 
         private async Task<Container> InitAsync(CancellationToken token)
         {
-            if (_client.Options.InitializeOnStartup && !_alreadyInitialized)
+            if (_client.Options.InitializeOnStartup)
             {
-                _logger.LogInformation("Initializing Database");
-
-                DatabaseResponse db = await _client.CreateDatabaseIfNotExistsAsync(_client.Options.Database, cancellationToken: token).ConfigureAwait(false);
-                if (db.StatusCode == System.Net.HttpStatusCode.Created)
-                {
-                    _logger.LogInformation("Created Database {Database} in Cosmos DB", _client.Options.Database);
-                }
-                ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(_client.Options.Collection, "/StreamId", cancellationToken: token).ConfigureAwait(false);
-                if (container.StatusCode == System.Net.HttpStatusCode.Created)
-                {
-                    _logger.LogInformation("Created Container {Container} in {Database}", _client.Options.Collection, _client.Options.Database);
-                }
-
-                _alreadyInitialized = true;
-
-                return container.Container;
+                await _client.InitializeAsync(token).ConfigureAwait(false);
             }
-            else
-            {
-                return _client.GetContainer(_client.Options.Database, _client.Options.Collection);
-            }
+            return _client.GetContainer(_client.Options.Database, _client.Options.Collection);
         }
 
         private EventStreamDocumentEntity Map(EventStreamDocument doc) => new EventStreamDocumentEntity

@@ -1,14 +1,20 @@
 ﻿using Papst.EventStore.Abstractions;
+using System.Threading.Tasks;
 
 namespace SampleCosmosEventStore.Events
 {
-    class SampleAssociationRemovedEvent : IAggregatableEvent<SampleEntity>
+    public class SampleAssociationRemovedEvent
     {
         public string Name { get; set; }
+    }
 
-        public void Apply(SampleEntity eventInstance)
+    internal class SampleAssociationRemovedEventAggregatore : EventAggregatorBase<SampleEntity, SampleAssociationRemovedEvent>
+    {
+        public override Task<SampleEntity> ApplyAsync(SampleAssociationRemovedEvent evt, SampleEntity entity, IAggregatorStreamContext ctx)
         {
-            eventInstance.Associated.Remove(Name);
+            entity.Associated.Remove(evt.Name);
+
+            return Task.FromResult(entity);
         }
     }
 }

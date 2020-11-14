@@ -33,6 +33,8 @@ namespace SampleCosmosEventStore
             var serviceProvider = new ServiceCollection()
                 // adds the cosmos event store
                 .AddCosmosEventStore(config.GetSection(_section))
+                // adds the Aggregator
+                .AddEventStreamAggregator(typeof(Program).Assembly)
                 // adds logging, needed for CosmosEventStore
                 .AddLogging(opt =>
                 {
@@ -94,7 +96,7 @@ namespace SampleCosmosEventStore
 
             IEventStreamAggregator<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamAggregator<SampleEntity>>();
 
-            Console.WriteLine(JsonConvert.SerializeObject(applier.ApplyAsync(stream), Formatting.Indented));
+            Console.WriteLine(JsonConvert.SerializeObject(applier.AggregateAsync(stream), Formatting.Indented));
         }
     }
 }

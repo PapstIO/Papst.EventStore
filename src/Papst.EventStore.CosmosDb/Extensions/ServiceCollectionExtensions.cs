@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Abstractions;
-using Papst.EventStore.Abstractions.Extensions;
 
 namespace Papst.EventStore.CosmosDb.Extensions
 {

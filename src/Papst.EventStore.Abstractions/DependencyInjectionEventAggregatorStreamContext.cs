@@ -2,16 +2,22 @@
 
 namespace Papst.EventStore.Abstractions
 {
-    internal class DependencyInjectionEventAggregatorStreamContext : IAggregatorStreamContext
+    /// <inheritdoc/>
+    internal record DependencyInjectionEventAggregatorStreamContext : IAggregatorStreamContext
     {
-        public Guid StreamId { get; }
+        /// <inheritdoc/>
+        public Guid StreamId { get; init; }
 
-        public ulong TargetVersion { get; }
+        /// <inheritdoc/>
+        public ulong TargetVersion { get; init; }
 
-        public DependencyInjectionEventAggregatorStreamContext(Guid streamId, ulong targetVersion)
-        {
-            StreamId = streamId;
-            TargetVersion = targetVersion;
-        }
+        /// <inheritdoc/>
+        public ulong CurrentVersion { get; init; }
+
+        /// <inheritdoc/>
+        public DateTimeOffset StreamCreated { get; init; }
+
+        /// <inheritdoc/>
+        public DateTimeOffset EventTime { get; init; }
     }
 }
