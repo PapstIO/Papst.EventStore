@@ -1,7 +1,7 @@
 {
-  "version": "3.0",
+  "version": "v3.0",
   "publicReleaseRefSpec": [
-    "^refs/heads/main", 
+    "^refs/heads/main"
   ],
   "nugetPackageVersion": {
     "semVer": 2
