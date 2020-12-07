@@ -36,5 +36,9 @@ namespace Papst.EventStore.Abstractions.Exceptions
         public EventStreamVersionMismatchException(string message) : base(message) { }
 
         public EventStreamVersionMismatchException(string message, Exception innerException) : base(message, innerException) { }
+
+        public EventStreamVersionMismatchException(Guid streamId, string message) : base(streamId, message) { }
+
+        public EventStreamVersionMismatchException(Guid streamId, string message, Exception innerException) : base(streamId, message, innerException) { }
     }
 }

@@ -33,8 +33,9 @@ namespace Papst.EventStore.Abstractions
         /// <param name="stream"></param>
         /// <param name="target"></param>
         /// <returns></returns>
-        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity target)
+        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget)
         {
+            TEntity? target = originalTarget;
             // the interface type to retrieve from DI
             Type eventApplierType = typeof(IEventAggregator<,>);
 
@@ -57,10 +58,15 @@ namespace Papst.EventStore.Abstractions
                 try
                 {
                     // retrieve the Aggregator
-                    IEventAggregator<TEntity> applier = _services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>;
+                    IEventAggregator<TEntity> applier = (_services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>)!;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
 
-                    ulong previousVersion = (hasBeenDeleted ? evt.Version :  target.Version);
+                    if (target == null)
+                    {
+                        target = new TEntity();
+                    }
+
+                    ulong previousVersion = (hasBeenDeleted ? evt.Version : target.Version);
 
                     // create a context for the current event which is aggregated
                     context = context with
