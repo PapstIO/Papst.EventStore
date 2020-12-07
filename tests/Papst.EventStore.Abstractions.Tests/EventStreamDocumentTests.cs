@@ -1,5 +1,6 @@
 using AutoFixture.Xunit2;
 using FluentAssertions;
+using FluentAssertions.Common;
 using Newtonsoft.Json;
 using System;
 using Xunit;
@@ -58,10 +59,12 @@ namespace Papst.EventStore.Abstractions.Tests
         {
             doc.Should().NotBeNull();
 
-            JsonConvert.DeserializeObject<EventStreamDocument>(JsonConvert.SerializeObject(doc))
+            EventStreamDocument deserialized = JsonConvert.DeserializeObject<EventStreamDocument>(JsonConvert.SerializeObject(doc));
+
+            deserialized
                 .Should()
-                .NotBeNull()
-                .And.BeEquivalentTo(doc);
+                .NotBeNull();
+            deserialized.IsSameOrEqualTo(doc);
         }
     }
 }
