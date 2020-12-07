@@ -14,7 +14,7 @@ namespace Papst.EventStore.Abstractions
         where TEntity: class
     {
         /// <inheritdoc/>
-        public abstract Task<TEntity> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
+        public abstract Task<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
 
         /// <summary>
         /// Calls <see cref="ApplyAsync(TEvent, TEntity)"/> by converting the <see cref="JObject"/> to <see cref="TEvent"/>
@@ -23,17 +23,7 @@ namespace Papst.EventStore.Abstractions
         /// <param name="entity"></param>
         /// <param name="ctx"></param>
         /// <returns></returns>
-        public Task<TEntity> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx)
-            => ApplyAsync(evt.ToObject<TEvent>(), entity, ctx);
+        public Task<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx)
+            => ApplyAsync(evt.ToObject<TEvent>()!, entity, ctx);
     }
-
-    /// <summary>
-    /// Obsolete, use <see cref="EventAggregatorBase{TEntity, TEvent}"/> instead
-    /// </summary>
-    /// <typeparam name="TEntity"></typeparam>
-    /// <typeparam name="TEvent"></typeparam>
-    [Obsolete("Use EventAggregatorBase instead", error: true)]
-    public abstract class BaseEventApplier<TEntity, TEvent> : EventAggregatorBase<TEntity, TEvent>
-        where TEntity: class
-    { }
 }

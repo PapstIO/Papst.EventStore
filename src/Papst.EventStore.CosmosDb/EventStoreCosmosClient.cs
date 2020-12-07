@@ -11,7 +11,7 @@ namespace Papst.EventStore.CosmosDb
     /// </summary>
     internal class EventStoreCosmosClient : CosmosClient
     {
-        private readonly ILogger<EventStoreCosmosClient> _logger;
+        private readonly ILogger<EventStoreCosmosClient>? _logger;
 
         public CosmosEventStoreOptions Options { get; internal set; }
 
@@ -39,17 +39,17 @@ namespace Papst.EventStore.CosmosDb
         {
             if (!IsAlreadyInitialized)
             {
-                _logger.LogInformation("Initializing Database");
+                _logger?.LogInformation("Initializing Database");
 
                 DatabaseResponse db = await CreateDatabaseIfNotExistsAsync(Options.Database, cancellationToken: token).ConfigureAwait(false);
                 if (db.StatusCode == System.Net.HttpStatusCode.Created)
                 {
-                    _logger.LogInformation("Created Database {Database} in Cosmos DB", Options.Database);
+                    _logger?.LogInformation("Created Database {Database} in Cosmos DB", Options.Database);
                 }
                 ContainerResponse container = await db.Database.CreateContainerIfNotExistsAsync(Options.Collection, "/StreamId", cancellationToken: token).ConfigureAwait(false);
                 if (container.StatusCode == System.Net.HttpStatusCode.Created)
                 {
-                    _logger.LogInformation("Created Container {Container} in {Database}", Options.Collection, Options.Database);
+                    _logger?.LogInformation("Created Container {Container} in {Database}", Options.Collection, Options.Database);
                 }
                 IsAlreadyInitialized = true;
             }
