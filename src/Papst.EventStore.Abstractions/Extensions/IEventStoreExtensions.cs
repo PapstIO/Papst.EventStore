@@ -35,10 +35,10 @@ namespace Papst.EventStore.Abstractions.Extensions
             ulong expectedVersion,
             TDocument document,
             Guid? userId = null,
-            string username = null,
+            string? username = null,
             Guid? tenantId = null,
-            string comment = null,
-            Dictionary<string, string> additional = null,
+            string? comment = null,
+            Dictionary<string, string>? additional = null,
             CancellationToken token = default
         )
             where TDocument: class
@@ -92,10 +92,10 @@ namespace Papst.EventStore.Abstractions.Extensions
             string name,
             TDocument document,
             Guid? userId = null,
-            string username = null,
+            string? username = null,
             Guid? tenantId = null,
-            string comment = null,
-            Dictionary<string, string> additional = null,
+            string? comment = null,
+            Dictionary<string, string>? additional = null,
             CancellationToken token = default
         )
             where TDocument : class

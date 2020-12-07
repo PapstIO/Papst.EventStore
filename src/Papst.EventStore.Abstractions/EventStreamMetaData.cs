@@ -11,26 +11,26 @@ namespace Papst.EventStore.Abstractions
         /// <summary>
         /// Id of the User that caused the Document
         /// </summary>
-        public Guid? UserId { get; set; }
+        public Guid? UserId { get; init; }
 
         /// <summary>
         /// Name of the User that caused the Document
         /// </summary>
-        public string UserName { get; set; }
+        public string? UserName { get; init; }
 
         /// <summary>
         /// Optional: TenantId
         /// </summary>
-        public Guid? TenantId { get; set; }
+        public Guid? TenantId { get; init; }
 
         /// <summary>
         /// Comment if available
         /// </summary>
-        public string Comment { get; set; }
+        public string? Comment { get; init; }
 
         /// <summary>
         /// Additional Meta Data Properties
         /// </summary>
-        public Dictionary<string, string> Additional { get; set; }
+        public Dictionary<string, string>? Additional { get; init; }
     }
 }

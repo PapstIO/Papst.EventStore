@@ -339,8 +339,8 @@ namespace Papst.EventStore.CosmosDb
             Time = doc.Time,
             Name = doc.Name,
             Data = doc.Data,
-            DataType = Type.GetType(doc.DataType),
-            TargetType = Type.GetType(doc.TargetType),
+            DataType = Type.GetType(doc.DataType)!,
+            TargetType = Type.GetType(doc.TargetType)!,
             MetaData = doc.MetaData,
         };
 

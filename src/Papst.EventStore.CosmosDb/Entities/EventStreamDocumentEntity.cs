@@ -12,7 +12,7 @@ namespace Papst.EventStore.CosmosDb.Entities
     public class EventStreamDocumentEntity
     {
         [JsonProperty("id")]
-        public string Id { get; set; }
+        public string Id { get; set; } = null!;
 
         /// <summary>
         /// The Unique Event Id
@@ -44,26 +44,26 @@ namespace Papst.EventStore.CosmosDb.Entities
         /// <summary>
         /// Name of the Event
         /// </summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         /// <summary>
         /// Data of the Event as JSON Object
         /// </summary>
-        public JObject Data { get; set; }
+        public JObject Data { get; set; } = null!;
 
         /// <summary>
         /// Type of the Data
         /// </summary>
-        public string DataType { get; set; }
+        public string DataType { get; set; } = null!;
 
         /// <summary>
         /// The type on which the Event will be applied
         /// </summary>
-        public string TargetType { get; set; }
+        public string TargetType { get; set; } = null!;
 
         /// <summary>
         /// Metadata for the Event
         /// </summary>
-        public EventStreamMetaData MetaData { get; set; }
+        public EventStreamMetaData MetaData { get; set; } = null!;
     }
 }
