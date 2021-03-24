@@ -15,7 +15,7 @@ namespace Papst.EventStore.CosmosDb.Extensions
         /// <param name="services"></param>
         /// <param name="config"></param>
         /// <returns></returns>
-        public static IServiceCollection AddCosmosEventStore(this IServiceCollection services, IConfigurationSection config) => services
+        public static IServiceCollection AddCosmosEventStore(this IServiceCollection services, IConfiguration config) => services
             .Configure<CosmosEventStoreOptions>(c => config.Bind(c))
             .AddCosmosServices()
             ;
