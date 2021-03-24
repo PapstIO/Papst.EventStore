@@ -25,5 +25,20 @@ namespace Papst.EventStore.Abstractions
         /// <returns></returns>
         public Task<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx)
             => ApplyAsync(evt.ToObject<TEvent>()!, entity, ctx);
+
+
+        /// <summary>
+        /// Executes the <paramref name="setter"/> action when <paramref name="value"/> is not null
+        /// </summary>
+        /// <typeparam name="TProperty"></typeparam>
+        /// <param name="setter"></param>
+        /// <param name="value"></param>
+        protected void SetIfNotNull<TProperty>(Action<TProperty> setter, TProperty? value)
+        {
+            if (value != null)
+            {
+                setter(value);
+            }
+        }
     }
 }
