@@ -13,7 +13,7 @@ namespace Papst.EventStore.CosmosDb
         public Guid StreamId { get; }
 
         /// <inheritdoc/>
-        public EventStreamDocument LatestSnapShot => _documents?.Where(doc => doc.DocumentType == EventStreamDocumentType.Snapshot).LastOrDefault();
+        public EventStreamDocument? LatestSnapShot => _documents.LastOrDefault(doc => doc.DocumentType == EventStreamDocumentType.Snapshot);
 
         /// <inheritdoc/>
         public IReadOnlyList<EventStreamDocument> Stream => _documents;

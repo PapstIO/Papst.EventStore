@@ -16,7 +16,7 @@ namespace Papst.EventStore.Abstractions
         /// <summary>
         /// The Latest Snapshop that has been fetched (if available)
         /// </summary>
-        EventStreamDocument LatestSnapShot { get; }
+        EventStreamDocument? LatestSnapShot { get; }
 
         /// <summary>
         /// The fetched Documents

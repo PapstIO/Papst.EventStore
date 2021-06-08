@@ -19,10 +19,10 @@ namespace Papst.EventStore.CosmosDb
     internal class CosmosEventStore : IEventStore
     {
         private readonly ILogger<CosmosEventStore> _logger;
-        private readonly EventStoreCosmosClient _client;
+        private readonly IEventStoreCosmosClient _client;
         private readonly IOptions<EventStoreOptions> _options;
 
-        public CosmosEventStore(EventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options)
+        public CosmosEventStore(IEventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -224,7 +224,7 @@ namespace Papst.EventStore.CosmosDb
             Container container = await InitAsync(token).ConfigureAwait(false);
 
             // try to get Stream
-            QueryDefinition streamQuery = new QueryDefinition($"SELECT TOP 1 * FROM {_client.Options.Collection} e WHERE e.StreamId = @streamId")
+            QueryDefinition streamQuery = new QueryDefinition($"SELECT TOP 1 * FROM {_client.Collection} e WHERE e.StreamId = @streamId")
                 .WithParameter("@streamId", streamId);
             FeedIterator<EventStreamDocumentEntity> streamIterator = container.GetItemQueryIterator<EventStreamDocumentEntity>(streamQuery);
             var streamResults = await streamIterator.ReadNextAsync(token).ConfigureAwait(false);
@@ -242,7 +242,7 @@ namespace Papst.EventStore.CosmosDb
             if (result.StatusCode == System.Net.HttpStatusCode.Created)
             {
                 _logger.LogInformation("Created {Stream}", streamId);
-                return new CosmosEventStream(streamId, new [] { Map(result.Resource) });
+                return new CosmosEventStream(streamId, new[] { Map(result.Resource) });
             }
             else if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
@@ -308,11 +308,11 @@ namespace Papst.EventStore.CosmosDb
 
         private async Task<Container> InitAsync(CancellationToken token)
         {
-            if (_client.Options.InitializeOnStartup)
+            if (_client.InitializeOnStartup)
             {
                 await _client.InitializeAsync(token).ConfigureAwait(false);
             }
-            return _client.GetContainer(_client.Options.Database, _client.Options.Collection);
+            return _client.GetContainer();
         }
 
         private EventStreamDocumentEntity Map(EventStreamDocument doc) => new EventStreamDocumentEntity
@@ -360,7 +360,7 @@ namespace Papst.EventStore.CosmosDb
             documentEntity.StreamId = lastStreamDoc.StreamId;
             // overwrite the ID
             documentEntity.Id = GetDocumentId(lastStreamDoc.StreamId, doc.DocumentType, documentEntity.Version);
-            if (!_client.Options.AllowTimeOverride)
+            if (!_client.AllowTimeOverride)
             {
                 documentEntity.Time = DateTimeOffset.Now;
             }
