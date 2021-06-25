@@ -142,7 +142,7 @@ namespace Papst.EventStore.Abstractions.Extensions
         /// <param name="additional"></param>
         /// <param name="token"></param>
         /// <returns></returns>
-        public static Task<EventStoreResult> AppendSnapshotAsync<TTargetType(
+        public static Task<EventStoreResult> AppendSnapshotAsync<TTargetType>(
             this IEventStore store,
             Guid streamId,
             string name,
