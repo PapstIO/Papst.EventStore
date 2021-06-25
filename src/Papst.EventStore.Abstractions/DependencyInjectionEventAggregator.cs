@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Papst.EventStore.Abstractions
@@ -20,20 +21,24 @@ namespace Papst.EventStore.Abstractions
             _options = options;
         }
 
+        /// <inheritdoc/>
         public async Task<TEntity> AggregateAsync(IEventStream stream)
+            => await AggregateAsync(stream, stream.Stream[stream.Stream.Count - 1].Version);
+
+        /// <inheritdoc/>
+        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget)
+            => await AggregateAsync(stream, originalTarget, stream.Stream[stream.Stream.Count - 1].Version);
+
+        /// <inheritdoc/>
+        public async Task<TEntity> AggregateAsync(IEventStream stream, ulong targetVersion)
         {
-            _logger.LogDebug("Creating new Entity");
+            _logger.LogDebug("Creating new Entity for {Type} and {StreamId}", typeof(TEntity), stream.StreamId);
             // create the Entity using the StartVersion - 1 because the Aggregator will increment it after applying the first Event
             return await AggregateAsync(stream, new TEntity() { Version = _options.Value.StartVersion == 0 ? 0 : _options.Value.StartVersion - 1 }).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Apply the Stream
-        /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="target"></param>
-        /// <returns></returns>
-        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget)
+        /// <inheritdoc/>
+        public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget, ulong targetVersion)
         {
             TEntity? target = originalTarget;
             // the interface type to retrieve from DI
@@ -53,20 +58,23 @@ namespace Papst.EventStore.Abstractions
 
             bool hasBeenDeleted = false;
 
-            foreach (var evt in stream.Stream)
+            foreach (var evt in stream.Stream.Where(doc => doc.Version <= targetVersion))
             {
                 try
                 {
                     // retrieve the Aggregator
                     IEventAggregator<TEntity> applier = (_services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>)!;
                     _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
+                    ulong previousVersion = (hasBeenDeleted || target == null ? evt.Version : target.Version);
 
                     if (target == null)
                     {
-                        target = new TEntity();
+                        target = new TEntity()
+                        {
+                            Version = previousVersion
+                        };
                     }
 
-                    ulong previousVersion = (hasBeenDeleted ? evt.Version : target.Version);
 
                     // create a context for the current event which is aggregated
                     context = context with

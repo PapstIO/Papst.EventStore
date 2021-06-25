@@ -7,7 +7,6 @@ using Newtonsoft.Json.Linq;
 using Papst.EventStore.Abstractions.Extensions;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -119,6 +118,36 @@ namespace Papst.EventStore.Abstractions.Tests
             entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
             entity.Version.Should().Be(startVersion + 1);
+        }
+
+        [Fact]
+        public async Task ShouldAggregateToVersion()
+        {
+            Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
+
+            IServiceProvider services = ((IServiceCollection)new ServiceCollection())
+                .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+                .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+                .AddEventStreamAggregator(GetType().Assembly)
+                .BuildServiceProvider();
+            var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+            var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
+
+            var mock = new Mock<IEventStream>();
+            mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
+            {
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 0 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 1 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 2 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 3 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 4 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 5 },
+            });
+
+            TestEntity entity = new TestEntity() { Foo = 15, Version = 0 };
+
+            entity = await applier.AggregateAsync(mock.Object, entity, 4);
+            entity.Version.Should().Be(4);
         }
 
         public class TestSelfVersionIncrementingEvent
