@@ -11,7 +11,7 @@ namespace Papst.EventStore.Abstractions
     /// <typeparam name="TEntity"></typeparam>
     /// <typeparam name="TEvent"></typeparam>
     public abstract class EventAggregatorBase<TEntity, TEvent> : IEventAggregator<TEntity, TEvent>
-        where TEntity: class
+        where TEntity : class
     {
         /// <inheritdoc/>
         public abstract Task<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
@@ -40,5 +40,12 @@ namespace Papst.EventStore.Abstractions
                 setter(value);
             }
         }
+
+        /// <summary>
+        /// Returns the given Entity wrapped in a Task
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        public Task<TEntity?> AsTask(TEntity? entity) => Task.FromResult(entity);
     }
 }
