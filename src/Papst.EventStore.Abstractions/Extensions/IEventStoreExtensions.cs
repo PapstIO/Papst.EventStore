@@ -41,7 +41,7 @@ namespace Papst.EventStore.Abstractions.Extensions
             Dictionary<string, string>? additional = null,
             CancellationToken token = default
         )
-            where TDocument: class
+            where TDocument : class
         {
             return store.AppendAsync(
                 streamId,
@@ -124,6 +124,59 @@ namespace Papst.EventStore.Abstractions.Extensions
                 },
                 token
                 );
+        }
+
+        /// <summary>
+        /// Creates a Snapshot at the end of the current Stream
+        /// </summary>
+        /// <typeparam name="TTargetType"></typeparam>
+        /// <param name="store"></param>
+        /// <param name="streamId"></param>
+        /// <param name="name"></param>
+        /// <param name="expectedVersion"></param>
+        /// <param name="entity"></param>
+        /// <param name="userId"></param>
+        /// <param name="username"></param>
+        /// <param name="tenantId"></param>
+        /// <param name="comment"></param>
+        /// <param name="additional"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public static Task<EventStoreResult> AppendSnapshotAsync<TTargetType(
+            this IEventStore store,
+            Guid streamId,
+            string name,
+            ulong expectedVersion,
+            TTargetType entity,
+            Guid? userId = null,
+            string? username = null,
+            Guid? tenantId = null,
+            string? comment = null,
+            Dictionary<string, string>? additional = null,
+            CancellationToken token = default
+        )
+            where TTargetType : IEntity
+        {
+            return store.AppendSnapshotAsync(streamId, expectedVersion, new EventStreamDocument
+            {
+                Id = Guid.NewGuid(),
+                StreamId = streamId,
+                DocumentType = EventStreamDocumentType.Snapshot,
+                Data = JObject.FromObject(entity),
+                DataType = typeof(TTargetType),
+                TargetType = typeof(TTargetType),
+                Name = name,
+                Time = DateTimeOffset.Now,
+                Version = 0,
+                MetaData = new EventStreamMetaData
+                {
+                    UserId = userId,
+                    UserName = username,
+                    Comment = comment,
+                    TenantId = tenantId,
+                    Additional = additional
+                },
+            });
         }
     }
 }
