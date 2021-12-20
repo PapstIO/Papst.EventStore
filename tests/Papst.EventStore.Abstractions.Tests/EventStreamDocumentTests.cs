@@ -5,66 +5,65 @@ using Newtonsoft.Json;
 using System;
 using Xunit;
 
-namespace Papst.EventStore.Abstractions.Tests
+namespace Papst.EventStore.Abstractions.Tests;
+
+public class EventStreamDocumentTests
 {
-    public class EventStreamDocumentTests
+  [Theory, AutoData]
+  public void TestEventStreamDocumentInitialization(
+      Guid id,
+      Guid streamid,
+      EventStreamDocumentType docType,
+      ulong version,
+      DateTimeOffset time,
+      string name,
+      Type t)
+  {
+    var doc = new EventStreamDocument()
     {
-        [Theory, AutoData]
-        public void TestEventStreamDocumentInitialization(
-            Guid id,
-            Guid streamid,
-            EventStreamDocumentType docType,
-            ulong version,
-            DateTimeOffset time,
-            string name,
-            Type t)
-        {
-            var doc = new EventStreamDocument()
-            {
-                Id = id,
-                StreamId = streamid,
-                DocumentType = docType,
-                Version = version,
-                Time = time,
-                Name = name,
-                Data = null,
-                DataType = t,
-                MetaData = null
-            };
+      Id = id,
+      StreamId = streamid,
+      DocumentType = docType,
+      Version = version,
+      Time = time,
+      Name = name,
+      Data = null,
+      DataType = t,
+      MetaData = null
+    };
 
-            doc.Should().NotBeNull();
-            doc.Id.Should().NotBeEmpty().And.Be(id);
-            doc.StreamId.Should().NotBeEmpty().And.Be(streamid);
-            doc.DocumentType.Should().Be(docType);
-            doc.Version.Should().Be(version);
-            doc.Time.Should().Be(time);
-            doc.Name.Should().Be(name);
-            doc.DataType.Should().Be(t);
-            doc.Data.Should().BeNull();
-            doc.MetaData.Should().BeNull();
-        }
+    doc.Should().NotBeNull();
+    doc.Id.Should().NotBeEmpty().And.Be(id);
+    doc.StreamId.Should().NotBeEmpty().And.Be(streamid);
+    doc.DocumentType.Should().Be(docType);
+    doc.Version.Should().Be(version);
+    doc.Time.Should().Be(time);
+    doc.Name.Should().Be(name);
+    doc.DataType.Should().Be(t);
+    doc.Data.Should().BeNull();
+    doc.MetaData.Should().BeNull();
+  }
 
-        [Theory, AutoData]
-        public void TestEventStreamDocumentSerialization(EventStreamDocument doc)
-        {
-            doc.Should().NotBeNull();
+  [Theory, AutoData]
+  public void TestEventStreamDocumentSerialization(EventStreamDocument doc)
+  {
+    doc.Should().NotBeNull();
 
-            string serialized = JsonConvert.SerializeObject(doc);
+    string serialized = JsonConvert.SerializeObject(doc);
 
-            serialized.Should().NotBeNull().And.NotBeEmpty().And.StartWith("{");
-        }
+    serialized.Should().NotBeNull().And.NotBeEmpty().And.StartWith("{");
+  }
 
-        [Theory, AutoData]
-        public void TestEventStreamDocumentDeserialization(EventStreamDocument doc)
-        {
-            doc.Should().NotBeNull();
+  [Theory, AutoData]
+  public void TestEventStreamDocumentDeserialization(EventStreamDocument doc)
+  {
+    doc.Should().NotBeNull();
 
-            EventStreamDocument deserialized = JsonConvert.DeserializeObject<EventStreamDocument>(JsonConvert.SerializeObject(doc));
+    EventStreamDocument deserialized = JsonConvert.DeserializeObject<EventStreamDocument>(JsonConvert.SerializeObject(doc));
 
-            deserialized
-                .Should()
-                .NotBeNull();
-            deserialized.IsSameOrEqualTo(doc);
-        }
-    }
+    deserialized
+        .Should()
+        .NotBeNull();
+    deserialized.IsSameOrEqualTo(doc);
+  }
 }

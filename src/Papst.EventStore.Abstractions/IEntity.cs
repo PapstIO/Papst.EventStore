@@ -1,7 +1,6 @@
-﻿namespace Papst.EventStore.Abstractions
+﻿namespace Papst.EventStore.Abstractions;
+
+public interface IEntity
 {
-    public interface IEntity
-    {
-        ulong Version { get; set; }
-    }
+  ulong Version { get; set; }
 }

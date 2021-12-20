@@ -10,17 +10,17 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace SampleCosmosEventStore
-{
-    public static class Program
-    {
-        private const string _section = "cosmos";
+namespace SampleCosmosEventStore;
 
-        public static async Task Main()
+public static class Program
+{
+  private const string _section = "cosmos";
+
+  public static async Task Main()
+  {
+    var config = new ConfigurationBuilder()
+        .AddInMemoryCollection(new[]
         {
-            var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new[]
-                {
                     // Endpoint is local emulator
                     new KeyValuePair<string, string>($"{_section}:Endpoint", "https://localhost:8081"),
                     new KeyValuePair<string, string>($"{_section}:AccountSecret", "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="),
@@ -28,75 +28,74 @@ namespace SampleCosmosEventStore
                     new KeyValuePair<string, string>($"{_section}:Database", "EventStoreSample"),
                     new KeyValuePair<string, string>($"{_section}:Collection", "Events"),
                     new KeyValuePair<string, string>($"{_section}:StartVersion", "0") // start with version 1 for new streams
-                }).Build();
+        }).Build();
 
-            var serviceProvider = new ServiceCollection()
-                // adds the cosmos event store
-                .AddCosmosEventStore(config.GetSection(_section))
-                // adds the Aggregator
-                .AddEventStreamAggregator(typeof(Program).Assembly)
-                // adds logging, needed for CosmosEventStore
-                .AddLogging(opt =>
-                {
-                    opt.AddConsole();
-                    // logs all output to the console
-                    opt.SetMinimumLevel(LogLevel.Trace);
-                })
-                .BuildServiceProvider();
+    var serviceProvider = new ServiceCollection()
+        // adds the cosmos event store
+        .AddCosmosEventStore(config.GetSection(_section))
+        // adds the Aggregator
+        .AddEventStreamAggregator(typeof(Program).Assembly)
+        // adds logging, needed for CosmosEventStore
+        .AddLogging(opt =>
+        {
+          opt.AddConsole();
+                  // logs all output to the console
+                  opt.SetMinimumLevel(LogLevel.Trace);
+        })
+        .BuildServiceProvider();
 
-            IEventStore store = serviceProvider.GetRequiredService<IEventStore>();
+    IEventStore store = serviceProvider.GetRequiredService<IEventStore>();
 
-            Guid streamGuid = Guid.NewGuid();
-            var startEvent = new SampleCreatedEvent()
-            {
-                EventId = Guid.NewGuid(),
-                Name = "Hallo",
-                Foo = new Dictionary<string, object>()
-                {
-                    ["Foo"] = 124,
-                    ["Bar"] = "baz"
-                }
-            };
+    Guid streamGuid = Guid.NewGuid();
+    var startEvent = new SampleCreatedEvent()
+    {
+      EventId = Guid.NewGuid(),
+      Name = "Hallo",
+      Foo = new Dictionary<string, object>()
+      {
+        ["Foo"] = 124,
+        ["Bar"] = "baz"
+      }
+    };
 
-            // creates the initial Stream
-            IEventStream stream = await store.CreateEventStreamAsync<SampleCreatedEvent, SampleEntity>(
-                streamGuid,
-                nameof(SampleCreatedEvent),
-                startEvent
-            ).ConfigureAwait(false);
+    // creates the initial Stream
+    IEventStream stream = await store.CreateEventStreamAsync<SampleCreatedEvent, SampleEntity>(
+        streamGuid,
+        nameof(SampleCreatedEvent),
+        startEvent
+    ).ConfigureAwait(false);
 
-            var result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
-                streamGuid,
-                nameof(SampleAssociatedEvent),
-                0,
-                new SampleAssociatedEvent { Name = "Hallo" }
-                ).ConfigureAwait(false);
+    var result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
+        streamGuid,
+        nameof(SampleAssociatedEvent),
+        0,
+        new SampleAssociatedEvent { Name = "Hallo" }
+        ).ConfigureAwait(false);
 
-            Console.WriteLine(JsonConvert.SerializeObject(result));
+    Console.WriteLine(JsonConvert.SerializeObject(result));
 
-            result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
-                streamGuid,
-                nameof(SampleAssociatedEvent),
-                1,
-                new SampleAssociatedEvent { Name = "Papst" }
-            ).ConfigureAwait(false);
+    result = await store.AppendEventAsync<SampleAssociatedEvent, SampleEntity>(
+        streamGuid,
+        nameof(SampleAssociatedEvent),
+        1,
+        new SampleAssociatedEvent { Name = "Papst" }
+    ).ConfigureAwait(false);
 
-            Console.WriteLine(JsonConvert.SerializeObject(result));
+    Console.WriteLine(JsonConvert.SerializeObject(result));
 
-            result = await store.AppendEventAsync<SampleAssociationRemovedEvent, SampleEntity>(
-                streamGuid,
-                nameof(SampleAssociationRemovedEvent),
-                2,
-                new SampleAssociationRemovedEvent { Name = "Hallo" }
-            ).ConfigureAwait(false);
+    result = await store.AppendEventAsync<SampleAssociationRemovedEvent, SampleEntity>(
+        streamGuid,
+        nameof(SampleAssociationRemovedEvent),
+        2,
+        new SampleAssociationRemovedEvent { Name = "Hallo" }
+    ).ConfigureAwait(false);
 
-            Console.WriteLine(JsonConvert.SerializeObject(result));
+    Console.WriteLine(JsonConvert.SerializeObject(result));
 
-            stream = await store.ReadAsync(streamGuid).ConfigureAwait(false);
+    stream = await store.ReadAsync(streamGuid).ConfigureAwait(false);
 
-            IEventStreamAggregator<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamAggregator<SampleEntity>>();
+    IEventStreamAggregator<SampleEntity> applier = serviceProvider.GetRequiredService<IEventStreamAggregator<SampleEntity>>();
 
-            Console.WriteLine(JsonConvert.SerializeObject(applier.AggregateAsync(stream), Formatting.Indented));
-        }
-    }
+    Console.WriteLine(JsonConvert.SerializeObject(applier.AggregateAsync(stream), Formatting.Indented));
+  }
 }
