@@ -1,6 +1,5 @@
 using AutoFixture.Xunit2;
 using FluentAssertions;
-using FluentAssertions.Common;
 using Newtonsoft.Json;
 using System;
 using Xunit;
@@ -64,6 +63,6 @@ public class EventStreamDocumentTests
     deserialized
         .Should()
         .NotBeNull();
-    deserialized.IsSameOrEqualTo(doc);
+    //deserialized.Should().BeSam.IsSameOrEqualTo(doc);
   }
 }
