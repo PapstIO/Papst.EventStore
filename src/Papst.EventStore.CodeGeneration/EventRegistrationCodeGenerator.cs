@@ -8,7 +8,11 @@ using System.Text;
 
 namespace Papst.EventStore.CodeGeneration
 {
-
+  /// <summary>
+  /// This Code Generator reads all classes during a compilation that are attributed with the
+  /// EventNameAttribute defined in Papst.EventStore.Abstractions
+  /// Each Class or Record is then added to a registration which is passed to the DI
+  /// </summary>
   [Generator]
   public class EventRegistrationCodeGenerator : ISourceGenerator
   {
@@ -21,13 +25,17 @@ namespace Papst.EventStore.CodeGeneration
       }
       // based on https://andrewlock.net/using-source-generators-with-a-custom-attribute--to-generate-a-nav-component-in-a-blazor-app/
       var allNodes = context.Compilation.SyntaxTrees.SelectMany(s => s.GetRoot().DescendantNodes());
-      var allClasses = allNodes.Where(d => d.IsKind(SyntaxKind.ClassDeclaration)).OfType<ClassDeclarationSyntax>();
 
+      // find all class and record declarations
+      var allClasses = allNodes.Where(d => d.IsKind(SyntaxKind.ClassDeclaration) || d.IsKind(SyntaxKind.RecordDeclaration)).OfType<TypeDeclarationSyntax>();
+
+      // filter for all Classes and records that are attributed with EventNameAttribute
       var events = allClasses
         .Select(c => FindEvents(context.Compilation, c))
         .Where(c => c != null)
         .ToList();
 
+      // Create a new Static class 
       var className = "EventStoreEventAggregator";
 
       StringBuilder builder = new StringBuilder();
@@ -39,24 +47,43 @@ namespace Papst.EventStore.CodeGeneration
         .AppendLine("{")
         .AppendLine(" public static IServiceCollection AddCodeGeneratedEvents(this IServiceCollection services)")
         .AppendLine(" {")
-        .AppendLine("   var registration = new Papst.EventStore.Abstractions.EventRegistration.EventRegistration();")
         ;
 
-      foreach (var evt in events)
+      // create a registration for each found event
+      if (events.Count > 0)
       {
-        builder.AppendLine($"   registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+        builder.AppendLine("   var registration = new Papst.EventStore.Abstractions.EventRegistration.EventRegistration();");
+
+        foreach (var evt in events)
+        {
+          builder.AppendLine($"   registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+        }
+        builder.AppendLine("   return services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
+      }
+      else
+      {
+        // if none event is found, just return the IServiceCollection instance
+        builder.AppendLine("   return services;");
       }
       builder
-        .AppendLine("   return services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);")
         .AppendLine("  }")
         .AppendLine("}");
 
       context.AddSource("EventRegistration.g.cs", builder.ToString());
     }
 
-    private static (List<(string Name, bool IsWrite)> Attributes, string Name, string NameSpace)? FindEvents(Compilation compilation, ClassDeclarationSyntax classDeclaration)
+    /// <summary>
+    /// Checks if the <see cref="TypeDeclarationSyntax"/> is attributed with an EventNameAttribute
+    /// and parses the values
+    /// </summary>
+    /// <param name="compilation"></param>
+    /// <param name="typeDeclaration"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private static (List<(string Name, bool IsWrite)> Attributes, string Name, string NameSpace)? FindEvents(Compilation compilation, TypeDeclarationSyntax typeDeclaration)
     {
-      var attributes = classDeclaration.AttributeLists
+      // get all Attributes by name of the Type
+      var attributes = typeDeclaration.AttributeLists
         .SelectMany(x => x.Attributes)
         .Where(attr => attr.Name.ToString() == "EventNameAttribute" || attr.Name.ToString() == "EventName")
         .ToList();
@@ -66,14 +93,14 @@ namespace Papst.EventStore.CodeGeneration
         return null;
       }
 
-      var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
-      var className = classDeclaration.Identifier.ValueText;
+      var semanticModel = compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+      var className = typeDeclaration.Identifier.ValueText;
       string nsName;
-      if (classDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
+      if (typeDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
       {
         nsName = ((IdentifierNameSyntax)fsNsDecl.Name).Identifier.ValueText;
       }
-      else if (classDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
+      else if (typeDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
       {
         nsName = ((IdentifierNameSyntax)nsDecl.Name).Identifier.ValueText;
       }
@@ -89,6 +116,7 @@ namespace Papst.EventStore.CodeGeneration
         bool isWrite = true;
         var expr = semanticModel.GetConstantValue(attr.ArgumentList.Arguments[0].Expression).Value;
 
+        // parse name and write flag
         if (expr is string name2)
         {
           name = name2;
