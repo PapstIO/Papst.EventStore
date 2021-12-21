@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -45,7 +44,7 @@ namespace Papst.EventStore.CodeGeneration
 
       foreach (var evt in events)
       {
-        builder.AppendLine($"   registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+        builder.AppendLine($"   registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
       }
       builder
         .AppendLine("   return services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);")
@@ -59,7 +58,7 @@ namespace Papst.EventStore.CodeGeneration
     {
       var attributes = classDeclaration.AttributeLists
         .SelectMany(x => x.Attributes)
-        .Where(attr => attr.Name.ToString() == "EventSourcingEvent" || attr.Name.ToString() == "EventSourcingEventAttribute")
+        .Where(attr => attr.Name.ToString() == "EventNameAttribute" || attr.Name.ToString() == "EventName")
         .ToList();
 
       if (attributes.Count == 0)
@@ -69,7 +68,19 @@ namespace Papst.EventStore.CodeGeneration
 
       var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
       var className = classDeclaration.Identifier.ValueText;
-      var nsName = ((IdentifierNameSyntax)((NamespaceDeclarationSyntax)classDeclaration.Parent).Name).Identifier.ValueText;
+      string nsName;
+      if (classDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
+      {
+        nsName = ((IdentifierNameSyntax)fsNsDecl.Name).Identifier.ValueText;
+      }
+      else if (classDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
+      {
+        nsName = ((IdentifierNameSyntax)nsDecl.Name).Identifier.ValueText;
+      }
+      else
+      {
+        throw new InvalidOperationException($"Unable to find Namespace for Event Class {className}");
+      }
 
       List<(string Name, bool IsWrite)> setAttributes = new List<(string Name, bool IsWrite)>();
       foreach (var attr in attributes)
@@ -89,7 +100,7 @@ namespace Papst.EventStore.CodeGeneration
 
         if (attr.ArgumentList.Arguments.Count > 1)
         {
-          expr = semanticModel.GetConstantValue(attr.ArgumentList.Arguments[0].Expression).Value;
+          expr = semanticModel.GetConstantValue(attr.ArgumentList.Arguments[1].Expression).Value;
           if (expr is string name3)
           {
             name = name3;
@@ -114,10 +125,6 @@ namespace Papst.EventStore.CodeGeneration
 
     public void Initialize(GeneratorInitializationContext context)
     {
-      if (!Debugger.IsAttached)
-      {
-        Debugger.Launch();
-      }
       // none
     }
   }

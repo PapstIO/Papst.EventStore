@@ -1,6 +1,9 @@
 ﻿namespace Papst.EventStore.Abstractions.EventRegistration;
 
+/// <summary>
+/// 
+/// </summary>
 public interface IEventRegistration
 {
-  IEventRegistration AddEvent<TEven>(EventAttributeDescriptor descriptor);
+  void AddEvent<TEvent>(params EventAttributeDescriptor[] descriptors);
 }

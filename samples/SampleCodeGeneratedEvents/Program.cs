@@ -2,8 +2,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.Abstractions;
+using Papst.EventStore.Abstractions.EventRegistration;
 using Papst.EventStore.Abstractions.Extensions;
 using Papst.EventStore.CosmosDb.Extensions;
+
+namespace SampleCodeGeneratedEvents;
 
 public static class Program
 {
@@ -39,11 +42,14 @@ public static class Program
         })
         .BuildServiceProvider();
 
+    var registrations = serviceProvider.GetRequiredService<IEnumerable<IEventRegistration>>();
+
+
     await Task.CompletedTask;
   }
 }
 
-[EventSourcingEvent(Name = "Foo")]
+[EventName(Name = "Foo")]
 public class MyEventSourcingEvent
 {
 

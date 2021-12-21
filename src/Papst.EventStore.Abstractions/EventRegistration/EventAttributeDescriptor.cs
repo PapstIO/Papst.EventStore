@@ -1,9 +1,8 @@
 ﻿namespace Papst.EventStore.Abstractions.EventRegistration;
 
-public class EventAttributeDescriptor
-{
-  public EventAttributeDescriptor(string name, bool isWrite)
-  {
-
-  }
-}
+/// <summary>
+/// Description of an EventSourcing Event
+/// </summary>
+/// <param name="Name"></param>
+/// <param name="IsWrite"></param>
+public record EventAttributeDescriptor(string Name, bool IsWrite);
