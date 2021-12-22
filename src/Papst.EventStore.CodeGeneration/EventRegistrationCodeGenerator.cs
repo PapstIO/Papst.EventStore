@@ -16,12 +16,20 @@ namespace Papst.EventStore.CodeGeneration
   [Generator]
   public class EventRegistrationCodeGenerator : ISourceGenerator
   {
+    private const string EventAggregatorBaseClassName = "EventAggregatorBase";
+    private const string EventAggregatorInterfaceName = "IEventAggregator";
+
     public void Execute(GeneratorExecutionContext context)
     {
       var entryPoint = context.Compilation.GetEntryPoint(context.CancellationToken);
-      if (entryPoint == null)
+      string baseNamespace;
+      if (entryPoint != null)
       {
-        throw new ArgumentNullException(nameof(entryPoint));
+        baseNamespace = entryPoint.ContainingNamespace.ToDisplayString();
+      }
+      else
+      {
+        baseNamespace = context.Compilation.Assembly.NamespaceNames.Where(ns => !string.IsNullOrWhiteSpace(ns)).OrderBy(ns => ns.Length).First();
       }
       // based on https://andrewlock.net/using-source-generators-with-a-custom-attribute--to-generate-a-nav-component-in-a-blazor-app/
       var allNodes = context.Compilation.SyntaxTrees.SelectMany(s => s.GetRoot().DescendantNodes());
@@ -35,6 +43,34 @@ namespace Papst.EventStore.CodeGeneration
         .Where(c => c != null)
         .ToList();
 
+      // filter for all Classes that are implementing either EventAggregatorBase<,> or IEventAggregator
+      var aggregators = allClasses
+        .OfType<ClassDeclarationSyntax>()
+        .Where(c => c.DescendantNodes().OfType<SimpleBaseTypeSyntax>().Any(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName))
+        .Select(c => new
+        {
+          Class = c.Identifier.ValueText,
+          Namespace = FindNamespace(c),
+          TypeArguments = c
+            .DescendantNodes()
+            .OfType<SimpleBaseTypeSyntax>()
+            .Where(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
+            .Select(bt => new
+            {
+              BT = bt,
+              Entity = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[0]).Identifier.ValueText,
+              Event = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[1]).Identifier.ValueText
+            })
+            .Select(bt => new
+            {
+              Entity = bt.Entity,
+              EntityNamespace = FindNamespace(bt.Entity, allClasses),
+              Event = bt.Event,
+              EventNamespace = FindNamespace(bt.Event, allClasses)
+            })
+        })
+        .ToList();
+
       // Create a new Static class 
       var className = "EventStoreEventAggregator";
 
@@ -42,7 +78,7 @@ namespace Papst.EventStore.CodeGeneration
       builder.Append("");
       builder
         .AppendLine("using Microsoft.Extensions.DependencyInjection;")
-        .AppendLine($"namespace {entryPoint.ContainingNamespace.ToDisplayString()};")
+        .AppendLine($"namespace {baseNamespace};")
         .AppendLine($"public static class {className}")
         .AppendLine("{")
         .AppendLine(" public static IServiceCollection AddCodeGeneratedEvents(this IServiceCollection services)")
@@ -53,18 +89,28 @@ namespace Papst.EventStore.CodeGeneration
       if (events.Count > 0)
       {
         builder.AppendLine("   var registration = new Papst.EventStore.Abstractions.EventRegistration.EventRegistration();");
-
         foreach (var evt in events)
         {
           builder.AppendLine($"   registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
         }
-        builder.AppendLine("   return services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
+        builder.AppendLine("   services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
       }
-      else
+
+      // create a registration for each found aggregator
+      if (aggregators.Count > 0)
       {
-        // if none event is found, just return the IServiceCollection instance
-        builder.AppendLine("   return services;");
+        foreach (var aggregator in aggregators)
+        {
+          foreach (var implementation in aggregator.TypeArguments)
+          {
+            builder.AppendLine($"   services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
+          }
+        }
       }
+
+
+      builder.AppendLine("   return services;");
+
       builder
         .AppendLine("  }")
         .AppendLine("}");
@@ -95,19 +141,7 @@ namespace Papst.EventStore.CodeGeneration
 
       var semanticModel = compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
       var className = typeDeclaration.Identifier.ValueText;
-      string nsName;
-      if (typeDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
-      {
-        nsName = ((IdentifierNameSyntax)fsNsDecl.Name).Identifier.ValueText;
-      }
-      else if (typeDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
-      {
-        nsName = ((IdentifierNameSyntax)nsDecl.Name).Identifier.ValueText;
-      }
-      else
-      {
-        throw new InvalidOperationException($"Unable to find Namespace for Event Class {className}");
-      }
+      string nsName = FindNamespace(typeDeclaration);
 
       List<(string Name, bool IsWrite)> setAttributes = new List<(string Name, bool IsWrite)>();
       foreach (var attr in attributes)
@@ -151,9 +185,45 @@ namespace Papst.EventStore.CodeGeneration
       return null;
     }
 
+    private static string FindNamespace(TypeDeclarationSyntax typeDeclaration)
+    {
+      if (typeDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
+      {
+        return ((IdentifierNameSyntax)fsNsDecl.Name).Identifier.ValueText;
+      }
+      else if (typeDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
+      {
+        return ((IdentifierNameSyntax)nsDecl.Name).Identifier.ValueText;
+      }
+      else
+      {
+        throw new InvalidOperationException($"Unable to find Namespace for Event Class {typeDeclaration.Identifier.ValueText}");
+      }
+    }
+
+    /// <summary>
+    /// Finds a ClassDeclaration in and parses the Namespace out of it
+    /// </summary>
+    /// <param name="className"></param>
+    /// <param name="allClassDeclarations"></param>
+    /// <returns></returns>
+    /// <exception cref="ClassDeclarationNotFoundException"></exception>
+    private static string FindNamespace(string className, IEnumerable<TypeDeclarationSyntax> allClassDeclarations)
+    {
+      // this may have issues with equal named classes!
+      var classDeclaration = allClassDeclarations.Where(c => c.Identifier.ValueText == className).FirstOrDefault();
+      if (classDeclaration == null)
+      {
+        throw new ClassDeclarationNotFoundException($"Unable to find ClassDeclaration of {className} for Code Generation");
+      }
+
+      return FindNamespace(classDeclaration);
+    }
+
     public void Initialize(GeneratorInitializationContext context)
     {
       // none
+      //System.Diagnostics.Debugger.Launch();
     }
   }
 }

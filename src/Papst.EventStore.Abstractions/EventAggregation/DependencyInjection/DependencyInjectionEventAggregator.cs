@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Papst.EventStore.Abstractions;
+namespace Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 
 internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggregator<TEntity>
     where TEntity : class, IEntity, new()
@@ -23,7 +23,7 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
 
   /// <inheritdoc/>
   public async Task<TEntity> AggregateAsync(IEventStream stream)
-      => await AggregateAsync(stream, stream.Stream[stream.Stream.Count - 1].Version);
+      => await AggregateAsync(stream, stream.Stream[stream.Stream.Count - 1].Version).ConfigureAwait(false);
 
   /// <inheritdoc/>
   public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget)
@@ -63,7 +63,12 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
       try
       {
         // retrieve the Aggregator
-        IEventAggregator<TEntity> applier = (_services.GetRequiredService(eventApplierType.MakeGenericType(entityType, evt.DataType)) as IEventAggregator<TEntity>)!;
+        Type? eventType = Type.GetType(evt.DataType);
+        if (eventType == null)
+        {
+          throw new EventTypeNotFoundException($"Type for Event Type {evt.DataType} could not be found!");
+        }
+        IEventAggregator<TEntity> applier = (_services.GetRequiredService(eventApplierType.MakeGenericType(entityType, eventType)) as IEventAggregator<TEntity>)!;
         _logger.LogDebug("Applying {Event} to {Entity}", evt.Id, target);
         ulong previousVersion = (hasBeenDeleted || target == null ? evt.Version : target.Version);
 

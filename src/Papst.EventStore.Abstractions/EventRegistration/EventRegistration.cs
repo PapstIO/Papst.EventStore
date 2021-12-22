@@ -6,7 +6,7 @@ namespace Papst.EventStore.Abstractions.EventRegistration;
 public class EventRegistration : IEventRegistration
 {
   private readonly Dictionary<string, Type> _readEvents = new();
-  private readonly Dictionary<string, Type> _writeEvents = new();
+  private readonly Dictionary<Type, string> _writeEvents = new();
 
   public void AddEvent<TEvent>(params EventAttributeDescriptor[] descriptors)
   {
@@ -14,12 +14,11 @@ public class EventRegistration : IEventRegistration
     {
       if (descriptor.IsWrite)
       {
-        _writeEvents.Add(descriptor.Name, typeof(TEvent));
+        _writeEvents.Add(typeof(TEvent), descriptor.Name);
       }
-      else
-      {
-        _readEvents.Add(descriptor.Name, typeof(TEvent));
-      }
+
+      _readEvents.Add(descriptor.Name, typeof(TEvent));
+
     }
   }
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace Papst.EventStore.Abstractions;
+namespace Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 
 /// <inheritdoc/>
-internal record DependencyInjectionEventAggregatorStreamContext : IAggregatorStreamContext
+internal record EventRegistrationEventAggregatorStreamContext : IAggregatorStreamContext
 {
   /// <inheritdoc/>
   public Guid StreamId { get; init; }

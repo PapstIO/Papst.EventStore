@@ -49,7 +49,7 @@ public record EventStreamDocument
   /// <summary>
   /// Type of the Data
   /// </summary>
-  public Type DataType { get; init; } = null!;
+  public string DataType { get; init; } = null!;
 
   /// <summary>
   /// The type on which the Event will be applied

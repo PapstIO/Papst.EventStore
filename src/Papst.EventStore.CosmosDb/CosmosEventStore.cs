@@ -325,7 +325,7 @@ internal class CosmosEventStore : IEventStore
     Time = doc.Time,
     Name = doc.Name,
     Data = doc.Data,
-    DataType = $"{doc.DataType.FullName},{doc.DataType.Assembly.GetName().Name}",
+    DataType = $"{doc.DataType}",
     TargetType = $"{doc.TargetType.FullName},{doc.TargetType.Assembly.GetName().Name}",
     MetaData = doc.MetaData,
   };
@@ -339,7 +339,7 @@ internal class CosmosEventStore : IEventStore
     Time = doc.Time,
     Name = doc.Name,
     Data = doc.Data,
-    DataType = Type.GetType(doc.DataType)!,
+    DataType = doc.DataType,
     TargetType = Type.GetType(doc.TargetType)!,
     MetaData = doc.MetaData,
   };

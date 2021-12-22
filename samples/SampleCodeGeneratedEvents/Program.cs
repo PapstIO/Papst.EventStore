@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.EventRegistration;
 using Papst.EventStore.Abstractions.Extensions;
@@ -29,9 +30,9 @@ public static class Program
     var serviceProvider = new ServiceCollection()
         // adds the cosmos event store
         .AddCosmosEventStore(config.GetSection(_section))
-        // adds the Aggregator
-        .AddEventStreamAggregator(typeof(Program).Assembly)
-        // add code generated events
+        // adds the Aggregator, that is using code generated events
+        .AddEventStreamAggregator()
+        // add code generated events from this assembly
         .AddCodeGeneratedEvents()
         // adds logging, needed for CosmosEventStore
         .AddLogging(opt =>
@@ -53,4 +54,27 @@ public static class Program
 public class MyEventSourcingEvent
 {
 
+}
+
+public record FooEntity { }
+
+public class MyTestEventAgg : EventAggregatorBase<FooEntity, MyEventSourcingEvent>
+{
+  public override Task<FooEntity?> ApplyAsync(MyEventSourcingEvent evt, FooEntity entity, IAggregatorStreamContext ctx)
+  {
+    throw new NotImplementedException();
+  }
+}
+
+public class MyTestEventAgg2 : IEventAggregator<FooEntity, MyEventSourcingEvent>
+{
+  public Task<FooEntity?> ApplyAsync(MyEventSourcingEvent evt, FooEntity entity, IAggregatorStreamContext ctx)
+  {
+    throw new NotImplementedException();
+  }
+
+  public Task<FooEntity?> ApplyAsync(JObject evt, FooEntity entity, IAggregatorStreamContext ctx)
+  {
+    throw new NotImplementedException();
+  }
 }
