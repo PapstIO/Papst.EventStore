@@ -10,5 +10,14 @@ jobs:
   pool:
     vmImage: 'windows-latest'
   steps:
+  - template: build/azure-pipelines-steps.net-init.yml
   - template: build/azure-pipelines-steps.nuget.yml
+    parameters:
+      Project: 'Papst.EventStore.Abstractions'
+  - template: build/azure-pipelines-steps.nuget.yml
+    parameters:
+      Project: 'Papst.EventStore.CosmosDb'
+  - template: build/azure-pipelines-steps.nuget.yml
+    parameters:
+      Project: 'Papst.EventStore.CodeGeneration'
 

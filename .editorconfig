@@ -2,3 +2,11 @@
 
 # Default severity for all analyzer diagnostics
 dotnet_analyzer_diagnostic.severity = none
+insert_final_newline=true
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = error
+
+[*.{cs,vb}]
+tab_width=2
+indent_size=2
+indent_style=space
