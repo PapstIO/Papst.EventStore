@@ -54,7 +54,7 @@ public record EventStreamDocument
   /// <summary>
   /// The type on which the Event will be applied
   /// </summary>
-  public Type TargetType { get; init; } = null!;
+  public string TargetType { get; init; } = null!;
 
   /// <summary>
   /// Metadata for the Event

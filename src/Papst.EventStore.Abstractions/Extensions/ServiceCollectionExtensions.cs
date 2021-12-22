@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Abstractions.EventRegistration;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -56,4 +57,12 @@ public static class ServiceCollectionExtensions
 
     return services;
   }
+
+  /// <summary>
+  /// Registers the <see cref="IEventRegistration"/> Provider
+  /// Is automatically added by the Code Generator
+  /// </summary>
+  /// <param name="services"></param>
+  /// <returns></returns>
+  public static IServiceCollection AddEventRegistration(this IServiceCollection services) => services.AddTransient<IEventTypeProvider, EventRegistrationTypeProvider>();
 }

@@ -69,7 +69,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
     {
       try
       {
-        Type eventType = _eventTypeProvider.GetEventType(evt.DataType);
+        Type eventType = _eventTypeProvider.ResolveIdentifier(evt.DataType);
         Logger.ApplyingEvent(_logger, evt.DataType, entityType.Name, stream.StreamId);
         IEventAggregator<TEntity> aggregator = (_serviceProvider.GetRequiredService(aggregatorType.MakeGenericType(entityType, eventType)) as IEventAggregator<TEntity>)!;
 

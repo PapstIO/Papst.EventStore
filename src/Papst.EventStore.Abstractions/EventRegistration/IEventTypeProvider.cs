@@ -4,7 +4,7 @@ namespace Papst.EventStore.Abstractions.EventRegistration;
 
 public interface IEventTypeProvider
 {
-  Type GetEventType(string dataType);
+  Type ResolveIdentifier(string dataType);
 
-  string GetEventWriteType(Type type);
+  string ResolveType(Type type);
 }

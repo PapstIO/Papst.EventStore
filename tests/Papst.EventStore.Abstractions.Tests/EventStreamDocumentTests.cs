@@ -1,6 +1,7 @@
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Newtonsoft.Json;
+using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 using System;
 using Xunit;
 
@@ -27,7 +28,7 @@ public class EventStreamDocumentTests
       Time = time,
       Name = name,
       Data = null,
-      DataType = t,
+      DataType = TypeUtils.NameOfType(t),
       MetaData = null
     };
 
@@ -38,7 +39,7 @@ public class EventStreamDocumentTests
     doc.Version.Should().Be(version);
     doc.Time.Should().Be(time);
     doc.Name.Should().Be(name);
-    doc.DataType.Should().Be(t);
+    doc.DataType.Should().Be(TypeUtils.NameOfType(t));
     doc.Data.Should().BeNull();
     doc.MetaData.Should().BeNull();
   }

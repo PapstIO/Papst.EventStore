@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -53,7 +54,7 @@ public static class IEventStoreExtensions
           DocumentType = EventStreamDocumentType.Event,
           Data = JObject.FromObject(document),
           DataType = typeof(TDocument).ToString(),
-          TargetType = typeof(TTargetType),
+          TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
           Name = name,
           Time = DateTimeOffset.Now,
           Version = 0,
@@ -109,7 +110,7 @@ public static class IEventStoreExtensions
           DocumentType = EventStreamDocumentType.Event,
           Data = JObject.FromObject(document),
           DataType = typeof(TDocument).ToString(),
-          TargetType = typeof(TTargetType),
+          TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
           Name = name,
           Time = DateTimeOffset.Now,
           Version = 0,
@@ -164,7 +165,7 @@ public static class IEventStoreExtensions
       DocumentType = EventStreamDocumentType.Snapshot,
       Data = JObject.FromObject(entity),
       DataType = typeof(TTargetType).ToString(),
-      TargetType = typeof(TTargetType),
+      TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
       Name = name,
       Time = DateTimeOffset.Now,
       Version = 0,

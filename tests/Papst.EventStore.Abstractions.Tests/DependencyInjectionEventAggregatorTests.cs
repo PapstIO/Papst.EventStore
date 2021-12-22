@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json.Linq;
+using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 using Papst.EventStore.Abstractions.Extensions;
 using System;
 using System.Collections.Generic;
@@ -33,7 +34,7 @@ public class DependencyInjectionEventAggregatorTests
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
                 Data = JObject.FromObject(new TestSelfVersionIncrementingEvent()),
-                DataType = typeof(TestSelfVersionIncrementingEvent)
+                DataType = TypeUtils.NameOfType(typeof(TestSelfVersionIncrementingEvent))
             } });
 
     TestEntity entity = new TestEntity { Foo = 15 };
@@ -59,8 +60,8 @@ public class DependencyInjectionEventAggregatorTests
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
             {
-                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = typeof(TestDeletedEvent) }
+                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = TypeUtils.NameOfType(typeof(TestDeletedEvent)) }
             });
 
     entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
@@ -84,9 +85,9 @@ public class DependencyInjectionEventAggregatorTests
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
             {
-                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = typeof(TestDeletedEvent) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestRestoredEvent()), DataType = typeof(TestRestoredEvent)}
+                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType =TypeUtils.NameOfType( typeof(TestDeletedEvent)) },
+                new EventStreamDocument { Data = JObject.FromObject(new TestRestoredEvent()), DataType = TypeUtils.NameOfType(typeof(TestRestoredEvent))}
             });
 
     entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
@@ -110,7 +111,7 @@ public class DependencyInjectionEventAggregatorTests
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
                 Data = JObject.FromObject(new TestEvent()),
-                DataType = typeof(TestEvent)
+                DataType = TypeUtils.NameOfType(typeof(TestEvent))
             } });
 
     TestEntity entity = new TestEntity { Foo = 15, Version = startVersion };
@@ -136,12 +137,12 @@ public class DependencyInjectionEventAggregatorTests
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
             {
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 0 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 1 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 2 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 3 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 4 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = typeof(TestEvent), Version = 5 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 0 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 1 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 2 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType =TypeUtils.NameOfType( typeof(TestEvent)), Version = 3 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 4 },
+                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 5 },
             });
 
     TestEntity entity = new TestEntity() { Foo = 15, Version = 0 };

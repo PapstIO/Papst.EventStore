@@ -27,7 +27,7 @@ public static class Program
           new KeyValuePair<string, string>($"{_section}:StartVersion", "0") // start with version 1 for new streams
         }).Build();
 
-    var serviceProvider = new ServiceCollection()
+    IServiceCollection services = new ServiceCollection()
         // adds the cosmos event store
         .AddCosmosEventStore(config.GetSection(_section))
         // adds the Aggregator, that is using code generated events
@@ -40,10 +40,14 @@ public static class Program
           opt.AddConsole();
           // logs all output to the console
           opt.SetMinimumLevel(LogLevel.Trace);
-        })
+        });
+
+    var serviceProvider = services
         .BuildServiceProvider();
 
-    var registrations = serviceProvider.GetRequiredService<IEnumerable<IEventRegistration>>();
+    var registrations = serviceProvider.GetRequiredService<IEventTypeProvider>();
+    var eventType = registrations.ResolveIdentifier("Foo");
+    var eventName = registrations.ResolveType(typeof(MyEventSourcingEvent));
 
 
     await Task.CompletedTask;

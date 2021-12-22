@@ -63,7 +63,7 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
       try
       {
         // retrieve the Aggregator
-        Type? eventType = Type.GetType(evt.DataType);
+        Type? eventType = TypeUtils.TypeOfName(evt.DataType);
         if (eventType == null)
         {
           throw new EventTypeNotFoundException($"Type for Event Type {evt.DataType} could not be found!");
