@@ -1,11 +1,13 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Papst.EventStore.CosmosDb.CosmosClients;
 
-internal abstract class EventStoreCosmosClientBase : IEventStoreCosmosClient
+internal class EventStoreCosmosClient : IEventStoreCosmosClient
 {
   private readonly ILogger _logger;
   private readonly CosmosClient _client;
@@ -24,14 +26,25 @@ internal abstract class EventStoreCosmosClientBase : IEventStoreCosmosClient
 
   private readonly CosmosEventStoreOptions _options;
 
-  protected EventStoreCosmosClientBase(
-      ILogger logger,
-      CosmosClient client,
-      CosmosEventStoreOptions options)
+  public EventStoreCosmosClient(
+      ILogger<EventStoreCosmosClient> logger,
+      IOptions<CosmosEventStoreOptions> options)
   {
     _logger = logger;
-    _client = client;
-    _options = options;
+    if (options.Value.Credential is null)
+    {
+      _client = new CosmosClient(options.Value.Endpoint, options.Value.Credential);
+    }
+    else if (!string.IsNullOrWhiteSpace(options.Value.AccountSecret))
+    {
+      _logger.LogWarning("Connecting to CosmosDB using Shared Secret - Migrate to Managed Identity!");
+      _client = new CosmosClient(options.Value.Endpoint, options.Value.AccountSecret);
+    }
+    else
+    {
+      throw new ArgumentNullException(nameof(options));
+    }
+    _options = options.Value;
     IsAlreadyInitialized = false;
   }
 

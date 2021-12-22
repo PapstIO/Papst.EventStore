@@ -1,4 +1,6 @@
-﻿namespace Papst.EventStore.CosmosDb;
+﻿using Azure.Core;
+
+namespace Papst.EventStore.CosmosDb;
 
 /// <summary>
 /// Configuration for the Cosmos Database Connection
@@ -13,7 +15,7 @@ public class CosmosEventStoreOptions
   /// <summary>
   /// Secret Identifier
   /// </summary>
-  public string? AccountSecret { get; set; } = null!;
+  public string? AccountSecret { get; set; }
 
   /// <summary>
   /// Whether to try to create Database and collection after creation of the Client
@@ -35,4 +37,9 @@ public class CosmosEventStoreOptions
   /// to override the time before inserting the document
   /// </summary>
   public bool AllowTimeOverride { get; set; }
+
+  /// <summary>
+  /// Credential which is used to Authenticate agains the Database
+  /// </summary>
+  public TokenCredential? Credential { get; internal set; }
 }
