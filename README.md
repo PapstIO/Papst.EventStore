@@ -32,8 +32,10 @@ This allows to version and migrate events by just adding a different descriptor.
 
 A sample on how to use the Event Descriptors is found under [Samples](samples/SampleCodeGeneratedEvents/Program.cs). The Extension Method `AddCodeGeneratedEvents()` is automatically generated during compilation if the package `Papst.EventStore.CodeGeneration` is added to the Project.
 
-Migrate v3 events by adding a `EventName` attribute and add the typename as a name: `[Fullename of the type],[assembly name of the type]`:
-For the `MyEventSourcingEvent` in the [Code Generation Sample](samples/SampleCodeGeneratedEvents/Program.cs) it would look like this: `SampleCodeGeneratedEvents.MyEventSourcingEvent,SampleCodeGeneratedEvents`
+Migrate v3 events by adding a `EventName` attribute and add the typename as a name: `[Fullename of the type],[assembly name of the type]`.
+For the `MyEventSourcingEvent` in the [Code Generation Sample](samples/SampleCodeGeneratedEvents/Program.cs) it would look like this:
+
+`SampleCodeGeneratedEvents.MyEventSourcingEvent,SampleCodeGeneratedEvents`
 
 #### Breaking Change
 
