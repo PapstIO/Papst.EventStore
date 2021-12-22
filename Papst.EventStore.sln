@@ -26,6 +26,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleCosmosEventStore", "s
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{3983623E-7294-4F2C-8AE5-CD3C0D41F062}"
 	ProjectSection(SolutionItems) = preProject
+		build\azure-pipelines-steps.net-init.yml = build\azure-pipelines-steps.net-init.yml
 		build\azure-pipelines-steps.nuget.yml = build\azure-pipelines-steps.nuget.yml
 		azure-pipelines.yml = azure-pipelines.yml
 		version.json = version.json
@@ -35,7 +36,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.CodeGenera
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.CodeGeneration.Tests", "tests\Papst.EventStore.CodeGeneration.Tests\Papst.EventStore.CodeGeneration.Tests.csproj", "{2E3F1917-1BDF-47A0-95D8-D973744EE571}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleCodeGeneratedEvents", "samples\SampleCodeGeneratedEvents\SampleCodeGeneratedEvents.csproj", "{A632C56E-C77A-4607-9E8B-52560B40908A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleCodeGeneratedEvents", "samples\SampleCodeGeneratedEvents\SampleCodeGeneratedEvents.csproj", "{A632C56E-C77A-4607-9E8B-52560B40908A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
