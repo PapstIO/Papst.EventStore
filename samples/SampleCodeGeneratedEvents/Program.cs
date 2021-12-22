@@ -27,6 +27,7 @@ public static class Program
           new KeyValuePair<string, string>($"{_section}:StartVersion", "0") // start with version 1 for new streams
         }).Build();
 
+#pragma warning disable CS0618 // Type or member is obsolete - Used for Accessing Emulator
     IServiceCollection services = new ServiceCollection()
         // adds the cosmos event store
         .AddCosmosEventStore(config.GetSection(_section))
@@ -41,6 +42,7 @@ public static class Program
           // logs all output to the console
           opt.SetMinimumLevel(LogLevel.Trace);
         });
+#pragma warning restore CS0618 // Type or member is obsolete
 
     var serviceProvider = services
         .BuildServiceProvider();
@@ -54,7 +56,7 @@ public static class Program
   }
 }
 
-[EventName(Name = "Foo")]
+[EventName(Name = "Foo", IsWriteName = false)]
 public class MyEventSourcingEvent
 {
 
