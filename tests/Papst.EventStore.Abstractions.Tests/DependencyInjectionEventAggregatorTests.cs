@@ -21,10 +21,10 @@ public class DependencyInjectionEventAggregatorTests
     var loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
 
     IServiceProvider services = ((IServiceCollection)new ServiceCollection())
-       .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
-       .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-       .AddEventStreamAggregator(GetType().Assembly)
-       .BuildServiceProvider();
+      .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+      .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+      .AddEventStreamAggregator(GetType().Assembly)
+      .BuildServiceProvider();
 
     var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
@@ -32,10 +32,13 @@ public class DependencyInjectionEventAggregatorTests
     applierInstance.Should().NotBeNull();
 
     var mock = new Mock<IEventStream>();
-    mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
-                Data = JObject.FromObject(new TestSelfVersionIncrementingEvent()),
-                DataType = TypeUtils.NameOfType(typeof(TestSelfVersionIncrementingEvent))
-            } });
+    mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
+    {
+      new EventStreamDocument {
+        Data = JObject.FromObject(new TestSelfVersionIncrementingEvent()),
+        DataType = TypeUtils.NameOfType(typeof(TestSelfVersionIncrementingEvent))
+      }
+    });
 
     TestEntity entity = new TestEntity { Foo = 15 };
 
@@ -49,20 +52,20 @@ public class DependencyInjectionEventAggregatorTests
   {
     Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
     IServiceProvider services = ((IServiceCollection)new ServiceCollection())
-        .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
-        .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-        .AddEventStreamAggregator(GetType().Assembly)
-        .BuildServiceProvider();
+      .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+      .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+      .AddEventStreamAggregator(GetType().Assembly)
+      .BuildServiceProvider();
 
     var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
-            {
-                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = TypeUtils.NameOfType(typeof(TestDeletedEvent)) }
-            });
+    {
+      new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
+      new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType = TypeUtils.NameOfType(typeof(TestDeletedEvent)) }
+    });
 
     entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
@@ -74,21 +77,21 @@ public class DependencyInjectionEventAggregatorTests
   {
     Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
     IServiceProvider services = ((IServiceCollection)new ServiceCollection())
-        .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
-        .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-        .AddEventStreamAggregator(GetType().Assembly)
-        .BuildServiceProvider();
+      .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+      .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+      .AddEventStreamAggregator(GetType().Assembly)
+      .BuildServiceProvider();
 
     var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
-            {
-                new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType =TypeUtils.NameOfType( typeof(TestDeletedEvent)) },
-                new EventStreamDocument { Data = JObject.FromObject(new TestRestoredEvent()), DataType = TypeUtils.NameOfType(typeof(TestRestoredEvent))}
-            });
+    {
+      new EventStreamDocument { Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)) },
+      new EventStreamDocument { Data = JObject.FromObject(new TestDeletedEvent()), DataType =TypeUtils.NameOfType( typeof(TestDeletedEvent)) },
+      new EventStreamDocument { Data = JObject.FromObject(new TestRestoredEvent()), DataType = TypeUtils.NameOfType(typeof(TestRestoredEvent)) }
+    });
 
     entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
@@ -101,18 +104,22 @@ public class DependencyInjectionEventAggregatorTests
     Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
 
     IServiceProvider services = ((IServiceCollection)new ServiceCollection())
-        .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
-        .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-        .AddEventStreamAggregator(GetType().Assembly)
-        .BuildServiceProvider();
+      .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+      .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+      .AddEventStreamAggregator(GetType().Assembly)
+      .BuildServiceProvider();
     var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
     var mock = new Mock<IEventStream>();
-    mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>() {new EventStreamDocument {
-                Data = JObject.FromObject(new TestEvent()),
-                DataType = TypeUtils.NameOfType(typeof(TestEvent))
-            } });
+    mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
+    {
+      new EventStreamDocument
+      {
+        Data = JObject.FromObject(new TestEvent()),
+        DataType = TypeUtils.NameOfType(typeof(TestEvent))
+      }
+    });
 
     TestEntity entity = new TestEntity { Foo = 15, Version = startVersion };
 
@@ -127,23 +134,23 @@ public class DependencyInjectionEventAggregatorTests
     Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
 
     IServiceProvider services = ((IServiceCollection)new ServiceCollection())
-        .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
-        .Configure<EventStoreOptions>(options => options.StartVersion = 0)
-        .AddEventStreamAggregator(GetType().Assembly)
-        .BuildServiceProvider();
+      .AddSingleton<ILogger<DependencyInjectionEventAggregator<TestEntity>>>(loggerMock.Object)
+      .Configure<EventStoreOptions>(options => options.StartVersion = 0)
+      .AddEventStreamAggregator(GetType().Assembly)
+      .BuildServiceProvider();
     var applier = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var applierInstance = services.GetRequiredService<IEventAggregator<TestEntity, TestSelfVersionIncrementingEvent>>();
 
     var mock = new Mock<IEventStream>();
     mock.Setup(x => x.Stream).Returns(() => new List<EventStreamDocument>()
-            {
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 0 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 1 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 2 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType =TypeUtils.NameOfType( typeof(TestEvent)), Version = 3 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 4 },
-                new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 5 },
-            });
+    {
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 0 },
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 1 },
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 2 },
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType =TypeUtils.NameOfType( typeof(TestEvent)), Version = 3 },
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 4 },
+      new EventStreamDocument(){ Data = JObject.FromObject(new TestEvent()), DataType = TypeUtils.NameOfType(typeof(TestEvent)), Version = 5 },
+    });
 
     TestEntity entity = new TestEntity() { Foo = 15, Version = 0 };
 
@@ -151,9 +158,7 @@ public class DependencyInjectionEventAggregatorTests
     entity.Version.Should().Be(4);
   }
 
-  public class TestSelfVersionIncrementingEvent
-  {
-  }
+  public class TestSelfVersionIncrementingEvent { }
 
   public class TestEntity : IEntity
   {
@@ -173,22 +178,17 @@ public class DependencyInjectionEventAggregatorTests
     public Task<TestEntity> ApplyAsync(JObject eventInstance, TestEntity entityInstance, IAggregatorStreamContext context) => ApplyAsync(eventInstance.ToObject<TestSelfVersionIncrementingEvent>(), entityInstance, context);
   }
 
-  private class TestEvent
-  { }
+  private class TestEvent { }
 
   private class TestEventApplier : IEventAggregator<TestEntity, TestEvent>
   {
-    public Task<TestEntity> ApplyAsync(TestEvent eventInstance, TestEntity entityInstance, IAggregatorStreamContext context)
-    {
-      return Task.FromResult(entityInstance);
-    }
+    public Task<TestEntity> ApplyAsync(TestEvent eventInstance, TestEntity entityInstance, IAggregatorStreamContext context) => Task.FromResult(entityInstance);
 
     public Task<TestEntity> ApplyAsync(JObject eventInstance, TestEntity entityInstance, IAggregatorStreamContext context)
-        => ApplyAsync(eventInstance.ToObject<TestEvent>(), entityInstance, context);
+      => ApplyAsync(eventInstance.ToObject<TestEvent>(), entityInstance, context);
   }
 
-  private class TestDeletedEvent
-  { }
+  private class TestDeletedEvent { }
 
   private class TestDeletedEventAggregator : IEventAggregator<TestEntity, TestDeletedEvent>
   {
@@ -200,7 +200,7 @@ public class DependencyInjectionEventAggregatorTests
     }
 
     public Task<TestEntity> ApplyAsync(JObject evt, TestEntity entity, IAggregatorStreamContext ctx)
-        => ApplyAsync(evt.ToObject<TestDeletedEvent>(), entity, ctx);
+      => ApplyAsync(evt.ToObject<TestDeletedEvent>(), entity, ctx);
   }
 
   private class TestRestoredEvent { }
@@ -215,6 +215,6 @@ public class DependencyInjectionEventAggregatorTests
     }
 
     public Task<TestEntity> ApplyAsync(JObject evt, TestEntity entity, IAggregatorStreamContext ctx)
-    => ApplyAsync(evt.ToObject<TestRestoredEvent>(), entity, ctx);
+      => ApplyAsync(evt.ToObject<TestRestoredEvent>(), entity, ctx);
   }
 }

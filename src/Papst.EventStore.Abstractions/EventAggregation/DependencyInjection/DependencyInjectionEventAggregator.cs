@@ -27,7 +27,7 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
 
   /// <inheritdoc/>
   public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget)
-      => await AggregateAsync(stream, originalTarget, stream.Stream[stream.Stream.Count - 1].Version);
+      => await AggregateAsync(stream, originalTarget, stream.Stream[stream.Stream.Count - 1].Version).ConfigureAwait(false);
 
   /// <inheritdoc/>
   public async Task<TEntity> AggregateAsync(IEventStream stream, ulong targetVersion)
