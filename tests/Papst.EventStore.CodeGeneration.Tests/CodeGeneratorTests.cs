@@ -64,7 +64,8 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("namespace MyCode");
+    //source.Should().Contain("namespace MyCode");
+    source.Should().Contain("namespace compilation", "This does not return MyCode, because the compiling process is called compilation!");
   }
 
   [Fact]
