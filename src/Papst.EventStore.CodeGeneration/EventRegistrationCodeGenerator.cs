@@ -18,6 +18,7 @@ namespace Papst.EventStore.CodeGeneration
   {
     private const string EventAggregatorBaseClassName = "EventAggregatorBase";
     private const string EventAggregatorInterfaceName = "IEventAggregator";
+    private const string ClassName = "EventStoreEventAggregator";
 
     public void Execute(GeneratorExecutionContext context)
     {
@@ -29,7 +30,7 @@ namespace Papst.EventStore.CodeGeneration
       }
       else
       {
-        baseNamespace = context.Compilation.Assembly.NamespaceNames.Where(ns => !string.IsNullOrWhiteSpace(ns)).OrderBy(ns => ns.Length).First();
+        baseNamespace = context.Compilation.Assembly.MetadataName;
       }
       // based on https://andrewlock.net/using-source-generators-with-a-custom-attribute--to-generate-a-nav-component-in-a-blazor-app/
       var allNodes = context.Compilation.SyntaxTrees.SelectMany(s => s.GetRoot().DescendantNodes());
@@ -44,87 +45,106 @@ namespace Papst.EventStore.CodeGeneration
         .ToList();
 
       // filter for all Classes that are implementing either EventAggregatorBase<,> or IEventAggregator
-      var aggregators = allClasses
-        .OfType<ClassDeclarationSyntax>()
-        .Where(c => c.DescendantNodes().OfType<SimpleBaseTypeSyntax>().Any(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName))
-        .Select(c => new
-        {
-          Class = c.Identifier.ValueText,
-          Namespace = FindNamespace(c),
-          TypeArguments = c
-            .DescendantNodes()
-            .OfType<SimpleBaseTypeSyntax>()
-            .Where(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
-            .Select(bt => new
-            {
-              BT = bt,
-              Entity = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[0]).Identifier.ValueText,
-              Event = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[1]).Identifier.ValueText
-            })
-            .Select(bt => new
-            {
-              Entity = bt.Entity,
-              EntityNamespace = FindNamespace(bt.Entity, allClasses),
-              Event = bt.Event,
-              EventNamespace = FindNamespace(bt.Event, allClasses)
-            })
-        })
-        .ToList();
-
-      // Create a new Static class 
-      var className = "EventStoreEventAggregator";
-
-      StringBuilder builder = new StringBuilder();
-      builder.Append("");
-      builder
-        .AppendLine("using Microsoft.Extensions.DependencyInjection;")
-        .AppendLine("using System.Linq;")
-        .AppendLine($"namespace {baseNamespace};")
-        .AppendLine($"public static class {className}")
-        .AppendLine("{")
-        .AppendLine("  public static IServiceCollection AddCodeGeneratedEvents(this IServiceCollection services)")
-        .AppendLine("  {")
-        ;
-
-      // create a registration for each found event
-      if (events.Count > 0)
+      try
       {
-        builder.AppendLine("    var registration = new Papst.EventStore.Abstractions.EventRegistration.EventDescriptionEventRegistration();");
-        foreach (var evt in events)
-        {
-          builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
-        }
-        builder.AppendLine("    services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
-      }
-
-      // create a registration for each found aggregator
-      if (aggregators.Count > 0)
-      {
-        foreach (var aggregator in aggregators)
-        {
-          foreach (var implementation in aggregator.TypeArguments)
+        var aggregators = allClasses
+          .OfType<ClassDeclarationSyntax>()
+          .Where(c => c.DescendantNodes().OfType<SimpleBaseTypeSyntax>().Any(bt =>
+            bt.Type is GenericNameSyntax &&
+            (
+              ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName ||
+              ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
+            )
+          )
+          .Select(c => new
           {
-            builder.AppendLine($"    services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
+            Class = c.Identifier.ValueText,
+            Namespace = FindNamespace(c),
+            TypeArguments = c
+              .DescendantNodes()
+              .OfType<SimpleBaseTypeSyntax>()
+              .Where(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
+              .Select(bt => new
+              {
+                BT = bt,
+                Entity = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[0]).Identifier.ValueText,
+                Event = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[1]).Identifier.ValueText
+              })
+              .Select(bt => new
+              {
+                Entity = bt.Entity,
+                EntityNamespace = FindNamespace(bt.Entity, allClasses),
+                Event = bt.Event,
+                EventNamespace = FindNamespace(bt.Event, allClasses)
+              })
+          })
+          .ToList();
+
+        // Create a new Static class 
+        StringBuilder builder = new StringBuilder();
+        builder.Append("");
+        builder
+          .AppendLine("using Microsoft.Extensions.DependencyInjection;")
+          .AppendLine("using System.Linq;")
+          .AppendLine($"namespace {baseNamespace};")
+          .AppendLine($"public static class {ClassName}")
+          .AppendLine("{")
+          .AppendLine("  public static IServiceCollection AddCodeGeneratedEvents(this IServiceCollection services)")
+          .AppendLine("  {")
+          ;
+
+        // create a registration for each found event
+        if (events.Count > 0)
+        {
+          builder.AppendLine("    var registration = new Papst.EventStore.Abstractions.EventRegistration.EventDescriptionEventRegistration();");
+          foreach (var evt in events)
+          {
+            builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+          }
+          builder.AppendLine("    services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
+        }
+
+        // create a registration for each found aggregator
+        if (aggregators.Count > 0)
+        {
+          foreach (var aggregator in aggregators)
+          {
+            foreach (var implementation in aggregator.TypeArguments)
+            {
+              builder.AppendLine($"    services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
+            }
           }
         }
+
+        // make sure only one instance of the IEventTypeProvider is registered
+        builder
+          .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.Abstractions.EventRegistration.IEventTypeProvider)))")
+          .AppendLine("    {")
+          .AppendLine("      Papst.EventStore.Abstractions.Extensions.ServiceCollectionExtensions.AddEventRegistration(services);")
+          .AppendLine("    }")
+          ;
+
+        builder.AppendLine("   return services;");
+
+        builder
+          .AppendLine("  }")
+          .AppendLine("}");
+
+        context.AddSource("EventRegistration.g.cs", builder.ToString());
       }
-
-      // make sure only one instance of the IEventTypeProvider is registered
-      builder
-        .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.Abstractions.EventRegistration.IEventTypeProvider)))")
-        .AppendLine("    {")
-        .AppendLine("      Papst.EventStore.Abstractions.Extensions.ServiceCollectionExtensions.AddEventRegistration(services);")
-        .AppendLine("    }")
-        ;
-
-
-      builder.AppendLine("   return services;");
-
-      builder
-        .AppendLine("  }")
-        .AppendLine("}");
-
-      context.AddSource("EventRegistration.g.cs", builder.ToString());
+      catch (Exception ex)
+      {
+        context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+          "GEN 0001",
+          title: "Failed to create Registrations",
+          messageFormat: "Failed to create Registrations: {0}",
+          category: "EventRegistrationCodeGen",
+          defaultSeverity: DiagnosticSeverity.Error,
+          isEnabledByDefault: true,
+          customTags: new[] { ex.Message }),
+          Location.None));
+        Console.WriteLine(ex.ToString());
+      }
     }
 
     /// <summary>
@@ -196,9 +216,24 @@ namespace Papst.EventStore.CodeGeneration
 
     private static string FindNamespace(TypeDeclarationSyntax typeDeclaration)
     {
-      if (typeDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
+      if (typeDeclaration.Parent is BaseNamespaceDeclarationSyntax nsDeclBase)
       {
-        return ((IdentifierNameSyntax)fsNsDecl.Name).Identifier.ValueText;
+        if (nsDeclBase.Name is QualifiedNameSyntax qNameSyntax)
+        {
+          return nsDeclBase.Name.GetText().ToString();
+        }
+        else if (nsDeclBase.Name is SimpleNameSyntax nameSyntax)
+        {
+          return nameSyntax.Identifier.ValueText;
+        }
+        else
+        {
+          throw new ClassDeclarationNotFoundException();
+        }
+      }
+      else if (typeDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fsNsDecl)
+      {
+        return ((SimpleNameSyntax)fsNsDecl.Name).Identifier.ValueText;
       }
       else if (typeDeclaration.Parent is NamespaceDeclarationSyntax nsDecl)
       {
