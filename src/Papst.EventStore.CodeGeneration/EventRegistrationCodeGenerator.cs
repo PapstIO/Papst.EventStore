@@ -143,6 +143,18 @@ namespace Papst.EventStore.CodeGeneration
 
           context.AddSource("EventRegistration.g.cs", builder.ToString());
         }
+        else
+        {
+          context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
+            "GEN 0002",
+            title: "No Events or Aggregators found to register",
+            messageFormat: "No Events or Aggregators found to register",
+            category: "EventRegistrationCodeGen",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true,
+            customTags: null
+            ), Location.None));
+        }
       }
       catch (Exception ex)
       {
