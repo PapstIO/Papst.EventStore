@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 
@@ -21,8 +22,10 @@ namespace MyCode
     {
         public static void Main(string[] args)
         {
-        }
+        }    
     }
+    [EventName(Name = ""Foo"")]
+    public record Foo {}
 }
 ");
 
@@ -49,7 +52,8 @@ namespace MyCode
     Compilation inputCompilation = CreateCompilation(@"
 namespace MyCode
 {
-    internal class Foo {}
+  [EventName(Name = ""Foo"")]
+  public record Foo {}
 }
 ");
 
@@ -442,6 +446,28 @@ namespace MyCode
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
     source.Should().Contain("services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+  }
+
+  [Fact]
+  public void TestAddsDiagnosticsOnEmptyCompilation()
+  {
+    var generator = new EventRegistrationCodeGenerator();
+    GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+
+    Compilation inputCompilation = CreateCompilation(@"
+namespace MyCode
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+        }
+    }
+}");
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+
+    diagnostics.Should().HaveCount(1);
+    diagnostics.First().Id.Should().Be("GEN 0002");
   }
 
   private Compilation CreateCompilation(string source)
