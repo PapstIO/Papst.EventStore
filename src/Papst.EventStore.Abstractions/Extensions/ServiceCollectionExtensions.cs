@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 using Papst.EventStore.Abstractions.EventRegistration;
 using System;
 using System.Linq;
@@ -52,11 +53,8 @@ public static class ServiceCollectionExtensions
   /// </summary>
   /// <param name="services"></param>
   /// <returns></returns>
-  public static IServiceCollection AddEventStreamAggregator(this IServiceCollection services)
-  {
-
-    return services;
-  }
+  public static IServiceCollection AddRegisteredEventAggregation(this IServiceCollection services)
+    => services.AddTransient(typeof(IEventStreamAggregator<>), typeof(EventRegistrationEventAggregator<>));
 
   /// <summary>
   /// Registers the <see cref="IEventRegistration"/> Provider
@@ -64,5 +62,6 @@ public static class ServiceCollectionExtensions
   /// </summary>
   /// <param name="services"></param>
   /// <returns></returns>
-  public static IServiceCollection AddEventRegistration(this IServiceCollection services) => services.AddTransient<IEventTypeProvider, EventRegistrationTypeProvider>();
+  public static IServiceCollection AddEventRegistration(this IServiceCollection services)
+    => services.AddTransient<IEventTypeProvider, EventRegistrationTypeProvider>();
 }
