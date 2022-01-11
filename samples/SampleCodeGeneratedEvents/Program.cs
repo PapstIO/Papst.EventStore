@@ -32,7 +32,7 @@ public static class Program
         // adds the cosmos event store
         .AddCosmosEventStore(config.GetSection(_section))
         // adds the Aggregator, that is using code generated events
-        .AddEventStreamAggregator()
+        .AddRegisteredEventAggregation()
         // add code generated events from this assembly
         .AddCodeGeneratedEvents()
         // adds logging, needed for CosmosEventStore
