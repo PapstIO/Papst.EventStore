@@ -1,7 +1,9 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using Papst.EventStore.Abstractions;
+using Papst.EventStore.Abstractions.EventAggregation;
 using Papst.EventStore.Abstractions.Exceptions;
 using Papst.EventStore.CosmosDb.Entities;
 using System;
@@ -21,13 +23,15 @@ internal class CosmosEventStore : IEventStore
   private readonly ILogger<CosmosEventStore> _logger;
   private readonly IEventStoreCosmosClient _client;
   private readonly IOptions<EventStoreOptions> _options;
+  private readonly IEventWriteNameProvider _typeProvider;
 
-  public CosmosEventStore(IEventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options)
+  public CosmosEventStore(IEventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options, IEventWriteNameProvider typeProvider)
   {
     _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     _client = client;
     _options = options;
+    _typeProvider = typeProvider;
   }
 
   /// <inheritdoc />
@@ -279,6 +283,74 @@ internal class CosmosEventStore : IEventStore
     return new CosmosEventStream(streamId, documents);
   }
 
+  /// <inheritdoc />
+  public async Task<EventStoreResult> AppendEventAsync<TDocument, TTargetType>(
+    Guid streamId,
+    string name,
+    ulong expectedVersion,
+    TDocument document,
+    Guid? userId = null,
+    string? username = null,
+    Guid? tenantId = null,
+    string? comment = null,
+    Dictionary<string, string>? additional = null,
+    CancellationToken token = default)
+    where TDocument : class
+  => await AppendAsync(
+    streamId,
+    expectedVersion,
+    new EventStreamDocument
+    {
+      Id = Guid.NewGuid(),
+      StreamId = streamId,
+      DocumentType = EventStreamDocumentType.Event,
+      Data = JObject.FromObject(document),
+      DataType = _typeProvider.GetEventName<TDocument>(),
+      TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
+      Name = name,
+      Time = DateTimeOffset.Now,
+      Version = 0,
+      MetaData = new EventStreamMetaData
+      {
+        UserId = userId,
+        UserName = username,
+        Comment = comment,
+        TenantId = tenantId,
+        Additional = additional
+      }
+    },
+    token
+  );
+
+  /// <inheritdoc/>
+  public async Task<IEventStream> CreateEventStreamAsync<TDocument, TTargetType>(Guid streamId, string name, TDocument document, Guid? userId = null, string? username = null, Guid? tenantId = null, string? comment = null, Dictionary<string, string>? additional = null, CancellationToken token = default)
+    where TDocument : class
+  {
+    return await CreateAsync(
+    streamId,
+    new EventStreamDocument
+    {
+      Id = Guid.NewGuid(),
+      StreamId = streamId,
+      DocumentType = EventStreamDocumentType.Event,
+      Data = JObject.FromObject(document),
+      DataType = _typeProvider.GetEventName<TDocument>(),
+      TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
+      Name = name,
+      Time = DateTimeOffset.Now,
+      Version = 0,
+      MetaData = new EventStreamMetaData
+      {
+        UserId = userId,
+        UserName = username,
+        Comment = comment,
+        TenantId = tenantId,
+        Additional = additional
+      }
+    },
+    token
+    );
+  }
   /// <inheritdoc />
   public Task<IEventStream> ReadAsync(Guid streamId, CancellationToken token = default)
       => ReadAsync(streamId, 0, token);
