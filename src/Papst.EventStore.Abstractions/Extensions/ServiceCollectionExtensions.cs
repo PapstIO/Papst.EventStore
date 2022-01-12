@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Papst.EventStore.Abstractions.EventAggregation;
 using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 using Papst.EventStore.Abstractions.EventRegistration;
@@ -47,7 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddTransient(itrf, type.AsType());
       }
     }
-    services.TryAdd(new ServiceDescriptor(typeof(IEventWriteNameProvider), typeof(DependencyInjectEventNameProvider), ServiceLifetime.Singleton));
+    services.TryAdd(new ServiceDescriptor(typeof(IEventTypeProvider), typeof(DependencyInjectEventNameProvider), ServiceLifetime.Singleton));
     services.TryAdd(new ServiceDescriptor(typeof(IEventStreamAggregator<>), typeof(EventAggregation.DependencyInjection.DependencyInjectionEventAggregator<>), ServiceLifetime.Transient));
     return services;
   }

@@ -8,7 +8,6 @@ namespace Papst.EventStore.Abstractions.EventRegistration;
 internal class EventRegistrationTypeProvider : IEventTypeProvider
 {
 
-
   private readonly ILogger<EventRegistrationTypeProvider> _logger;
   private readonly IEnumerable<IEventRegistration> _eventRegistrations;
 
@@ -47,7 +46,6 @@ internal class EventRegistrationTypeProvider : IEventTypeProvider
       return registration.Value;
     }
   }
-
 
 }
 

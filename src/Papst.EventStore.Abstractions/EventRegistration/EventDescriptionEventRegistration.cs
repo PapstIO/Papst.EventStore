@@ -22,7 +22,6 @@ public class EventDescriptionEventRegistration : IEventRegistration
       }
 
       _readEvents.Add(descriptor.Name, typeof(TEvent));
-
     }
   }
 
