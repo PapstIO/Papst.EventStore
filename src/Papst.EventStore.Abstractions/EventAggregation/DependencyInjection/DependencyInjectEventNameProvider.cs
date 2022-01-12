@@ -1,6 +1,11 @@
-﻿namespace Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
+﻿using Papst.EventStore.Abstractions.EventRegistration;
+using System;
 
-internal class DependencyInjectEventNameProvider : IEventWriteNameProvider
+namespace Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
+
+internal class DependencyInjectEventNameProvider : IEventTypeProvider
 {
-  public string GetEventName<TEvent>() => TypeUtils.NameOfType(typeof(TEvent));
+  public Type ResolveIdentifier(string dataType) => TypeUtils.TypeOfName(dataType) ?? throw new EventTypeNotFoundException($"Could not find Event for DataType {dataType}");
+
+  public string ResolveType(Type type) => TypeUtils.NameOfType(type);
 }

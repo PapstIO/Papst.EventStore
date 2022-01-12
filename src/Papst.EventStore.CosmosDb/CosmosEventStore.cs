@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.EventAggregation;
+using Papst.EventStore.Abstractions.EventRegistration;
 using Papst.EventStore.Abstractions.Exceptions;
 using Papst.EventStore.CosmosDb.Entities;
 using System;
@@ -23,9 +24,9 @@ internal class CosmosEventStore : IEventStore
   private readonly ILogger<CosmosEventStore> _logger;
   private readonly IEventStoreCosmosClient _client;
   private readonly IOptions<EventStoreOptions> _options;
-  private readonly IEventWriteNameProvider _typeProvider;
+  private readonly IEventTypeProvider _typeProvider;
 
-  public CosmosEventStore(IEventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options, IEventWriteNameProvider typeProvider)
+  public CosmosEventStore(IEventStoreCosmosClient client, ILogger<CosmosEventStore> logger, IOptions<EventStoreOptions> options, IEventTypeProvider typeProvider)
   {
     _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -305,7 +306,7 @@ internal class CosmosEventStore : IEventStore
       StreamId = streamId,
       DocumentType = EventStreamDocumentType.Event,
       Data = JObject.FromObject(document),
-      DataType = _typeProvider.GetEventName<TDocument>(),
+      DataType = _typeProvider.ResolveType(typeof(TDocument)),
       TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
       Name = name,
       Time = DateTimeOffset.Now,
@@ -334,7 +335,7 @@ internal class CosmosEventStore : IEventStore
       StreamId = streamId,
       DocumentType = EventStreamDocumentType.Event,
       Data = JObject.FromObject(document),
-      DataType = _typeProvider.GetEventName<TDocument>(),
+      DataType = _typeProvider.ResolveType(typeof(TDocument)),
       TargetType = TypeUtils.NameOfType(typeof(TTargetType)),
       Name = name,
       Time = DateTimeOffset.Now,
