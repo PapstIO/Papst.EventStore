@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
+namespace Papst.EventStore.Abstractions.EventAggregation;
 
 /// <summary>
 /// Utility Class to Provide Type Helpers for backwards compatability
 /// </summary>
-internal static class TypeUtils
+public static class TypeUtils
 {
   /// <summary>
   /// Gets a reverse compatible name of a type

@@ -1,7 +1,7 @@
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Newtonsoft.Json;
-using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
+using Papst.EventStore.Abstractions.EventAggregation;
 using System;
 using Xunit;
 

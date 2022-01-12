@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json.Linq;
+using Papst.EventStore.Abstractions.EventAggregation;
 using Papst.EventStore.Abstractions.EventAggregation.DependencyInjection;
 using Papst.EventStore.Abstractions.Extensions;
 using System;

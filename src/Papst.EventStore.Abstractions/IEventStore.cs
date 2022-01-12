@@ -85,4 +85,41 @@ public interface IEventStore
   /// <exception cref="Exceptions.EventStreamAlreadyExistsException">Thrown when the StreamId is already taken</exception>
   /// <returns></returns>
   Task<IEventStream> CreateAsync(Guid streamId, EventStreamDocument doc, CancellationToken token = default);
+
+  /// <summary>
+  /// Append Event to Store
+  /// </summary>
+  /// <typeparam name="TDocument">Type of the Body</typeparam>
+  /// <typeparam name="TTargetType">Type of the Target Read Model</typeparam>
+  /// <param name="store">The Store where the Event will be appended</param>
+  /// <param name="streamId">The Stream Id</param>
+  /// <param name="name">Name of the Event</param>
+  /// <param name="expectedVersion">Expected Version of the Stream</param>
+  /// <param name="document">The Body</param>
+  /// <param name="userId">Id of the User who Appended the Document</param>
+  /// <param name="username">Name of the User who appended the Document</param>
+  /// <param name="tenantId">Tenant that owns the document</param>
+  /// <param name="comment">Comment for the Event</param>
+  /// <param name="additional">Additional Meta Items</param>
+  /// <param name="token">Cancellation Token for the operation</param>
+  /// <returns></returns>
+  Task<EventStoreResult> AppendEventAsync<TDocument, TTargetType>(Guid streamId, string name, ulong expectedVersion, TDocument document, Guid? userId = null, string? username = null, Guid? tenantId = null, string? comment = null, Dictionary<string, string>? additional = null, CancellationToken token = default) where TDocument : class;
+
+  /// <summary>
+  /// Creates a new Event Stream
+  /// </summary>
+  /// <typeparam name="TDocument">Type of the Body</typeparam>
+  /// <typeparam name="TTargetType">Type of the Target Read Model</typeparam>
+  /// <param name="store">The Store where the Event will be appended</param>
+  /// <param name="streamId">The Stream Id</param>
+  /// <param name="name">Name of the Event</param>
+  /// <param name="document">The Body</param>
+  /// <param name="userId">Id of the User who Appended the Document</param>
+  /// <param name="username">Name of the User who appended the Document</param>
+  /// <param name="tenantId">Tenant that owns the document</param>
+  /// <param name="comment">Comment for the Event</param>
+  /// <param name="additional">Additional Meta Items</param>
+  /// <param name="token">Cancellation Token for the operation</param>
+  /// <returns></returns>
+  Task<IEventStream> CreateEventStreamAsync<TDocument, TTargetType>(Guid streamId, string name, TDocument document, Guid? userId = null, string? username = null, Guid? tenantId = null, string? comment = null, Dictionary<string, string>? additional = null, CancellationToken token = default) where TDocument : class;
 }
