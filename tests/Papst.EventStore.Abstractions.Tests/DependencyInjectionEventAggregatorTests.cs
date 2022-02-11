@@ -100,7 +100,7 @@ public class DependencyInjectionEventAggregatorTests
   }
 
   [Theory, AutoData]
-  public async Task ShouldIncrementVersion(ulong startVersion)
+  public async Task ShouldSetEntityVersionToEventVersion(ulong startVersion, ulong eventVersion)
   {
     Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>> loggerMock = new Mock<ILogger<DependencyInjectionEventAggregator<TestEntity>>>();
 
@@ -118,7 +118,8 @@ public class DependencyInjectionEventAggregatorTests
       new EventStreamDocument
       {
         Data = JObject.FromObject(new TestEvent()),
-        DataType = TypeUtils.NameOfType(typeof(TestEvent))
+        DataType = TypeUtils.NameOfType(typeof(TestEvent)),
+        Version = eventVersion
       }
     });
 
@@ -126,7 +127,7 @@ public class DependencyInjectionEventAggregatorTests
 
     entity = await applier.AggregateAsync(mock.Object, entity).ConfigureAwait(false);
 
-    entity.Version.Should().Be(startVersion + 1);
+    entity.Version.Should().Be(eventVersion);
   }
 
   [Fact]

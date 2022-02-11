@@ -47,7 +47,6 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
     // the entity type as first type argument to the IEventApplier<,>
     Type entityType = target.GetType();
 
-    bool isFirstEvent = true;
     DependencyInjectionEventAggregatorStreamContext context = new DependencyInjectionEventAggregatorStreamContext
     {
       StreamId = stream.StreamId,
@@ -80,7 +79,6 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
           };
         }
 
-
         // create a context for the current event which is aggregated
         context = context with
         {
@@ -101,14 +99,11 @@ internal class DependencyInjectionEventAggregator<TEntity> : IEventStreamAggrega
           _logger.LogInformation("Entity has been deleted at {Version}", previousVersion);
           hasBeenDeleted = true;
         }
-        else if (target.Version == previousVersion && (previousVersion > _options.Value.StartVersion || !isFirstEvent))
+        else
         {
-          // --> Version is incremented when not done by custom logic and its not the first event
-          // --> When the Version is already greater StartVersion, it is rebuild from a SnapShot -> increment the version then
-          target.Version++;
+          // set the entity Version to the current event version
+          target.Version = context.CurrentVersion;
         }
-
-        isFirstEvent = false;
       }
       catch (InvalidOperationException exc)
       {

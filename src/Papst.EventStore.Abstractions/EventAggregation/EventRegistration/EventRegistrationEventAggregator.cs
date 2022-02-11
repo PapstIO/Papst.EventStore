@@ -55,7 +55,6 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
     Type entityType = typeof(TEntity);
     Type aggregatorType = typeof(IEventAggregator<,>);
 
-    bool isFirstEvent = true;
     bool hasBeenDeleted = false;
     EventRegistrationEventAggregatorStreamContext context = new()
     {
@@ -101,11 +100,11 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           Logger.EntityDeleted(_logger, stream.StreamId, evt.DataType, evt.Version);
           hasBeenDeleted = true;
         }
-        else if (target.Version == previousVersion && (previousVersion > _options.Value.StartVersion || !isFirstEvent))
+        else
         {
-          target.Version++;
+          // set the entity Version to the current event version
+          target.Version = context.CurrentVersion;
         }
-        isFirstEvent = false;
       }
       catch (InvalidOperationException exc)
       {
