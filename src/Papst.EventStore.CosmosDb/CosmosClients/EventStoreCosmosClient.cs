@@ -31,7 +31,7 @@ internal class EventStoreCosmosClient : IEventStoreCosmosClient
       IOptions<CosmosEventStoreOptions> options)
   {
     _logger = logger;
-    if (options.Value.Credential is null)
+    if (options.Value.Credential is not null)
     {
       _client = new CosmosClient(options.Value.Endpoint, options.Value.Credential);
     }
