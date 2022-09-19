@@ -161,7 +161,7 @@ namespace Papst.EventStore.CodeGeneration
         context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
           "GEN 0001",
           title: "Failed to create Registrations",
-          messageFormat: "Failed to create Registrations: {0}",
+          messageFormat: $"Failed to create Registrations: {ex.Message}",
           category: "EventRegistrationCodeGen",
           defaultSeverity: DiagnosticSeverity.Error,
           isEnabledByDefault: true,
