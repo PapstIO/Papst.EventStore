@@ -10,6 +10,8 @@ jobs:
   pool:
     vmImage: 'windows-latest'
   steps:
+  - checkout: self
+    fetchDepth: 0
   - template: build/azure-pipelines-steps.net-init.yml
   - template: build/azure-pipelines-steps.nuget.yml
     parameters:
