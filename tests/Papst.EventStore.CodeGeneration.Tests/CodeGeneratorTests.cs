@@ -467,7 +467,7 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.Should().HaveCount(1);
-    diagnostics.First().Id.Should().Be("GEN 0002");
+    diagnostics.First().Id.Should().Be("EVTSRC0002");
   }
 
   private Compilation CreateCompilation(string source)
