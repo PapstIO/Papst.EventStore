@@ -146,7 +146,7 @@ namespace Papst.EventStore.CodeGeneration
         else
         {
           context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-            "GEN 0002",
+            "EVTSRC0002",
             title: "No Events or Aggregators found to register",
             messageFormat: "No Events or Aggregators found to register",
             category: "EventRegistrationCodeGen",
@@ -159,7 +159,7 @@ namespace Papst.EventStore.CodeGeneration
       catch (Exception ex)
       {
         context.ReportDiagnostic(Diagnostic.Create(new DiagnosticDescriptor(
-          "GEN 0001",
+          "EVTSRC0001",
           title: "Failed to create Registrations",
           messageFormat: $"Failed to create Registrations: {ex.Message}",
           category: "EventRegistrationCodeGen",
