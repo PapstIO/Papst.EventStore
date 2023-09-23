@@ -107,12 +107,12 @@ namespace Papst.EventStore.CodeGeneration
           // create a registration for each found event
           if (events.Count > 0)
           {
-            builder.AppendLine("    var registration = new Papst.EventStore.Abstractions.EventRegistration.EventDescriptionEventRegistration();");
+            builder.AppendLine("    var registration = new Papst.EventStore.EventRegistration.EventDescriptionEventRegistration();");
             foreach (var evt in events)
             {
               builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
             }
-            builder.AppendLine("    services.AddSingleton<Papst.EventStore.Abstractions.EventRegistration.IEventRegistration>(registration);");
+            builder.AppendLine("    services.AddSingleton<Papst.EventStore.EventRegistration.IEventRegistration>(registration);");
           }
 
           // create a registration for each found aggregator
@@ -122,16 +122,16 @@ namespace Papst.EventStore.CodeGeneration
             {
               foreach (var implementation in aggregator.TypeArguments)
               {
-                builder.AppendLine($"    services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
+                builder.AppendLine($"    services.AddTransient<Papst.EventStore.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
               }
             }
           }
 
           // make sure only one instance of the IEventTypeProvider is registered
           builder
-            .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.Abstractions.EventRegistration.IEventTypeProvider)))")
+            .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.EventRegistration.IEventTypeProvider)))")
             .AppendLine("    {")
-            .AppendLine("      Papst.EventStore.Abstractions.Extensions.ServiceCollectionExtensions.AddEventRegistration(services);")
+            .AppendLine("      services.AddTransient<Papst.EventStore.IEventTypeProvider, Papst.EventStore.EventRegistration.EventRegistrationTypeProvider>()")
             .AppendLine("    }")
             ;
 
