@@ -35,6 +35,7 @@ internal class FileSystemEventStore : IEventStore
     {
       throw new EventStreamAlreadyExistsException(streamId, "The Event Stream already exists!");
     }
+    Logging.CreatingEventStream(_logger, streamId, targetTypeName);
 
     Directory.CreateDirectory(streamPath);
 
@@ -47,6 +48,7 @@ internal class FileSystemEventStore : IEventStore
 
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
+    Logging.GetEventStream(_logger, streamId);
     string streamPath = Path.Combine(_path, streamId.ToString());
     if (!Directory.Exists(streamPath))
     {

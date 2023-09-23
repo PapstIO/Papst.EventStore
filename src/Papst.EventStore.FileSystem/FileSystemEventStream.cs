@@ -89,6 +89,7 @@ internal class FileSystemEventStream : IEventStream
   /// <inheritdoc/>
   public async IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, [EnumeratorCancellation] CancellationToken cancellationToken = default)
   {
+    Logging.ReadingEventStream(_logger, StreamId, startVersion, endVersion);
     ulong currentVersion = startVersion;
     while (!cancellationToken.IsCancellationRequested && currentVersion <= endVersion)
     {
@@ -97,6 +98,7 @@ internal class FileSystemEventStream : IEventStream
       {
         throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version File does not exist!");
       }
+      Logging.ReadingEvent(_logger, StreamId, currentVersion);
       using var stream = File.OpenRead(Path.Combine(_path, fileName));
       EventStreamDocument? entity = await JsonSerializer.DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
       if (entity == null)
@@ -123,6 +125,7 @@ internal class FileSystemEventStream : IEventStream
       Version = document.Version,
       NextVersion = document.Version + 1,
     };
+    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document));
   }
 
