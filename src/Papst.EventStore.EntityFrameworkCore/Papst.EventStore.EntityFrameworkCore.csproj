@@ -24,4 +24,5 @@
         <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
     </ItemGroup>
 
+
 </Project>

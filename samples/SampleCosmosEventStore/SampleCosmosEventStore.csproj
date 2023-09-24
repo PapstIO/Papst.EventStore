@@ -11,7 +11,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Papst.EventStore.Abstractions\Papst.EventStore.Abstractions.csproj" />
         <ProjectReference Include="..\..\src\Papst.EventStore.CosmosDb\Papst.EventStore.CosmosDb.csproj" />
     </ItemGroup>
 

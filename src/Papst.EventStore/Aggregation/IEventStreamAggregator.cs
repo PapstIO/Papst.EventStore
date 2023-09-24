@@ -1,4 +1,4 @@
-﻿namespace Papst.EventStore;
+﻿namespace Papst.EventStore.Aggregation;
 
 /// <summary>
 /// IEventStream Aggregator, Applies all Event of a Stream to a Target Entity

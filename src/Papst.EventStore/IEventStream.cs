@@ -37,7 +37,7 @@ public interface IEventStream
     where TEvent : notnull;
 
   /// <summary>
-  /// Create a Batch Appender that allows to append multiple events
+  /// Create a Batch Appender that allows to append multiple events as a batch for performance reasons
   /// </summary>
   /// <returns></returns>
   Task<IEventStoreBatchAppender> AppendBatchAsync();

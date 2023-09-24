@@ -21,12 +21,9 @@
         <PackageReference Include="Microsoft.Azure.Cosmos" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Papst.EventStore.Abstractions\Papst.EventStore.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

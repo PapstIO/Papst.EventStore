@@ -18,7 +18,9 @@
         <PackageReference Include="Microsoft.CodeAnalysis" />
         <PackageReference Include="AutoFixture.Xunit2" />
         <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Moq" />
         <PackageReference Include="xunit" />
@@ -33,7 +35,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Papst.EventStore.Abstractions\Papst.EventStore.Abstractions.csproj" />
       <ProjectReference Include="..\..\src\Papst.EventStore.CodeGeneration\Papst.EventStore.CodeGeneration.csproj" />
     </ItemGroup>
 

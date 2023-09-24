@@ -10,7 +10,7 @@ namespace Papst.EventStore.CodeGeneration
 {
   /// <summary>
   /// This Code Generator reads all classes during a compilation that are attributed with the
-  /// EventNameAttribute defined in Papst.EventStore.Abstractions
+  /// EventNameAttribute defined in Papst.EventStore.Aggregation.EventRegistration
   /// Each Class or Record is then added to a registration which is passed to the DI
   /// </summary>
   [Generator]
@@ -110,7 +110,7 @@ namespace Papst.EventStore.CodeGeneration
             builder.AppendLine("    var registration = new Papst.EventStore.EventRegistration.EventDescriptionEventRegistration();");
             foreach (var evt in events)
             {
-              builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+              builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
             }
             builder.AppendLine("    services.AddSingleton<Papst.EventStore.EventRegistration.IEventRegistration>(registration);");
           }

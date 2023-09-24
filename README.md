@@ -41,9 +41,38 @@ For the `MyEventSourcingEvent` in the [Code Generation Sample](samples/SampleCod
 
 V4 removes support for authenticating with shared keys against the cosmos DB. The implementation is still there, but changed and marked as obsolete.
 
+### v5
+
+* V5 Supports .NET 6.0 and upwards
+
+It introduces a separation of EventStore and EventStream. The EventStore now only offers the possibility to create or retrieve streams.
+
+#### Breaking Changes
+
+* The `IEventStore` interface no longer has methods to append to the EventStream
+* `EventAggregatorBase.SetIfNotNull` changed the order of Parameters to be more convenient.
+* The new `IEventStream` needs an index document, which needs to be added to existing event streams. See Migration Chapter.
+* The `IEventStreamAggregator` implementation that uses the code generated events has moved to a own package to allow removing active code from the `Papst.EventStore` package.
+* The `EventName` Attribute now uses positional parameters, provided by a constructor.
+
+#### Changes
+
+* Meta Data Properties are now of type `string?` instead of `Guid?` to achieve greater compatability.
+
+#### Migration
+
+## Available EventStore implementations
+
+The library brings a couple of already implemented EventStore packages:
+
+* [Papst.EventStore.FileSystem](https://www.nuget.org/packages/Papst.EventStore.FileSystem/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.FileSystem?style=plastic)
+* [Papst.EventStore.EntityFrameworkCore](https://www.nuget.org/packages/Papst.EventStore.EntityFrameworkCore/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.EntityFrameworkCore?style=plastic)
+* [Papst.EventStore.AzureCosmos](https://www.nuget.org/packages/Papst.EventStore.AzureCosmos/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureCosmos?style=plastic)
+* [Papst.EventStore.AzureBlob](https://www.nuget.org/packages/Papst.EventStore.AzureBlob/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureBlob?style=plastic)
+
 ## Installing the Library
 
-- [Papst.EventStore.Abstractions](https://www.nuget.org/packages/Papst.EventStore.Abstractions/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.Abstractions?style=plastic)
+- [Papst.EventStore](https://www.nuget.org/packages/Papst.EventStore/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore?style=plastic)
 - [Papst.EventStore.CosmosDb](https://www.nuget.org/packages/Papst.EventStore.CosmosDb/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.CosmosDb?style=plastic)
 - [Papst.EventStore.CodeGeneration](https://www.nuget.org/packages/Papst.EventStore.CodeGeneration/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.CodeGeneration?style=plastic)
 

@@ -1,6 +1,9 @@
 ﻿namespace Papst.EventStore.EventRegistration;
 
-public class EventDescriptionEventRegistration : IEventRegistration
+/// <summary>
+/// In Memory Type Registration
+/// </summary>
+public sealed class EventDescriptionEventRegistration : IEventRegistration
 {
   private readonly Dictionary<string, Type> _readEvents = new();
   private readonly Dictionary<Type, string> _writeEvents = new();
@@ -11,7 +14,7 @@ public class EventDescriptionEventRegistration : IEventRegistration
 
   public void AddEvent<TEvent>(params EventAttributeDescriptor[] descriptors)
   {
-    foreach (var descriptor in descriptors)
+    foreach (EventAttributeDescriptor descriptor in descriptors)
     {
       if (descriptor.IsWrite)
       {
