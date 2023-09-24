@@ -38,7 +38,7 @@ internal class FileSystemEventStream : IEventStream
   public async Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
-    EventStreamDocument document = EventStreamDocument.Create<TEvent>(
+    EventStreamDocument document = EventStreamDocument.Create(
       StreamId,
       id,
       _entity.NextVersion,
@@ -99,8 +99,10 @@ internal class FileSystemEventStream : IEventStream
         throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version File does not exist!");
       }
       Logging.ReadingEvent(_logger, StreamId, currentVersion);
-      using var stream = File.OpenRead(Path.Combine(_path, fileName));
-      EventStreamDocument? entity = await JsonSerializer.DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+      await using var stream = File.OpenRead(Path.Combine(_path, fileName));
+      EventStreamDocument? entity = await JsonSerializer.
+        DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken)
+        .ConfigureAwait(false);
       if (entity == null)
       {
         throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version is not readable!");
@@ -126,7 +128,7 @@ internal class FileSystemEventStream : IEventStream
       NextVersion = document.Version + 1,
     };
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document));
+    await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document), cancellationToken);
   }
 
   private async Task UpdateIndexAsync()

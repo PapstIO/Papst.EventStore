@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Linq.Expressions;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualBasic;
@@ -9,12 +10,17 @@ using Papst.EventStore.EntityFrameworkCore.Database;
 namespace Papst.EventStore.EntityFrameworkCore;
 internal class EntityFrameworkEventStream : IEventStream
 {
-  private ILogger<EntityFrameworkEventStore> _logger;
-  private EventStoreDbContext _dbContext;
-  private EventStreamEntity _stream;
+  private ILogger<EntityFrameworkEventStream> _logger;
+  private readonly EventStoreDbContext _dbContext;
+  private readonly EventStreamEntity _stream;
   private readonly IEventTypeProvider _eventTypeProvider;
 
-  public EntityFrameworkEventStream(ILogger<EntityFrameworkEventStore> logger, EventStoreDbContext dbContext, EventStreamEntity stream, IEventTypeProvider eventTypeProvider)
+  public EntityFrameworkEventStream(
+    ILogger<EntityFrameworkEventStream> logger,
+    EventStoreDbContext dbContext,
+    EventStreamEntity stream,
+    IEventTypeProvider eventTypeProvider
+  )
   {
     _logger = logger;
     _dbContext = dbContext;
@@ -28,25 +34,22 @@ internal class EntityFrameworkEventStream : IEventStream
 
   public DateTimeOffset Created => _stream.Created;
 
-  public async Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default) where TEvent : notnull
+  public async Task AppendAsync<TEvent>(
+    Guid id,
+    TEvent evt,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  ) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
-    //EventStreamDocument document = EventStreamDocument.Create<TEvent>(
-    //StreamId,
-    //  id,
-    //  _stream.NextVersion,
-    //  eventName,
-    //evt,
-    //  eventName,
-    //  _stream.TargetType,
-    //  metaData);
     EventStreamDocumentEntity document = MapEvent(id, evt, metaData, eventName);
+    
+    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     
     await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
     await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
   }
 
-  
 
   public Task<IEventStoreBatchAppender> AppendBatchAsync()
   {
@@ -65,28 +68,30 @@ internal class EntityFrameworkEventStream : IEventStream
     _dbContext.Documents
       .Where(doc => doc.StreamId == StreamId && doc.Version >= startVersion && doc.Version <= endVersion)
       .OrderBy(doc => doc.Version)
-      .Select(doc => new EventStreamDocument()
-      {
-        Id = doc.Id,
-        StreamId = doc.StreamId,
-        DocumentType = doc.Type == EventStreamDocumentEntityType.Event ? EventStreamDocumentType.Event : EventStreamDocumentType.Snapshot,
-        Version = doc.Version,
-        Time = doc.Time,
-        Name = doc.Name,
-        Data = JObject.Parse(doc.Data),
-        DataType = doc.DataType,
-        TargetType = doc.TargetType,
-        MetaData = new()
-        {
-          UserId = doc.MetaDataUserId,
-          UserName = doc.MetaDataUserName,
-          TenantId = doc.MetaDataTenantId,
-          Comment = doc.MetaDataComment,
-          Additional = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.MetaDataAdditional, (JsonSerializerOptions?)null)
-        }
-      })
+      .Select(Map())
       .AsNoTracking()
       .AsAsyncEnumerable();
+
+  private static Expression<Func<EventStreamDocumentEntity, EventStreamDocument>> Map() => doc => new EventStreamDocument()
+  {
+    Id = doc.Id,
+    StreamId = doc.StreamId,
+    DocumentType = doc.Type == EventStreamDocumentEntityType.Event ? EventStreamDocumentType.Event : EventStreamDocumentType.Snapshot,
+    Version = doc.Version,
+    Time = doc.Time,
+    Name = doc.Name,
+    Data = JObject.Parse(doc.Data),
+    DataType = doc.DataType,
+    TargetType = doc.TargetType,
+    MetaData = new()
+    {
+      UserId = doc.MetaDataUserId,
+      UserName = doc.MetaDataUserName,
+      TenantId = doc.MetaDataTenantId,
+      Comment = doc.MetaDataComment,
+      Additional = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.MetaDataAdditional, (JsonSerializerOptions?)null)
+    },
+  };
 
   private EventStreamDocumentEntity MapEvent<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName)
     where TEvent : notnull

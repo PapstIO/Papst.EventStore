@@ -40,7 +40,7 @@ internal class FileSystemEventStore : IEventStore
     Directory.CreateDirectory(streamPath);
 
     FileSystemStreamIndexEntity entity = new(streamId, DateTimeOffset.Now, 0, 0, DateTimeOffset.Now, targetTypeName, null);
-    await File.WriteAllTextAsync(Path.Combine(streamPath, IndexFileName), JsonSerializer.Serialize(entity)).ConfigureAwait(false);
+    await File.WriteAllTextAsync(Path.Combine(streamPath, IndexFileName), JsonSerializer.Serialize(entity), cancellationToken).ConfigureAwait(false);
 
     IEventStream stream = new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity, _eventTypeProvider);
     return stream;
@@ -67,6 +67,7 @@ internal class FileSystemEventStore : IEventStore
       throw new EventStreamNotFoundException(streamId, "Index File not readable");
     }
 
-    return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity, _eventTypeProvider);
+    return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
+      _eventTypeProvider);
   }
 }

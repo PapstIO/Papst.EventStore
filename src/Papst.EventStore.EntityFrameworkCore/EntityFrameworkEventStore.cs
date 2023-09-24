@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Papst.EventStore.EntityFrameworkCore.Database;
+using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.EntityFrameworkCore;
 internal class EntityFrameworkEventStore : IEventStore
@@ -32,11 +34,24 @@ internal class EntityFrameworkEventStore : IEventStore
     await _dbContext.Streams.AddAsync(stream, cancellationToken).ConfigureAwait(false);
     await _dbContext.SaveChangesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
-    return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStore>(), _dbContext, stream, _eventTypeProvider);
+    return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStream>(), _dbContext, stream, _eventTypeProvider);
   }
 
-  public Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
+  public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
-    throw new NotImplementedException();
+    Logging.GetEventStream(_logger, streamId);
+
+    var stream = await _dbContext.Streams.FirstOrDefaultAsync(s => s.StreamId == streamId, cancellationToken)
+      .ConfigureAwait(false);
+    if (stream == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Index not found!");
+    }
+
+    return new EntityFrameworkEventStream(
+      _loggerFactory.CreateLogger<EntityFrameworkEventStream>(),
+      _dbContext,
+      stream,
+      _eventTypeProvider);
   }
 }
