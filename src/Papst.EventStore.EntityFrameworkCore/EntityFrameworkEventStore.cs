@@ -1,0 +1,42 @@
+﻿using Microsoft.Extensions.Logging;
+using Papst.EventStore.EntityFrameworkCore.Database;
+
+namespace Papst.EventStore.EntityFrameworkCore;
+internal class EntityFrameworkEventStore : IEventStore
+{
+  private readonly ILogger<EntityFrameworkEventStore> _logger;
+  private readonly ILoggerFactory _loggerFactory;
+  private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly EventStoreDbContext _dbContext;
+
+  public EntityFrameworkEventStore(ILogger<EntityFrameworkEventStore> logger, ILoggerFactory loggerFactory, IEventTypeProvider eventTypeProvider, EventStoreDbContext dbContext)
+  {
+    _logger = logger;
+    _loggerFactory = loggerFactory;
+    _eventTypeProvider = eventTypeProvider;
+    _dbContext = dbContext;
+  }
+  public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default)
+  {
+    Logging.CreatingEventStream(_logger, streamId, targetTypeName);
+    EventStreamEntity stream = new()
+    {
+      StreamId = streamId,
+      Created = DateTimeOffset.Now,
+      Version = 0,
+      NextVersion = 0,
+      TargetType = targetTypeName,
+      Updated = DateTimeOffset.Now,
+    };
+
+    await _dbContext.Streams.AddAsync(stream, cancellationToken).ConfigureAwait(false);
+    await _dbContext.SaveChangesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStore>(), _dbContext, stream, _eventTypeProvider);
+  }
+
+  public Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    throw new NotImplementedException();
+  }
+}
