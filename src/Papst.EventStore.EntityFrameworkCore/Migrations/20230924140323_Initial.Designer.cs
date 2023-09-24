@@ -12,7 +12,7 @@ using Papst.EventStore.EntityFrameworkCore.Database;
 namespace Papst.EventStore.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(EventStoreDbContext))]
-    [Migration("20230924131912_Initial")]
+    [Migration("20230924140323_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -79,6 +79,9 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
                     b.HasIndex("StreamId");
 
                     b.HasIndex("Version");
+
+                    b.HasIndex("StreamId", "Version")
+                        .IsUnique();
 
                     b.ToTable("Documents");
                 });

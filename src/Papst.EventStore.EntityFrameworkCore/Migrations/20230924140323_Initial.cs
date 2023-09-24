@@ -55,6 +55,12 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
                 column: "StreamId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Documents_StreamId_Version",
+                table: "Documents",
+                columns: new[] { "StreamId", "Version" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Documents_Version",
                 table: "Documents",
                 column: "Version");

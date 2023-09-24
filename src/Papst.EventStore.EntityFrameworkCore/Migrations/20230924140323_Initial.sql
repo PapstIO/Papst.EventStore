@@ -44,11 +44,14 @@ GO
 CREATE INDEX [IX_Documents_StreamId] ON [Documents] ([StreamId]);
 GO
 
+CREATE UNIQUE INDEX [IX_Documents_StreamId_Version] ON [Documents] ([StreamId], [Version]);
+GO
+
 CREATE INDEX [IX_Documents_Version] ON [Documents] ([Version]);
 GO
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-VALUES (N'20230924131912_Initial', N'6.0.22');
+VALUES (N'20230924140323_Initial', N'6.0.22');
 GO
 
 COMMIT;

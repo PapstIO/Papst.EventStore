@@ -78,6 +78,9 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
 
                     b.HasIndex("Version");
 
+                    b.HasIndex("StreamId", "Version")
+                        .IsUnique();
+
                     b.ToTable("Documents");
                 });
 

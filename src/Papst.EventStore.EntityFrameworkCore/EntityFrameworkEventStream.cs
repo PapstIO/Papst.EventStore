@@ -42,10 +42,13 @@ internal class EntityFrameworkEventStream : IEventStream
   ) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
-    EventStreamDocumentEntity document = MapEvent(id, evt, metaData, eventName);
+    EventStreamDocumentEntity document = CreateEventEntity(id, evt, metaData, eventName);
+    _stream.Version = _stream.NextVersion;
+    _stream.NextVersion++;
+    _stream.Updated = DateTimeOffset.Now;
     
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    
+    _dbContext.Streams.Attach(_stream);
     await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
     await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
   }
@@ -93,7 +96,7 @@ internal class EntityFrameworkEventStream : IEventStream
     },
   };
 
-  private EventStreamDocumentEntity MapEvent<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName)
+  private EventStreamDocumentEntity CreateEventEntity<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName)
     where TEvent : notnull
   {
     EventStreamDocumentEntity document = new()
@@ -113,9 +116,7 @@ internal class EntityFrameworkEventStream : IEventStream
       MetaDataComment = metaData?.Comment,
       MetaDataAdditional = metaData?.Additional != null ? JsonSerializer.Serialize(metaData.Additional) : "{}",
     };
-    _stream.Version = _stream.NextVersion;
-    _stream.NextVersion = _stream.NextVersion++;
-    _stream.Updated = DateTimeOffset.Now;
+    
     return document;
   }
 }

@@ -34,6 +34,9 @@ internal class EntityFrameworkEventStore : IEventStore
     await _dbContext.Streams.AddAsync(stream, cancellationToken).ConfigureAwait(false);
     await _dbContext.SaveChangesAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
 
+    stream = await _dbContext.Streams.FirstAsync(s => s.StreamId == streamId, cancellationToken)
+      .ConfigureAwait(false);
+
     return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStream>(), _dbContext, stream, _eventTypeProvider);
   }
 

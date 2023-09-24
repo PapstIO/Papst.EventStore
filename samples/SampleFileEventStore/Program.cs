@@ -24,7 +24,7 @@ try
   registration.AddEvent<SampleEvent>(new EventAttributeDescriptor(nameof(SampleEvent), true));
   registration.AddEvent<SampleEvent2>(new EventAttributeDescriptor(nameof(SampleEvent2), true));
 
-  var serviceProvider = new ServiceCollection()
+  ServiceProvider serviceProvider = new ServiceCollection()
     .AddFileSystemEventStore(config.GetSection(ConfigSection))
     .AddEventRegistrationTypeProvider()
     .AddSingleton<IEventRegistration>(registration)
@@ -36,7 +36,7 @@ try
   IEventStore eventStore = serviceProvider.GetRequiredService<IEventStore>();
 
   Guid streamId = new("aa314ef1-1563-4568-b24a-a6b0192e4ab9");
-  IEventStream eventStream = await eventStore.CreateAsync(Guid.NewGuid(), "TestEntity").ConfigureAwait(false);
+  IEventStream eventStream = await eventStore.CreateAsync(streamId, "TestEntity").ConfigureAwait(false);
 
   await eventStream.AppendAsync(Guid.NewGuid(), new SampleEvent());
   await eventStream.AppendAsync(Guid.NewGuid(), new SampleEvent2());
