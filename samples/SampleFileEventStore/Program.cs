@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore;
+using Papst.EventStore.Documents;
 using Papst.EventStore.EventRegistration;
 using Papst.EventStore.FileSystem;
 
@@ -42,7 +43,7 @@ try
   await eventStream.AppendAsync(Guid.NewGuid(), new SampleEvent2());
 
 
-  await foreach (var evt in eventStream.ListAsync(0))
+  await foreach (EventStreamDocument evt in eventStream.ListAsync())
   {
     logger.LogInformation("Event {Event}", evt);
   }

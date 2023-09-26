@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Papst.EventStore.FileSystem;
-internal class FileSystemEventStream : IEventStream
+internal sealed class FileSystemEventStream : IEventStream
 {
   private const string FileNameFormat = "000000000000";
 
@@ -83,7 +83,7 @@ internal class FileSystemEventStream : IEventStream
   }
 
   /// <inheritdoc/>
-  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, CancellationToken cancellationToken = default)
+  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion= 0u, CancellationToken cancellationToken = default)
     => ListAsync(startVersion, _entity.Version, cancellationToken);
 
   /// <inheritdoc/>

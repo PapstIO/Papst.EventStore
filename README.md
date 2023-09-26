@@ -54,6 +54,7 @@ It introduces a separation of EventStore and EventStream. The EventStore now onl
 * The new `IEventStream` needs an index document, which needs to be added to existing event streams. See Migration Chapter.
 * The `IEventStreamAggregator` implementation that uses the code generated events has moved to a own package to allow removing active code from the `Papst.EventStore` package.
 * The `EventName` Attribute now uses positional parameters, provided by a constructor.
+* A single EventStream can no longer contain Events for multiple Entities.
 
 #### Changes
 

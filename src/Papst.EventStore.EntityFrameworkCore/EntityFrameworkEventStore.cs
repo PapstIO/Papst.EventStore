@@ -4,7 +4,7 @@ using Papst.EventStore.EntityFrameworkCore.Database;
 using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.EntityFrameworkCore;
-internal class EntityFrameworkEventStore : IEventStore
+public sealed class EntityFrameworkEventStore : IEventStore
 {
   private readonly ILogger<EntityFrameworkEventStore> _logger;
   private readonly ILoggerFactory _loggerFactory;
@@ -44,7 +44,7 @@ internal class EntityFrameworkEventStore : IEventStore
   {
     Logging.GetEventStream(_logger, streamId);
 
-    var stream = await _dbContext.Streams.FirstOrDefaultAsync(s => s.StreamId == streamId, cancellationToken)
+    EventStreamEntity? stream = await _dbContext.Streams.FirstOrDefaultAsync(s => s.StreamId == streamId, cancellationToken)
       .ConfigureAwait(false);
     if (stream == null)
     {

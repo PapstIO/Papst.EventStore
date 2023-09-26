@@ -2,15 +2,14 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 using Papst.EventStore.EntityFrameworkCore.Database;
 
 namespace Papst.EventStore.EntityFrameworkCore;
-internal class EntityFrameworkEventStream : IEventStream
+internal sealed class EntityFrameworkEventStream : IEventStream
 {
-  private ILogger<EntityFrameworkEventStream> _logger;
+  private readonly ILogger<EntityFrameworkEventStream> _logger;
   private readonly EventStoreDbContext _dbContext;
   private readonly EventStreamEntity _stream;
   private readonly IEventTypeProvider _eventTypeProvider;
@@ -64,7 +63,7 @@ internal class EntityFrameworkEventStream : IEventStream
     throw new NotImplementedException();
   }
 
-  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, CancellationToken cancellationToken = default) 
+  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion= 0u, CancellationToken cancellationToken = default) 
     => ListAsync(startVersion, _stream.Version, cancellationToken);
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, CancellationToken cancellationToken = default) =>
