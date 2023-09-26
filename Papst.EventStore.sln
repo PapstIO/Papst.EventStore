@@ -50,6 +50,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Papst.EventStore.EntityFram
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSqlServerEfCoreEventStore", "samples\SampleSqlServerEfCoreEventStore\SampleSqlServerEfCoreEventStore.csproj", "{04304944-6B57-40DA-B107-69FC013C0643}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Papst.EventStore.AzureCosmos", "src\Papst.EventStore.AzureCosmos\Papst.EventStore.AzureCosmos.csproj", "{BC63340D-E9EE-4ADA-9EB8-656E88D64843}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -204,6 +206,18 @@ Global
 		{04304944-6B57-40DA-B107-69FC013C0643}.Release|x64.Build.0 = Release|Any CPU
 		{04304944-6B57-40DA-B107-69FC013C0643}.Release|x86.ActiveCfg = Release|Any CPU
 		{04304944-6B57-40DA-B107-69FC013C0643}.Release|x86.Build.0 = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|x64.Build.0 = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Debug|x86.Build.0 = Debug|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|x64.ActiveCfg = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|x64.Build.0 = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|x86.ActiveCfg = Release|Any CPU
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -220,6 +234,7 @@ Global
 		{766010EF-C11D-4CC3-8E3D-A3DD30DF388F} = {837B8948-DB1B-48D7-A4CD-48B2738753A3}
 		{A1966C34-AF8F-4CD0-BCA2-6A126CD6B8BA} = {F5D7F5D3-E3B6-424E-9992-BEFE9D78D4FF}
 		{04304944-6B57-40DA-B107-69FC013C0643} = {837B8948-DB1B-48D7-A4CD-48B2738753A3}
+		{BC63340D-E9EE-4ADA-9EB8-656E88D64843} = {F5D7F5D3-E3B6-424E-9992-BEFE9D78D4FF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {95310886-6CDA-4969-89EB-BA67478A1464}
