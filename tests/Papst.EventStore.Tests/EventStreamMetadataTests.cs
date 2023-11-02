@@ -3,6 +3,7 @@ using FluentAssertions;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using Papst.EventStore.Documents;
 using Xunit;
 
 namespace Papst.EventStore.Abstractions.Tests;
@@ -11,9 +12,9 @@ public class EventStreamMetadataTests
 {
   [Theory, AutoData]
   public void TestEventStreamMetaDataInitialization(
-      Guid id,
+      string id,
       string name,
-      Guid tenant,
+      string tenant,
       string comment,
       Dictionary<string, string> add
   )

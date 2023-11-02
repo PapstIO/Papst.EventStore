@@ -34,7 +34,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        
+      <ProjectReference Include="..\..\src\Papst.EventStore\Papst.EventStore.csproj" />
     </ItemGroup>
 
 </Project>

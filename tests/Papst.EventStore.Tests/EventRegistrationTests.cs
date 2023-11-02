@@ -2,7 +2,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Papst.EventStore.Abstractions.EventRegistration;
+using Papst.EventStore.EventRegistration;
 using Xunit;
 
 namespace Papst.EventStore.Abstractions.Tests;
@@ -39,5 +39,5 @@ public class EventRegistrationTests
     resolved.Should().Be(typeof(FooEvent));
   }
 
-  public record FooEvent();
+  private record FooEvent();
 }

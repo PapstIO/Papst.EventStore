@@ -66,7 +66,8 @@ It introduces a separation of EventStore and EventStream. The EventStore now onl
 
 The library brings a couple of already implemented EventStore packages:
 
-* [Papst.EventStore.FileSystem](https://www.nuget.org/packages/Papst.EventStore.FileSystem/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.FileSystem?style=plastic)
+* [Papst.EventStore.FileSystem](https://www.nuget.org/packages/Papst.EventStore.FileSystem/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.FileSystem?style=plastic)  
+  **Note**: This is for testing purpose only!
 * [Papst.EventStore.EntityFrameworkCore](https://www.nuget.org/packages/Papst.EventStore.EntityFrameworkCore/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.EntityFrameworkCore?style=plastic)
 * [Papst.EventStore.AzureCosmos](https://www.nuget.org/packages/Papst.EventStore.AzureCosmos/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureCosmos?style=plastic)
 * [Papst.EventStore.AzureBlob](https://www.nuget.org/packages/Papst.EventStore.AzureBlob/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureBlob?style=plastic)
