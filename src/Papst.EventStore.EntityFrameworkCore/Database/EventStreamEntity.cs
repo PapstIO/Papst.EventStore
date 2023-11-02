@@ -8,5 +8,5 @@ public class EventStreamEntity
   public ulong NextVersion { get; set; }
   public DateTimeOffset Updated { get; set; }
   public string TargetType { get; init; } = string.Empty;
-
+  public ulong?  LatestSnapshotVersion { get; set; }
 }

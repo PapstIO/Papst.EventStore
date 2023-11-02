@@ -1,4 +1,6 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.AzureCosmos.Database;
@@ -33,10 +35,47 @@ internal sealed class CosmosEventStream : IEventStream
     _idStrategy = idStrategy;
   }
 
-  public Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
+  public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
-    throw new NotImplementedException();
+    if (!_stream.LatestSnapshotVersion.HasValue)
+    {
+      return null;
+    }
+
+    string snapShotId = await _idStrategy.GenerateIdAsync(
+      _stream.StreamId,
+      _stream.LatestSnapshotVersion.Value,
+      EventStreamDocumentType.Snapshot).ConfigureAwait(false);
+
+    ItemResponse<EventStreamDocumentEntity> result = await _dbProvider.Container
+      .ReadItemAsync<EventStreamDocumentEntity>(
+        snapShotId,
+        new(_stream.StreamId.ToString()),
+        cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    return Map(result.Resource);
   }
+
+  private static EventStreamDocument Map(EventStreamDocumentEntity doc) => new()
+  {
+    Id = doc.DocumentId,
+    StreamId = doc.StreamId,
+    DocumentType = doc.DocumentType,
+    Version = doc.Version,
+    Time = doc.Time,
+    Name = doc.Name,
+    Data = doc.Data,
+    DataType = doc.DataType,
+    TargetType = doc.TargetType,
+    MetaData = new()
+    {
+      UserId = doc.MetaData.UserId,
+      UserName = doc.MetaData.UserName,
+      TenantId = doc.MetaData.TenantId,
+      Comment = doc.MetaData.Comment,
+      Additional = doc.MetaData.Additional,
+    },
+  };
 
   public async Task AppendAsync<TEvent>(
     Guid id,
@@ -78,7 +117,7 @@ internal sealed class CosmosEventStream : IEventStream
     string eventName
   ) where TEvent : notnull => new()
   {
-    Id = await _idStrategy.GenerateId(id, StreamId, _stream.NextVersion, EventStreamDocumentType.Event),
+    Id = await _idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, EventStreamDocumentType.Event),
     DocumentId = id,
     StreamId = StreamId,
     Version = _stream.NextVersion,
@@ -99,17 +138,31 @@ internal sealed class CosmosEventStream : IEventStream
   public IAsyncEnumerable<EventStreamDocument> ListAsync(
     ulong startVersion = 0u,
     CancellationToken cancellationToken = default
-  )
-  {
-    throw new NotImplementedException();
-  }
+  ) => ListAsync(startVersion, _stream.Version, cancellationToken);
 
-  public IAsyncEnumerable<EventStreamDocument> ListAsync(
+  public async IAsyncEnumerable<EventStreamDocument> ListAsync(
     ulong startVersion,
     ulong endVersion,
-    CancellationToken cancellationToken = default
+    [EnumeratorCancellation] CancellationToken cancellationToken = default
   )
   {
-    throw new NotImplementedException();
+    FeedIterator<EventStreamDocument> iterator = _dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
+      .Where(doc => doc.StreamId == _stream.StreamId)
+      .OrderBy(doc => doc.Version)
+      .Select(doc => Map(doc))
+      .ToFeedIterator();
+
+    while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
+    {
+      FeedResponse<EventStreamDocument> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      foreach (EventStreamDocument doc in batch)
+      {
+        if (cancellationToken.IsCancellationRequested)
+        {
+          break;
+        }
+        yield return doc;
+      }
+    }
   }
 }

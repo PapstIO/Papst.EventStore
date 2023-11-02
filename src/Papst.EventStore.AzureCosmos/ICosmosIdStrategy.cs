@@ -10,10 +10,9 @@ public interface ICosmosIdStrategy
   /// <summary>
   /// Generate an id string for the given properties of an <see cref="EventStreamDocument"/>
   /// </summary>
-  /// <param name="id"></param>
   /// <param name="streamId"></param>
   /// <param name="version"></param>
   /// <param name="type"></param>
   /// <returns></returns>
-  ValueTask<string> GenerateId(Guid id, Guid streamId, ulong version, EventStreamDocumentType type);
+  ValueTask<string> GenerateIdAsync(Guid streamId, ulong version, EventStreamDocumentType type);
 }

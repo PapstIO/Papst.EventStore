@@ -58,9 +58,27 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     throw new NotImplementedException();
   }
 
-  public Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
+  public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
-    throw new NotImplementedException();
+    if (!_stream.LatestSnapshotVersion.HasValue)
+    {
+      return null;
+    }
+
+    EventStreamDocumentEntity? document = await _dbContext.Documents
+      .FirstOrDefaultAsync(
+        doc => doc.StreamId == StreamId && doc.Version == _stream.LatestSnapshotVersion.Value,
+        cancellationToken
+      ).ConfigureAwait(false);
+
+    if (document == null)
+    {
+      return null;
+    }
+
+    return Map()
+      .Compile()
+      .Invoke(document);
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion= 0u, CancellationToken cancellationToken = default) 
