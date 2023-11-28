@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.31911.260
@@ -37,11 +37,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.FileSystem
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleFileEventStore", "samples\SampleFileEventStore\SampleFileEventStore.csproj", "{766010EF-C11D-4CC3-8E3D-A3DD30DF388F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Papst.EventStore.EntityFrameworkCore", "src\Papst.EventStore.EntityFrameworkCore\Papst.EventStore.EntityFrameworkCore.csproj", "{A1966C34-AF8F-4CD0-BCA2-6A126CD6B8BA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.EntityFrameworkCore", "src\Papst.EventStore.EntityFrameworkCore\Papst.EventStore.EntityFrameworkCore.csproj", "{A1966C34-AF8F-4CD0-BCA2-6A126CD6B8BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleSqlServerEfCoreEventStore", "samples\SampleSqlServerEfCoreEventStore\SampleSqlServerEfCoreEventStore.csproj", "{04304944-6B57-40DA-B107-69FC013C0643}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleSqlServerEfCoreEventStore", "samples\SampleSqlServerEfCoreEventStore\SampleSqlServerEfCoreEventStore.csproj", "{04304944-6B57-40DA-B107-69FC013C0643}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Papst.EventStore.AzureCosmos", "src\Papst.EventStore.AzureCosmos\Papst.EventStore.AzureCosmos.csproj", "{BC63340D-E9EE-4ADA-9EB8-656E88D64843}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.AzureCosmos", "src\Papst.EventStore.AzureCosmos\Papst.EventStore.AzureCosmos.csproj", "{BC63340D-E9EE-4ADA-9EB8-656E88D64843}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
