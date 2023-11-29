@@ -93,13 +93,14 @@ internal sealed class FileSystemEventStream : IEventStream
     ulong currentVersion = startVersion;
     while (!cancellationToken.IsCancellationRequested && currentVersion <= endVersion)
     {
+      string versionPath = Path.Combine(_path, VersionToPath(currentVersion));
       string fileName = $"{currentVersion.ToString(FileNameFormat)}.json";
-      if (!File.Exists(Path.Combine(_path, fileName)))
+      if (!File.Exists(Path.Combine(versionPath, fileName)))
       {
         throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version File does not exist!");
       }
       Logging.ReadingEvent(_logger, StreamId, currentVersion);
-      await using var stream = File.OpenRead(Path.Combine(_path, fileName));
+      await using var stream = File.OpenRead(Path.Combine(versionPath, fileName));
       EventStreamDocument? entity = await JsonSerializer.
         DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken)
         .ConfigureAwait(false);
@@ -116,7 +117,9 @@ internal sealed class FileSystemEventStream : IEventStream
 
   private async Task AppendInternalAsync(EventStreamDocument document, CancellationToken cancellationToken = default)
   {
-    string fileName = Path.Combine(_path, $"{document.Version.ToString(FileNameFormat)}.json");
+    string targetPath = Path.Combine(_path, VersionToPath(document.Version));
+    Directory.CreateDirectory(targetPath);
+    string fileName = Path.Combine(targetPath, $"{document.Version.ToString(FileNameFormat)}.json");
     if (File.Exists(fileName))
     {
       throw new EventStreamVersionMismatchException(document.StreamId, "Version already exists!");
@@ -130,6 +133,8 @@ internal sealed class FileSystemEventStream : IEventStream
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document), cancellationToken);
   }
+
+  private static string VersionToPath(ulong version) => (version / 100).ToString("0000000000");
 
   private async Task UpdateIndexAsync()
     => await File.WriteAllTextAsync(
