@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -53,10 +54,9 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   }
 
 
-  public Task<IEventStoreBatchAppender> AppendBatchAsync()
-  {
-    throw new NotImplementedException();
-  }
+  public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
+    => Task.FromResult<IEventStoreTransactionAppender>(new EntityFrameworkCoreTransactionalBatchAppender(this, _dbContext));
+  
 
   public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
@@ -100,16 +100,16 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     Version = doc.Version,
     Time = doc.Time,
     Name = doc.Name,
-    Data = JObject.Parse(doc.Data),
+    Data = JObject.Parse(doc.Data.ToJsonString(null)),
     DataType = doc.DataType,
     TargetType = doc.TargetType,
     MetaData = new()
     {
-      UserId = doc.MetaDataUserId,
-      UserName = doc.MetaDataUserName,
-      TenantId = doc.MetaDataTenantId,
-      Comment = doc.MetaDataComment,
-      Additional = JsonSerializer.Deserialize<Dictionary<string, string>>(doc.MetaDataAdditional, (JsonSerializerOptions?)null)
+      UserId = doc.MetaData.UserId,
+      UserName = doc.MetaData.UserName,
+      TenantId = doc.MetaData.TenantId,
+      Comment = doc.MetaData.Comment,
+      Additional = doc.MetaData.Additional,
     },
   };
 
@@ -126,14 +126,60 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       Name = eventName,
       DataType = eventName,
       TargetType = _stream.TargetType,
-      Data = JsonSerializer.Serialize(evt),
-      MetaDataUserId = metaData?.UserId,
-      MetaDataUserName = metaData?.UserName,
-      MetaDataTenantId = metaData?.TenantId,
-      MetaDataComment = metaData?.Comment,
-      MetaDataAdditional = metaData?.Additional != null ? JsonSerializer.Serialize(metaData.Additional) : "{}",
+      Data = (JsonObject)JsonSerializer.SerializeToNode(evt)!,
+      MetaData = new()
+      {
+        UserId = metaData?.UserId,
+        UserName = metaData?.UserName,
+        TenantId = metaData?.TenantId,
+        Comment = metaData?.Comment,
+        Additional = metaData?.Additional
+      }
     };
     
     return document;
+  }
+
+  private class EntityFrameworkCoreTransactionalBatchAppender(EntityFrameworkEventStream stream, EventStoreDbContext context) 
+    : IEventStoreTransactionAppender
+  {
+    private readonly List<(Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity)> _items = new();
+    public ValueTask AppendAsync<TEvent>(
+      Guid id,
+      TEvent evt,
+      EventStreamMetaData? metaData = null,
+      CancellationToken cancellationToken = default
+    ) where TEvent: notnull
+    {
+      EventStreamDocumentEntity entity = stream.CreateEventEntity(
+        id,
+        evt,
+        metaData,
+        stream._eventTypeProvider.ResolveType(evt.GetType())
+      );
+      _items.Add((id, evt, metaData, entity));
+      return ValueTask.CompletedTask;
+    }
+
+    public async Task CommitAsync(CancellationToken cancellationToken = default)
+    {
+      if (_items.Count == 0)
+      {
+        return;
+      }
+
+      foreach ((Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity) item in _items)
+      {
+        Logging.AppendingEvent(stream._logger, item.Entity.DataType, stream.StreamId, item.Entity.Version);
+        await context.Documents.AddAsync(item.Entity, cancellationToken).ConfigureAwait(false);
+      }
+      
+      stream._stream.Version = _items.Max(i => i.Entity.Version);
+      stream._stream.NextVersion = stream._stream.Version + 1;
+      stream._stream.Updated = DateTimeOffset.Now;
+      context.Streams.Attach(stream._stream);
+      
+      await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
   }
 }

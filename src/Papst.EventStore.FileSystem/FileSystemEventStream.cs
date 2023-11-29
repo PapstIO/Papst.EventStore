@@ -53,7 +53,7 @@ internal sealed class FileSystemEventStream : IEventStream
   }
 
   /// <inheritdoc/>
-  public Task<IEventStoreBatchAppender> AppendBatchAsync()
+  public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
   {
     throw new NotImplementedException();
   }

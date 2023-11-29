@@ -40,7 +40,7 @@ public interface IEventStream
   /// Create a Batch Appender that allows to append multiple events as a batch for performance reasons
   /// </summary>
   /// <returns></returns>
-  Task<IEventStoreBatchAppender> AppendBatchAsync();
+  Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync();
 
   /// <summary>
   /// The Stream Documents
@@ -50,7 +50,7 @@ public interface IEventStream
   IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, CancellationToken cancellationToken = default);
 }
 
-public interface IEventStoreBatchAppender : IAsyncDisposable
+public interface IEventStoreTransactionAppender
 {
   /// <summary>
   /// Appends an Event to the Stream as part of a batch
@@ -61,5 +61,13 @@ public interface IEventStoreBatchAppender : IAsyncDisposable
   /// <param name="metaData">The Events Meta Data</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default);
+  ValueTask AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+    where TEvent: notnull;
+
+  /// <summary>
+  /// Commits all Events in the Transactional Appender
+  /// </summary>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
+  Task CommitAsync(CancellationToken cancellationToken = default);
 }

@@ -130,7 +130,7 @@ internal sealed class CosmosEventStream : IEventStream
     TargetType = _stream.TargetType,
   };
 
-  public Task<IEventStoreBatchAppender> AppendBatchAsync()
+  public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
   {
     throw new NotImplementedException();
   }

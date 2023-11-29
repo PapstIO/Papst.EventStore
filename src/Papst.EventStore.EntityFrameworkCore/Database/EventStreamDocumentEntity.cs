@@ -1,4 +1,7 @@
-﻿namespace Papst.EventStore.EntityFrameworkCore.Database;
+﻿using System.Text.Json.Nodes;
+using Newtonsoft.Json.Linq;
+
+namespace Papst.EventStore.EntityFrameworkCore.Database;
 
 public class EventStreamDocumentEntity
 {
@@ -8,13 +11,18 @@ public class EventStreamDocumentEntity
   public ulong Version { get; init; }
   public DateTimeOffset Time { get; init; }
   public string Name { get; init; } = string.Empty;
-  public string Data { get; init; } = string.Empty;
+  public JsonObject Data { get; init; } = new JsonObject();
   public string DataType { get; init; } = string.Empty;
   public string TargetType { get; init; } = string.Empty;
 
-  public string? MetaDataUserId { get; init; }
-  public string? MetaDataUserName { get; init; }
-  public string? MetaDataTenantId { get; init; }
-  public string? MetaDataComment { get; init; }
-  public string MetaDataAdditional { get; init; } = "{}";
+  public EventStreamDocumentMetaDataEntity MetaData { get; init; } = new();
+}
+
+public class EventStreamDocumentMetaDataEntity
+{
+  public string? UserId { get; init; }
+  public string? UserName { get; init; }
+  public string? TenantId { get; init; }
+  public string? Comment { get; init; }
+  public Dictionary<string, string>? Additional { get; init; }
 }
