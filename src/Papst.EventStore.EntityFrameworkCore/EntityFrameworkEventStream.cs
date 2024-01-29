@@ -100,7 +100,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     Version = doc.Version,
     Time = doc.Time,
     Name = doc.Name,
-    Data = JObject.Parse(doc.Data.ToJsonString(null)),
+    Data = JObject.Parse(doc.Data),
     DataType = doc.DataType,
     TargetType = doc.TargetType,
     MetaData = new()
@@ -126,7 +126,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       Name = eventName,
       DataType = eventName,
       TargetType = _stream.TargetType,
-      Data = (JsonObject)JsonSerializer.SerializeToNode(evt)!,
+      Data = JsonSerializer.Serialize(evt),
       MetaData = new()
       {
         UserId = metaData?.UserId,
@@ -167,7 +167,6 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       {
         return;
       }
-
       foreach ((Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity) item in _items)
       {
         Logging.AppendingEvent(stream._logger, item.Entity.DataType, stream.StreamId, item.Entity.Version);

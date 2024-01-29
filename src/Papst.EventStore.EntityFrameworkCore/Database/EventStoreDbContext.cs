@@ -26,10 +26,7 @@ public class EventStoreDbContext : DbContext
     evt.Property(s => s.Name).HasMaxLength(100);
     evt.Property(s => s.TargetType).HasMaxLength(100);
     evt.Property(s => s.DataType).HasMaxLength(100);
-    evt.OwnsOne(
-      s => s.Data,
-      data => data.ToJson()
-    );
+    evt.Property(s => s.Data).HasMaxLength(10_000);
     evt.OwnsOne(
       s => s.MetaData, 
       metaData =>

@@ -14,7 +14,7 @@ Directory.CreateDirectory(path);
 try
 {
   var config = new ConfigurationBuilder()
-    .AddInMemoryCollection(new Dictionary<string, string>()
+    .AddInMemoryCollection(new Dictionary<string, string?>()
     {
       [$"{ConfigSection}:Path"] = path
 

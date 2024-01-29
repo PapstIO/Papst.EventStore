@@ -13,8 +13,8 @@ registration.AddEvent<SampleEvent>(new EventAttributeDescriptor(nameof(SampleEve
 registration.AddEvent<SampleEvent2>(new EventAttributeDescriptor(nameof(SampleEvent2), true));
 
 ServiceProvider serviceProvider = new ServiceCollection()
-  .AddEntityFrameworkCoreEventStore(options => options.UseSqlServer("Server=localhost;Database=EventStore;User Id=sa;Password=yourStrong(!)Password;"))
-  // .AddEntityFrameworkCoreEventStore(options => options.UseInMemoryDatabase("EventStore"))
+  .AddEntityFrameworkCoreEventStore(options => options.UseSqlServer("Server=localhost;Database=EventStore;User Id=sa;Password=yourStrong1Pass;"))
+  //.AddEntityFrameworkCoreEventStore(options => options.UseInMemoryDatabase("EventStore"))
   .AddEventRegistrationTypeProvider()
   .AddSingleton<IEventRegistration>(registration)
   .AddLogging(logging => logging.AddConsole().SetMinimumLevel(LogLevel.Trace))

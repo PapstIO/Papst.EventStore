@@ -11,7 +11,7 @@ public class EventStreamDocumentEntity
   public ulong Version { get; init; }
   public DateTimeOffset Time { get; init; }
   public string Name { get; init; } = string.Empty;
-  public JsonObject Data { get; init; } = new JsonObject();
+  public string Data { get; init; } = string.Empty;
   public string DataType { get; init; } = string.Empty;
   public string TargetType { get; init; } = string.Empty;
 

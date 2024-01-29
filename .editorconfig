@@ -1,10 +1,11 @@
 ﻿
+
+[*.{cs,razor}]
 # IDE0058
 csharp_style_unused_value_expression_statement_preference = discard_variable:none
 
 # IDE0090: use 'new(...)'
 csharp_style_implicit_object_creation_when_type_is_apparent = false
-[*.{cs,razor}]
 csharp_style_namespace_declarations=file_scoped:warning
 insert_final_newline=true
 [*.{cs,vb}]
