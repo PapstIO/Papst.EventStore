@@ -61,7 +61,7 @@ public interface IEventStoreTransactionAppender
   /// <param name="metaData">The Events Meta Data</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  ValueTask AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  IEventStoreTransactionAppender Add<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
     where TEvent: notnull;
 
   /// <summary>

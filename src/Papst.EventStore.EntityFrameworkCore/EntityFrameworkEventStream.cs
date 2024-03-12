@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -71,7 +70,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
         cancellationToken
       ).ConfigureAwait(false);
 
-    if (document == null)
+    if (document is null)
     {
       return null;
     }
@@ -81,7 +80,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       .Invoke(document);
   }
 
-  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion= 0u, CancellationToken cancellationToken = default) 
+  public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion = 0u, CancellationToken cancellationToken = default) 
     => ListAsync(startVersion, _stream.Version, cancellationToken);
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, CancellationToken cancellationToken = default) =>
@@ -143,8 +142,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   private class EntityFrameworkCoreTransactionalBatchAppender(EntityFrameworkEventStream stream, EventStoreDbContext context) 
     : IEventStoreTransactionAppender
   {
-    private readonly List<(Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity)> _items = new();
-    public ValueTask AppendAsync<TEvent>(
+    private readonly List<(Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity)> _items = [];
+    public IEventStoreTransactionAppender Add<TEvent>(
       Guid id,
       TEvent evt,
       EventStreamMetaData? metaData = null,
@@ -158,7 +157,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
         stream._eventTypeProvider.ResolveType(evt.GetType())
       );
       _items.Add((id, evt, metaData, entity));
-      return ValueTask.CompletedTask;
+
+      return this;
     }
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)
@@ -167,6 +167,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       {
         return;
       }
+      
       foreach ((Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity) item in _items)
       {
         Logging.AppendingEvent(stream._logger, item.Entity.DataType, stream.StreamId, item.Entity.Version);

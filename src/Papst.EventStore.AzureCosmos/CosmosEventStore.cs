@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Papst.EventStore.AzureCosmos.Database;
 
 namespace Papst.EventStore.AzureCosmos;
@@ -12,10 +13,12 @@ internal sealed class CosmosEventStore : IEventStore
   private readonly ILoggerFactory _loggerFactory;
   private readonly IEventTypeProvider _eventTypeProvider;
   private readonly ICosmosIdStrategy _idStrategy;
+  private readonly IOptions<CosmosEventStoreOptions> _options;
 
   public CosmosEventStore(
     ILogger<CosmosEventStore> logger,
     ILoggerFactory loggerFactory,
+    IOptions<CosmosEventStoreOptions> options,
     CosmosDatabaseProvider dbProvider,
     IEventTypeProvider eventTypeProvider,
     ICosmosIdStrategy idStrategy
@@ -23,6 +26,7 @@ internal sealed class CosmosEventStore : IEventStore
   {
     _logger = logger;
     _loggerFactory = loggerFactory;
+    _options = options;
     _dbProvider = dbProvider;
     _eventTypeProvider = eventTypeProvider;
     _idStrategy = idStrategy;
@@ -39,6 +43,7 @@ internal sealed class CosmosEventStore : IEventStore
 
     return new CosmosEventStream(
       _loggerFactory.CreateLogger<CosmosEventStream>(),
+      _options.Value,
       stream.Resource,
       _dbProvider,
       _eventTypeProvider,
@@ -72,6 +77,7 @@ internal sealed class CosmosEventStore : IEventStore
 
     return new CosmosEventStream(
       _loggerFactory.CreateLogger<CosmosEventStream>(),
+      _options.Value,
       response.Resource,
       _dbProvider,
       _eventTypeProvider,
