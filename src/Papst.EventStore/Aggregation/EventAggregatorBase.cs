@@ -20,11 +20,25 @@ public abstract class EventAggregatorBase<TEvent, TEntity> : IEventAggregator<TE
   /// <typeparam name="TProperty"></typeparam>
   /// <param name="value"></param>
   /// <param name="setter"></param>
-  protected void SetIfNotNull<TProperty>(TProperty? value, Action<TProperty> setter)
+  protected void Update<TProperty>(TProperty? value, Action<TProperty> setter)
   {
-    if (value != null)
+    if (value is not null)
     {
-      setter(value);
+      setter.Invoke(value);
+    }
+  }
+  
+  /// <summary>
+  /// Executes the <paramref name="setter"/> action when <paramref name="value"/> is not null
+  /// </summary>
+  /// <typeparam name="TProperty"></typeparam>
+  /// <param name="setter"></param>
+  /// <param name="value"></param>
+  protected void SetIfNotNull<TProperty>(Action<TProperty> setter, TProperty? value)
+  {
+    if (value is not null)
+    {
+      setter.Invoke(value);
     }
   }
   
