@@ -43,18 +43,18 @@ V4 removes support for authenticating with shared keys against the cosmos DB. Th
 
 ### v5
 
-* V5 Supports .NET 6.0 and upwards
+* V5 Supports .NET 8.0 and upwards
 
 It introduces a separation of EventStore and EventStream. The EventStore now only offers the possibility to create or retrieve streams.
 
 #### Breaking Changes
 
 * The `IEventStore` interface no longer has methods to append to the EventStream
-* `EventAggregatorBase.SetIfNotNull` changed the order of Parameters to be more convenient.
 * The new `IEventStream` needs an index document, which needs to be added to existing event streams. See Migration Chapter.
 * The `IEventStreamAggregator` implementation that uses the code generated events has moved to a own package to allow removing active code from the `Papst.EventStore` package.
 * The `EventName` Attribute now uses positional parameters, provided by a constructor.
 * A single EventStream can no longer contain Events for multiple Entities.
+* The `IEventStreamAggregator` now uses `ValueTask` instead of `Task`
 
 #### Changes
 

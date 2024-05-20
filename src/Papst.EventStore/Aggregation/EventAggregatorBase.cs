@@ -6,13 +6,13 @@ public abstract class EventAggregatorBase<TEvent, TEntity> : IEventAggregator<TE
   where TEntity : class
 {
   /// <inheritdoc cref="IEventAggregator{TEntity,TEvent}"/>
-  public async Task<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx) => await ApplyAsync(
+  public async ValueTask<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx) => await ApplyAsync(
     evt.ToObject<TEvent>() ?? throw new NotSupportedException($"Could not parse Event {evt}"),
     entity,
     ctx);
 
   /// <inheritdoc cref="IEventAggregator{TEntity,TEvent}"/>
-  public abstract Task<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
+  public abstract ValueTask<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
   
   /// <summary>
   /// Executes the <paramref name="setter"/> action when <paramref name="value"/> is not null

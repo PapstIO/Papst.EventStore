@@ -19,6 +19,4 @@ internal class CosmosDatabaseProvider
     _databaseId = databaseId;
     _containerId = containerId;
   }
-  
-  
 }

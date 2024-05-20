@@ -17,7 +17,7 @@ public interface IEventAggregator<TEntity, in TEvent> : IEventAggregator<TEntity
   /// <param name="entity"></param>
   /// <param name="ctx"></param>
   /// <returns></returns>
-  Task<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
+  ValueTask<TEntity?> ApplyAsync(TEvent evt, TEntity entity, IAggregatorStreamContext ctx);
 }
 
 /// <summary>
@@ -34,5 +34,5 @@ public interface IEventAggregator<TEntity>
   /// <param name="entity"></param>
   /// <param name="ctx"></param>
   /// <returns></returns>
-  Task<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx);
+  ValueTask<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx);
 }

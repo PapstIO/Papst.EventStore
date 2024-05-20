@@ -54,7 +54,7 @@ public static class CosmosEventStoreProvider
   /// <param name="services"></param>
   /// <typeparam name="TStrategy">The Id Strategy implementation</typeparam>
   /// <returns></returns>
-  public static IServiceCollection UseCosmosEventStoreStreamStrategy<TStrategy>(this IServiceCollection services)
+  public static IServiceCollection UseCosmosEventStoreStreamIdStrategy<TStrategy>(this IServiceCollection services)
     where TStrategy : class, ICosmosIdStrategy => services
     .RemoveAll(typeof(ICosmosIdStrategy))
     .AddSingleton<ICosmosIdStrategy, TStrategy>();
