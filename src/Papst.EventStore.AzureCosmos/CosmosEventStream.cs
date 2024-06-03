@@ -129,6 +129,55 @@ internal sealed class CosmosEventStream : IEventStream
       .ConfigureAwait(false);
   }
 
+  public async Task AppendSnapshotAsync<TEntity>(
+    Guid id,
+    TEntity entity,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  )
+    where TEntity : notnull
+  {
+    string eventName = typeof(TEntity).Name;
+    EventStreamDocumentEntity document = await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
+    bool indexUpdateSuccessful = false;
+    int retryCount = 0;
+    do
+    {
+      try
+      {
+        ItemResponse<EventStreamIndexEntity>? indexPatch = await _dbProvider.Container
+          .PatchItemAsync<EventStreamIndexEntity>(
+            _stream.Id,
+            new PartitionKey(StreamId.ToString()),
+            [
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion), 
+            ],
+            new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
+            cancellationToken).ConfigureAwait(false);
+
+        _stream = indexPatch.Resource;
+        indexUpdateSuccessful = true;
+      }
+      catch (CosmosException e)
+      {
+        Logging.IndexPatchConcurrency(_logger, e, _stream.StreamId);
+        retryCount++;
+        await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
+        await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
+      }
+    } while (!indexUpdateSuccessful && retryCount < _options.ConcurrencyRetryCount);
+
+    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
+    _ = await _dbProvider.Container.CreateItemAsync(
+        document,
+        new(StreamId.ToString()),
+        cancellationToken: cancellationToken)
+      .ConfigureAwait(false);
+  }
+
   private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await _dbProvider.Container
     .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
     .ConfigureAwait(false);
@@ -137,10 +186,11 @@ internal sealed class CosmosEventStream : IEventStream
     Guid id,
     TEvent evt,
     EventStreamMetaData? metaData,
-    string eventName
+    string eventName,
+    EventStreamDocumentType documentType = EventStreamDocumentType.Event
   ) where TEvent : notnull => new()
   {
-    Id = await _idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, EventStreamDocumentType.Event),
+    Id = await _idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, documentType),
     DocumentId = id,
     StreamId = StreamId,
     Version = _stream.NextVersion,
@@ -148,7 +198,7 @@ internal sealed class CosmosEventStream : IEventStream
     DataType = eventName,
     Name = eventName,
     Time = DateTimeOffset.Now,
-    DocumentType = EventStreamDocumentType.Event,
+    DocumentType = documentType,
     MetaData = metaData ?? new(),
     TargetType = _stream.TargetType,
   };

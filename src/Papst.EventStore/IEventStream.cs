@@ -41,8 +41,30 @@ public interface IEventStream
   /// <param name="metaData">The Events Meta Data</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  Task AppendAsync<TEvent>(
+    Guid id,
+    TEvent evt,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  )
     where TEvent : notnull;
+  
+  /// <summary>
+  /// Appends a new Snapshot to the Stream
+  /// </summary>
+  /// <param name="id">Id of the Snapshot</param>
+  /// <param name="entity">The Entity</param>
+  /// <param name="metaData">The Snapshots Meta Data</param>
+  /// <param name="cancellationToken"></param>
+  /// <typeparam name="TEntity">The Entity Type</typeparam>
+  /// <returns></returns>
+  Task AppendSnapshotAsync<TEntity>(
+    Guid id,
+    TEntity entity,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  )
+    where TEntity : notnull;
 
   /// <summary>
   /// Create a Batch Appender that allows to append multiple events as a batch for performance reasons

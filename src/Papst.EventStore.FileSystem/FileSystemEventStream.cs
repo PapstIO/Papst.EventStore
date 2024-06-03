@@ -55,6 +55,33 @@ internal sealed class FileSystemEventStream : IEventStream
     await UpdateIndexAsync().ConfigureAwait(false);
   }
 
+  public async Task AppendSnapshotAsync<TEntity>(
+    Guid id,
+    TEntity entity,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  ) where TEntity : notnull
+  {
+    string eventName = typeof(TEntity).Name;
+    EventStreamDocument document = EventStreamDocument.Create(
+      StreamId,
+      id,
+      _entity.NextVersion,
+      eventName,
+      entity,
+      eventName,
+      _entity.TargetType,
+      metaData,
+      EventStreamDocumentType.Snapshot);
+
+    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
+    _entity = _entity with
+    {
+      LatestSnapshotVersion = document.Version
+    };
+    await UpdateIndexAsync().ConfigureAwait(false);
+  }
+
   /// <inheritdoc/>
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
   {

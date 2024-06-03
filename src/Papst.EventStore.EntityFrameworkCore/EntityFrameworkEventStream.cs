@@ -53,6 +53,26 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
     await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
   }
+  
+  public async Task AppendSnapshotAsync<TEntity>(
+    Guid id,
+    TEntity entity,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  ) where TEntity : notnull
+  {
+    string eventName = typeof(TEntity).Name;
+    EventStreamDocumentEntity document = CreateEventEntity(id, entity, metaData, eventName);
+    _stream.Version = _stream.NextVersion;
+    _stream.NextVersion++;
+    _stream.Updated = DateTimeOffset.Now;
+    _stream.LatestSnapshotVersion = _stream.Version;
+    
+    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
+    _dbContext.Streams.Attach(_stream);
+    await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
+    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+  }
 
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
@@ -114,14 +134,14 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     },
   };
 
-  private EventStreamDocumentEntity CreateEventEntity<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName)
+  private EventStreamDocumentEntity CreateEventEntity<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName, EventStreamDocumentEntityType documentType = EventStreamDocumentEntityType.Event)
     where TEvent : notnull
   {
     EventStreamDocumentEntity document = new()
     {
       Id = id,
       StreamId = StreamId,
-      Type = EventStreamDocumentEntityType.Event,
+      Type = documentType,
       Version = _stream.NextVersion,
       Time = DateTimeOffset.Now,
       Name = eventName,

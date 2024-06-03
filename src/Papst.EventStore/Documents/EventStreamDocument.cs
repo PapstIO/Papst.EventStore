@@ -72,14 +72,15 @@ public record EventStreamDocument
   /// <param name="dataType"></param>
   /// <param name="targetType"></param>
   /// <param name="metaData"></param>
+  /// <param name="documentType"></param>
   /// <returns></returns>
-  public static EventStreamDocument Create<TEvent>(Guid streamId, Guid id, ulong version, string name, TEvent data, string dataType, string targetType, EventStreamMetaData? metaData = null)
+  public static EventStreamDocument Create<TEvent>(Guid streamId, Guid id, ulong version, string name, TEvent data, string dataType, string targetType, EventStreamMetaData? metaData = null, EventStreamDocumentType documentType = EventStreamDocumentType.Event)
     where TEvent : notnull
     => new EventStreamDocument
     {
       Id = id,
       StreamId = streamId,
-      DocumentType = EventStreamDocumentType.Event,
+      DocumentType = documentType,
       Version = version,
       Name = name,
       Time = DateTimeOffset.Now,
