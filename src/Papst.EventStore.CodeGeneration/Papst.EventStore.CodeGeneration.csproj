@@ -4,6 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
     <ItemGroup>
