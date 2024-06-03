@@ -92,9 +92,18 @@ internal sealed class CosmosEventStore(
         .CreateItemAsync(index, new PartitionKey(streamId.ToString()), cancellationToken: cancellationToken)
         .ConfigureAwait(false);
     }
-    catch (Exception e)
+    catch (CosmosException e2) when( e2.StatusCode == HttpStatusCode.Conflict) 
     {
-      throw new EventStreamAlreadyExistsException(streamId, "Event Stream Index already existed when trying to built the index", e);
+      // when already exists reread it from the db
+      return await dbProvider.Container
+        .ReadItemAsync<EventStreamIndexEntity>(
+          IndexDocumentName,
+          new(streamId.ToString()),
+          cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+    catch (CosmosException e)
+    {
+      throw new EventStreamAlreadyExistsException(streamId, "Event Stream Index already exception when trying to built the index", e);
     }
   }
 
