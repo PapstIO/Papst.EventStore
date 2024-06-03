@@ -36,16 +36,22 @@ public static class CosmosEventStoreProvider
     Func<IServiceProvider, CosmosClient> clientFactoryFunction,
     string databaseId,
     string containerId
-  ) => services
-    .AddTransient<IEventStore, CosmosEventStore>()
-    .AddSingleton<ICosmosIdStrategy, StreamIdEventTypeIdStrategy>()
-    .AddSingleton(
-      provider => new CosmosDatabaseProvider(
-        provider.GetRequiredService<ILogger<CosmosDatabaseProvider>>(),
-        clientFactoryFunction(provider),
-        databaseId,
-        containerId
-      ));
+  )
+  {
+    services
+      .AddTransient<IEventStore, CosmosEventStore>()
+      .AddSingleton<ICosmosIdStrategy, StreamIdEventTypeIdStrategy>()
+      .AddSingleton(
+        provider => new CosmosDatabaseProvider(
+          provider.GetRequiredService<ILogger<CosmosDatabaseProvider>>(),
+          clientFactoryFunction(provider),
+          databaseId,
+          containerId
+        ))
+      ;
+    services.TryAddTransient<TimeProvider>(_ => TimeProvider.System);
+    return services;
+  }
 
 
   /// <summary>

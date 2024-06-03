@@ -14,7 +14,8 @@ internal sealed class CosmosEventStore(
   IOptions<CosmosEventStoreOptions> options,
   CosmosDatabaseProvider dbProvider,
   IEventTypeProvider eventTypeProvider,
-  ICosmosIdStrategy idStrategy
+  ICosmosIdStrategy idStrategy,
+  TimeProvider timeProvider
 )
   : IEventStore
 {
@@ -43,7 +44,8 @@ internal sealed class CosmosEventStore(
       stream.Resource,
       dbProvider,
       eventTypeProvider,
-      idStrategy);
+      idStrategy,
+      timeProvider);
   }
 
   private async Task<ItemResponse<EventStreamIndexEntity>> ReadStreamAndBuildIndex(
@@ -138,6 +140,7 @@ internal sealed class CosmosEventStore(
       response.Resource,
       dbProvider,
       eventTypeProvider,
-      idStrategy);
+      idStrategy,
+      timeProvider);
   }
 }
