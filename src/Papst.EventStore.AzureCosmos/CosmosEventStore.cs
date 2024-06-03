@@ -3,6 +3,8 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Papst.EventStore.AzureCosmos.Database;
+using Papst.EventStore.Documents;
+using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.AzureCosmos;
 
@@ -49,13 +51,26 @@ internal sealed class CosmosEventStore(
     CancellationToken cancellationToken
   )
   {
-    // read the stream latest version
+    // read the stream latest versions
     QueryDefinition query = new QueryDefinition(
-      "SELECT * FROM c WHERE c.StreamId = @streamId AND c.Version = (SELECT VALUE MAX(c2.Version) FROM c c2 WHERE c2.StreamId = @streamId) OR c.Version = 0"
+      @"SELECT * FROM c
+      WHERE c.StreamId = @streamId
+      AND (
+        c.Version = (SELECT VALUE MAX(c2.Version) FROM c c2 WHERE c2.StreamId = @streamId)
+        OR c.Version = 0
+        OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType == 'Snapshot')
+      )"
     ).WithParameter("streamId", streamId.ToString());
+    
     var documents = await dbProvider.Container.GetItemQueryIterator<EventStreamDocumentEntity>(query)
-      .ReadNextAsync(cancellationToken);
+      .ReadNextAsync(cancellationToken)
+      .ConfigureAwait(false);
 
+    if (documents.Count < 2)
+    {
+      throw new EventStreamNotFoundException(streamId, "The Stream has not been found when trying to built the index");
+    }
+    
     var creationDocument = documents.First(x => x.Version == 0);
     var maxVersionDocument = documents.First(x => x.Version != 0);
 
@@ -66,13 +81,21 @@ internal sealed class CosmosEventStore(
       Version = maxVersionDocument.Version,
       NextVersion = maxVersionDocument.Version + 1,
       Updated = maxVersionDocument.Time,
-      TargetType = creationDocument.TargetType
+      TargetType = creationDocument.TargetType,
+      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version
     };
 
-    return await dbProvider
-      .Container
-      .CreateItemAsync(index, new PartitionKey(streamId.ToString()), cancellationToken: cancellationToken)
-      .ConfigureAwait(false);
+    try
+    {
+      return await dbProvider
+        .Container
+        .CreateItemAsync(index, new PartitionKey(streamId.ToString()), cancellationToken: cancellationToken)
+        .ConfigureAwait(false);
+    }
+    catch (Exception e)
+    {
+      throw new EventStreamAlreadyExistsException(streamId, "Event Stream Index already existed when trying to built the index", e);
+    }
   }
 
   public async Task<IEventStream> CreateAsync(
