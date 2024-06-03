@@ -26,6 +26,8 @@ internal sealed class FileSystemEventStream : IEventStream
   public ulong Version => _entity.Version;
 
   public DateTimeOffset Created => _entity.Created;
+  
+  public ulong? LatestSnapshotVersion => _entity.LatestSnapshotVersion;
 
   public FileSystemEventStream(ILogger<FileSystemEventStream> logger, string path, FileSystemStreamIndexEntity entity, IEventTypeProvider eventTypeProvider)
   {

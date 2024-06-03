@@ -32,6 +32,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   public ulong Version => _stream.Version;
 
   public DateTimeOffset Created => _stream.Created;
+  
+  public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
 
   public async Task AppendAsync<TEvent>(
     Guid id,

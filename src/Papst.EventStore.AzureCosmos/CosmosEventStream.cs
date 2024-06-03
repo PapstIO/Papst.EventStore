@@ -20,6 +20,8 @@ internal sealed class CosmosEventStream : IEventStream
   public Guid StreamId => _stream.StreamId;
   public ulong Version => _stream.Version;
   public DateTimeOffset Created => _stream.Created;
+  public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
+
 
   public CosmosEventStream(
     ILogger<CosmosEventStream> logger,
@@ -99,12 +101,11 @@ internal sealed class CosmosEventStream : IEventStream
           .PatchItemAsync<EventStreamIndexEntity>(
             _stream.Id,
             new(StreamId.ToString()),
-            new List<PatchOperation>()
-            {
+            [
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-            },
+            ],
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
 
@@ -129,8 +130,8 @@ internal sealed class CosmosEventStream : IEventStream
   }
 
   private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await _dbProvider.Container
-      .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
-      .ConfigureAwait(false);
+    .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
+    .ConfigureAwait(false);
 
   private async ValueTask<EventStreamDocumentEntity> CreateEventEntity<TEvent>(
     Guid id,
@@ -152,12 +153,11 @@ internal sealed class CosmosEventStream : IEventStream
     TargetType = _stream.TargetType,
   };
 
-  
+
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync() =>
     Task.FromResult<IEventStoreTransactionAppender>(
       new CosmosEventStreamTransactionAppender(this));
 
-  
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(
     ulong startVersion = 0u,
@@ -185,11 +185,12 @@ internal sealed class CosmosEventStream : IEventStream
         {
           break;
         }
+
         yield return doc;
       }
     }
   }
-  
+
   private class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
   {
     private readonly CosmosEventStream _stream;
@@ -221,7 +222,7 @@ internal sealed class CosmosEventStream : IEventStream
 
       return this;
     }
-    
+
     private record EventStreamDocumentTemplate(
       Guid DocumentId,
       JObject Data,
@@ -251,7 +252,7 @@ internal sealed class CosmosEventStream : IEventStream
           try
           {
             ulong targetVersion = _stream.Version + (ulong)_events.Count;
-            
+
             ItemResponse<EventStreamIndexEntity>? indexPatch = await _stream._dbProvider.Container
               .PatchItemAsync<EventStreamIndexEntity>(
                 _stream._stream.Id,
@@ -277,7 +278,7 @@ internal sealed class CosmosEventStream : IEventStream
             currentVersion = _stream.Version;
           }
         } while (!indexUpdateSuccessful && retryCount < _stream._options.ConcurrencyRetryCount);
-        
+
         // store events
         var batch =
           _stream._dbProvider.Container.CreateTransactionalBatch(new PartitionKey(_stream.StreamId.ToString()));
@@ -296,11 +297,11 @@ internal sealed class CosmosEventStream : IEventStream
             TargetType = evt.TargetType,
             Time = evt.Time,
             DocumentType = EventStreamDocumentType.Event,
-            MetaData = evt.MetaData, 
+            MetaData = evt.MetaData,
           };
 
           batch.CreateItem(document);
-          
+
           currentVersion++;
         }
 

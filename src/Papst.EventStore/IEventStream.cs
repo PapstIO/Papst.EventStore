@@ -17,7 +17,15 @@ public interface IEventStream
   /// </summary>
   ulong Version { get; }
 
+  /// <summary>
+  /// Time when the Stream has been created
+  /// </summary>
   DateTimeOffset Created { get; }
+  
+  /// <summary>
+  /// If not null, contains the Version of the latest snapshop
+  /// </summary>
+  ulong? LatestSnapshotVersion { get; }
 
   /// <summary>
   /// The Latest Snapshop that has been fetched (if available)
