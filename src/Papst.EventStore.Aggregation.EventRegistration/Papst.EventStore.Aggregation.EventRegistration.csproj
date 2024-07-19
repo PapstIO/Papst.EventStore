@@ -4,6 +4,18 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  
+  <PropertyGroup>
+    <Description>This library enables server applications to store and replay event in an abstract EventStore. This particular library extends the functionality by adding the possibility to register events by attribute</Description>
+    <Authors>Marco Papst</Authors>
+    <Title>Papst EventStore</Title>
+    <PackageId>Papst.EventStore.Aggregation.EventRegistration</PackageId>
+    <PackageTags>eventsourcing;eventstore</PackageTags>
+    <PackageLicenseUrl>https://github.com/PapstIO/Papst.EventStore/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
   </ItemGroup>

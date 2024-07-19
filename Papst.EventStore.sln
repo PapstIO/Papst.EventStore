@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.31911.260
@@ -43,6 +43,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleSqlServerEfCoreEventS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.AzureCosmos", "src\Papst.EventStore.AzureCosmos\Papst.EventStore.AzureCosmos.csproj", "{BC63340D-E9EE-4ADA-9EB8-656E88D64843}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.Build", "build\Papst.EventStore.Build.csproj", "{84757A47-6151-480D-A75A-4845B1EFD2C7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,8 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{84757A47-6151-480D-A75A-4845B1EFD2C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84757A47-6151-480D-A75A-4845B1EFD2C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{31B1A840-380B-4B63-A66A-02855EA6289C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{31B1A840-380B-4B63-A66A-02855EA6289C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31B1A840-380B-4B63-A66A-02855EA6289C}.Debug|x64.ActiveCfg = Debug|Any CPU

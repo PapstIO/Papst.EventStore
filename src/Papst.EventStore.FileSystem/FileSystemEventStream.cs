@@ -140,7 +140,7 @@ internal sealed class FileSystemEventStream : IEventStream
           await stream.UpdateIndexAsync();
         }
       }
-      catch (Exception e) { }
+      catch (Exception) { }
     }
 
     private record EventStreamDocumentTemplate(

@@ -1,15 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Cosmos" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Newtonsoft.Json" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Description>Azure Cosmos DB based Implementation of Papst.EventStore</Description>
+        <Authors>Marco Papst</Authors>
+        <Title>Papst EventStore</Title>
+        <PackageId>Papst.EventStore.AzureCosmos</PackageId>
+        <PackageTags>eventsourcing;eventstore</PackageTags>
+        <PackageLicenseUrl>https://github.com/PapstIO/Papst.EventStore/blob/main/LICENSE</PackageLicenseUrl>
+        <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore</PackageProjectUrl>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference
+                Include="..\Papst.EventStore\Papst.EventStore.csproj"
+                Condition="'$(Configuration)' != 'Release'"/>
+        <PackageReference
+                Include="Papst.EventStore"
+                Condition="'$(Configuration)' == 'Release'"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Cosmos"/>
+        <PackageReference Include="Microsoft.Extensions.Options"/>
+        <PackageReference Include="Newtonsoft.Json"/>
+    </ItemGroup>
 </Project>
