@@ -21,6 +21,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{3983623E-7294-4F2C-8AE5-CD3C0D41F062}"
 	ProjectSection(SolutionItems) = preProject
 		version.json = version.json
+		.github\workflows\test.yml = .github\workflows\test.yml
+		.github\workflows\publish.yml = .github\workflows\publish.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Papst.EventStore.CodeGeneration", "src\Papst.EventStore.CodeGeneration\Papst.EventStore.CodeGeneration.csproj", "{CBBA3A73-FFED-4DF0-92A8-633B41372ECF}"
