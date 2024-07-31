@@ -13,7 +13,7 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="stream">The Stream</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task<TTargetType> AggregateAsync(IEventStream stream, CancellationToken cancellationToken);
+  Task<TTargetType?> AggregateAsync(IEventStream stream, CancellationToken cancellationToken);
 
   /// <summary>
   /// Apply the Stream to a new Entity, stop at specific version
@@ -22,7 +22,7 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="targetVersion">The target version</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task<TTargetType> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken);
+  Task<TTargetType?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken);
 
   /// <summary>
   /// Apply the Stream to an existing entity
@@ -31,7 +31,7 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="target">The Target Entity Instance</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task<TTargetType> AggregateAsync(IEventStream stream, TTargetType target, CancellationToken cancellationToken);
+  Task<TTargetType?> AggregateAsync(IEventStream stream, TTargetType target, CancellationToken cancellationToken);
 
   /// <summary>
   /// Apply the Stream to an existing entity, stop at specific version
@@ -41,5 +41,5 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="targetVersion">The target version</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  Task<TTargetType> AggregateAsync(IEventStream stream, TTargetType target, ulong targetVersion, CancellationToken cancellationToken);
+  Task<TTargetType?> AggregateAsync(IEventStream stream, TTargetType target, ulong targetVersion, CancellationToken cancellationToken);
 }

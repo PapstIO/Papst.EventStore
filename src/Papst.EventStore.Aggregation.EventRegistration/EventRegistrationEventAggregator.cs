@@ -26,11 +26,11 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   }
 
   /// <inheritdoc/>
-  public async Task<TEntity> AggregateAsync(IEventStream stream, CancellationToken cancellationToken)
+  public async Task<TEntity?> AggregateAsync(IEventStream stream, CancellationToken cancellationToken)
     => await AggregateAsync(stream, stream.Version, cancellationToken).ConfigureAwait(false);
 
   /// <inheritdoc/>
-  public async Task<TEntity> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken)
+  public async Task<TEntity?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken)
   {
     Logging.CreatingNewEntity(_logger, typeof(TEntity).Name, stream.StreamId);
     // create the Entity using the StartVersion - 1 because the Aggregator will increment it after applying the first Event
@@ -42,11 +42,11 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   }
 
   /// <inheritdoc/>
-  public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity target, CancellationToken cancellationToken)
+  public async Task<TEntity?> AggregateAsync(IEventStream stream, TEntity target, CancellationToken cancellationToken)
     => await AggregateAsync(stream, target, stream.Version, cancellationToken).ConfigureAwait(false);
 
   /// <inheritdoc/>
-  public async Task<TEntity> AggregateAsync(IEventStream stream, TEntity originalTarget, ulong targetVersion, CancellationToken cancellationToken)
+  public async Task<TEntity?> AggregateAsync(IEventStream stream, TEntity originalTarget, ulong targetVersion, CancellationToken cancellationToken)
   {
     TEntity? target = originalTarget;
 
