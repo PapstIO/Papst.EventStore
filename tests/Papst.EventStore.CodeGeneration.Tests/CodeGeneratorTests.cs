@@ -24,7 +24,7 @@ namespace MyCode
         {
         }    
     }
-    [EventName(Name = ""Foo"")]
+    [EventName(""Foo"")]
     public record Foo {}
 }
 ");
@@ -52,7 +52,7 @@ namespace MyCode
     Compilation inputCompilation = CreateCompilation(@"
 namespace MyCode
 {
-  [EventName(Name = ""Foo"")]
+  [EventName(""Foo"")]
   public record Foo {}
 }
 ");
@@ -87,7 +87,7 @@ namespace MyCode
         {
         }
     }
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
 
@@ -106,7 +106,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
   }
 
   [Fact]
@@ -143,7 +143,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -161,7 +161,7 @@ public class Program
   {
   }
 }
-[EventName(Name = ""Foo"", IsWriteName = true)]
+[EventName(""Foo"", true)]
 public class TestEventFoo
 {
 
@@ -179,7 +179,7 @@ public class TestEventFoo
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -199,8 +199,8 @@ namespace MyCode
         }
     }
   
-  [EventName(Name = ""FooOld"")]
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(Name = ""FooOld"", false)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
 
@@ -219,7 +219,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"FooOld\", true), new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -239,8 +239,8 @@ namespace MyCode
         }
     }
   
-  [EventName(Name = ""FooOld"", IsWriteName = false)]
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""FooOld"", false)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
 
@@ -259,7 +259,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -278,7 +278,7 @@ namespace MyCode
         {
         }
     }
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""Foo"", true)]
   public record TestEventFoo
   {
 
@@ -297,7 +297,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -316,7 +316,7 @@ namespace MyCode
         {
         }
     }
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
     
@@ -344,8 +344,8 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -363,7 +363,7 @@ namespace MyCode
         {
         }
     }
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
   }
@@ -397,9 +397,9 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.Abstractions.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
+    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -417,7 +417,7 @@ namespace MyCode
         {
         }
     }
-  [EventName(Name = ""Foo"", IsWriteName = true)]
+  [EventName(""Foo"", true)]
   public class TestEventFoo
   {
     
@@ -445,7 +445,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Abstractions.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
