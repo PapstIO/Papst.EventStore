@@ -118,9 +118,7 @@ internal sealed class FileSystemEventStream : IEventStream
       {
         return;
       }
-
-      ulong currentVersion = stream.Version;
-
+      
       try
       {
         ulong nextVersion = stream._entity.NextVersion;
@@ -140,7 +138,7 @@ internal sealed class FileSystemEventStream : IEventStream
           await stream.UpdateIndexAsync();
         }
       }
-      catch (Exception e) { }
+      catch (Exception) { }
     }
 
     private record EventStreamDocumentTemplate(

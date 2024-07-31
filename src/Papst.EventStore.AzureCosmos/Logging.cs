@@ -18,7 +18,7 @@ internal static partial class Logging
   [LoggerMessage(LogLevel.Debug, "Reading Event {Version} for Stream {StreamId}")]
   public static partial void ReadingEvent(ILogger logger, Guid streamId, ulong version);
 
-  [LoggerMessage(LogLevel.Warning, "Failed to Update index due to concurrency - retrying")]
+  [LoggerMessage(LogLevel.Warning, "Failed to Update index of Stream {StreamId} due to concurrency - retrying")]
   public static partial void IndexPatchConcurrency(ILogger logger, Exception ex, Guid streamId);
 
 }
