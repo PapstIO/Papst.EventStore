@@ -1,21 +1,19 @@
 name: Test
 
 on:
-  push:
-    branches: 
-      - feature/*
-      - bugfix/*
   pull_request:
     branches:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v2
