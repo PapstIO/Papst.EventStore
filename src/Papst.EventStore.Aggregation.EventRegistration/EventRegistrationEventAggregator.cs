@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -106,7 +107,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       catch (InvalidOperationException exc)
       {
         Logging.EventAggregatorNotRegistered(_logger, exc, entityType.Name, evt.DataType);
-        throw;
+        throw new EventStreamAggregatorNotRegisteredException(exc, stream.StreamId, entityType.Name, evt.DataType);
       }
     }
     return target;
