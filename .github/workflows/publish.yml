@@ -55,10 +55,7 @@ jobs:
     - name: Pack Papst.EventStore project
       run: dotnet pack src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: List results
-      run: ls ./artifacts
-
-    # - name: Publish to NuGet
-    #   env:
-    #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-    #   run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
+    - name: Publish to NuGet
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
+      run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }}
