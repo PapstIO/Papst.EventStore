@@ -47,5 +47,5 @@ public abstract class EventAggregatorBase<TEvent, TEntity> : IEventAggregator<TE
   /// </summary>
   /// <param name="entity"></param>
   /// <returns></returns>
-  protected Task<TEntity?> AsTask(TEntity? entity) => Task.FromResult(entity);
+  protected ValueTask<TEntity?> AsTask(TEntity? entity) => ValueTask.FromResult(entity);
 }
