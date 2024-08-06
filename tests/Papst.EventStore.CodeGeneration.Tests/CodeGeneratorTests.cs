@@ -345,7 +345,7 @@ namespace MyCode
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
     source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -398,8 +398,8 @@ namespace MyCode
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
     source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -445,7 +445,7 @@ namespace MyCode
     runResult.Diagnostics.Should().BeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("services.AddTransient<Papst.EventStore.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
