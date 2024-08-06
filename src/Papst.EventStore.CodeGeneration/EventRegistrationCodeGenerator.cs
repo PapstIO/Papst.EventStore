@@ -122,7 +122,7 @@ namespace Papst.EventStore.CodeGeneration
             {
               foreach (var implementation in aggregator.TypeArguments)
               {
-                builder.AppendLine($"    services.AddTransient<Papst.EventStore.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
+                builder.AppendLine($"    services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
               }
             }
           }
