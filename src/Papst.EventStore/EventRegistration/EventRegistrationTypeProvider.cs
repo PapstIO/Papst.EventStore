@@ -2,7 +2,7 @@
 using System.Linq;
 
 namespace Papst.EventStore.EventRegistration;
-internal class EventRegistrationTypeProvider : IEventTypeProvider
+public class EventRegistrationTypeProvider : IEventTypeProvider
 {
   private readonly ILogger<EventRegistrationTypeProvider> _logger;
   private readonly IEnumerable<IEventRegistration> _eventRegistrations;
