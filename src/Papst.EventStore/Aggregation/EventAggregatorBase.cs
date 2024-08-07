@@ -2,7 +2,7 @@
 
 namespace Papst.EventStore.Aggregation;
 
-public abstract class EventAggregatorBase<TEvent, TEntity> : IEventAggregator<TEntity, TEvent>
+public abstract class EventAggregatorBase<TEntity, TEvent> : IEventAggregator<TEntity, TEvent>
   where TEntity : class
 {
   /// <inheritdoc cref="IEventAggregator{TEntity,TEvent}"/>
