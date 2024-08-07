@@ -7,7 +7,7 @@ namespace Papst.EventStore.Aggregation;
 /// </summary>
 /// <typeparam name="TEntity">The Entity the Event shall be aggregated on</typeparam>
 /// <typeparam name="TEvent">The Event that shall be aggregated</typeparam>
-public interface IEventAggregator<TEntity, in TEvent> : IEventAggregator<TEntity>
+public interface IEventAggregator<TEntity, TEvent> : IEventAggregator<TEntity>
     where TEntity : class
 {
   /// <summary>
