@@ -131,7 +131,7 @@ namespace Papst.EventStore.CodeGeneration
           builder
             .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.EventRegistration.IEventTypeProvider)))")
             .AppendLine("    {")
-            .AppendLine("      services.AddTransient<Papst.EventStore.IEventTypeProvider, Papst.EventStore.EventRegistration.EventRegistrationTypeProvider>()")
+            .AppendLine("      services.AddTransient<Papst.EventStore.IEventTypeProvider, Papst.EventStore.EventRegistration.EventRegistrationTypeProvider>();")
             .AppendLine("    }")
             ;
 
