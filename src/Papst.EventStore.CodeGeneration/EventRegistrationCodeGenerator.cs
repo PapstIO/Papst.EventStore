@@ -129,7 +129,7 @@ namespace Papst.EventStore.CodeGeneration
 
           // make sure only one instance of the IEventTypeProvider is registered
           builder
-            .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.EventRegistration.IEventTypeProvider)))")
+            .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.IEventTypeProvider)))")
             .AppendLine("    {")
             .AppendLine("      services.AddTransient<Papst.EventStore.IEventTypeProvider, Papst.EventStore.EventRegistration.EventRegistrationTypeProvider>();")
             .AppendLine("    }")
