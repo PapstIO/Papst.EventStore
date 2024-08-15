@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
+using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.AzureCosmos;
 
@@ -205,23 +206,22 @@ internal sealed class CosmosEventStream(
     [EnumeratorCancellation] CancellationToken cancellationToken = default
   )
   {
-    FeedIterator<EventStreamDocument> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
+    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
       .Where(doc => doc.StreamId == stream.StreamId)
       .OrderBy(doc => doc.Version)
-      .Select(doc => Map(doc))
       .ToFeedIterator();
 
     while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
     {
-      FeedResponse<EventStreamDocument> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
-      foreach (EventStreamDocument doc in batch)
+      FeedResponse<EventStreamDocumentEntity> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      foreach (EventStreamDocumentEntity doc in batch)
       {
         if (cancellationToken.IsCancellationRequested)
         {
           break;
         }
 
-        yield return doc;
+        yield return Map(doc);
       }
     }
   }
@@ -357,8 +357,8 @@ internal sealed class CosmosEventStream(
       }
       catch (Exception e)
       {
-        Console.WriteLine(e);
-        throw;
+        logger.TransactionException(e, StreamId);
+        throw new EventStreamException(StreamId, "Exception during Transaction", e);
       }
   }
 }
