@@ -20,29 +20,30 @@ internal sealed class CosmosEventStream(
 )
   : IEventStream
 {
+  private EventStreamIndexEntity _stream = stream;
 
-  public Guid StreamId => stream.StreamId;
-  public ulong Version => stream.Version;
-  public DateTimeOffset Created => stream.Created;
-  public ulong? LatestSnapshotVersion => stream.LatestSnapshotVersion;
+  public Guid StreamId => _stream.StreamId;
+  public ulong Version => _stream.Version;
+  public DateTimeOffset Created => _stream.Created;
+  public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
 
 
   public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
-    if (!stream.LatestSnapshotVersion.HasValue)
+    if (!_stream.LatestSnapshotVersion.HasValue)
     {
       return null;
     }
 
     string snapShotId = await idStrategy.GenerateIdAsync(
-      stream.StreamId,
-      stream.LatestSnapshotVersion.Value,
+      _stream.StreamId,
+      _stream.LatestSnapshotVersion.Value,
       EventStreamDocumentType.Snapshot).ConfigureAwait(false);
 
     ItemResponse<EventStreamDocumentEntity> result = await dbProvider.Container
       .ReadItemAsync<EventStreamDocumentEntity>(
         snapShotId,
-        new(stream.StreamId.ToString()),
+        new(_stream.StreamId.ToString()),
         cancellationToken: cancellationToken).ConfigureAwait(false);
 
     return Map(result.Resource);
@@ -86,29 +87,29 @@ internal sealed class CosmosEventStream(
       {
         ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
-            stream.Id,
+            _stream.Id,
             new(StreamId.ToString()),
             [
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), stream.NextVersion + 1),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), stream.NextVersion),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
             ],
-            new PatchItemRequestOptions() { IfMatchEtag = stream.ETag },
+            new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
 
-        stream = indexPatch.Resource;
+        _stream = indexPatch.Resource;
         indexUpdateSuccessful = true;
       }
       catch (CosmosException e)
       {
-        Logging.IndexPatchConcurrency(logger, e, stream.StreamId);
+        logger.IndexPatchConcurrency(e, _stream.StreamId);
         retryCount++;
         await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
         await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
       }
     } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
 
-    Logging.AppendingEvent(logger, document.DataType, document.StreamId, document.Version);
+    logger.AppendingEvent(document.DataType, document.StreamId, document.Version);
     _ = await dbProvider.Container.CreateItemAsync(
         document,
         new(StreamId.ToString()),
@@ -134,30 +135,30 @@ internal sealed class CosmosEventStream(
       {
         ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
-            stream.Id,
+            _stream.Id,
             new PartitionKey(StreamId.ToString()),
             [
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), stream.NextVersion + 1),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), stream.NextVersion),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), stream.NextVersion), 
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion), 
             ],
-            new PatchItemRequestOptions() { IfMatchEtag = stream.ETag },
+            new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
 
-        stream = indexPatch.Resource;
+        _stream = indexPatch.Resource;
         indexUpdateSuccessful = true;
       }
       catch (CosmosException e)
       {
-        Logging.IndexPatchConcurrency(logger, e, stream.StreamId);
+        logger.IndexPatchConcurrency(e, _stream.StreamId);
         retryCount++;
         await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
         await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
       }
     } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
 
-    Logging.AppendingEvent(logger, document.DataType, document.StreamId, document.Version);
+    logger.AppendingEvent(document.DataType, document.StreamId, document.Version);
     _ = await dbProvider.Container.CreateItemAsync(
         document,
         new(StreamId.ToString()),
@@ -165,8 +166,8 @@ internal sealed class CosmosEventStream(
       .ConfigureAwait(false);
   }
 
-  private async Task RefreshIndexAsync(CancellationToken cancellationToken) => stream = await dbProvider.Container
-    .ReadItemAsync<EventStreamIndexEntity>(stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
+  private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await dbProvider.Container
+    .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
     .ConfigureAwait(false);
 
   private async ValueTask<EventStreamDocumentEntity> CreateEventEntity<TEvent>(
@@ -177,28 +178,28 @@ internal sealed class CosmosEventStream(
     EventStreamDocumentType documentType = EventStreamDocumentType.Event
   ) where TEvent : notnull => new()
   {
-    Id = await idStrategy.GenerateIdAsync(StreamId, stream.NextVersion, documentType),
+    Id = await idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, documentType),
     DocumentId = id,
     StreamId = StreamId,
-    Version = stream.NextVersion,
+    Version = _stream.NextVersion,
     Data = JObject.FromObject(evt),
     DataType = eventName,
     Name = eventName,
     Time = timeProvider.GetLocalNow(),
     DocumentType = documentType,
     MetaData = metaData ?? new(),
-    TargetType = stream.TargetType,
+    TargetType = _stream.TargetType,
   };
 
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync() =>
-    Task.FromResult<IEventStoreTransactionAppender>(new CosmosEventStreamTransactionAppender(this, timeProvider, eventTypeProvider, stream.TargetType));
+    Task.FromResult<IEventStoreTransactionAppender>(new CosmosEventStreamTransactionAppender(this, timeProvider, eventTypeProvider, _stream.TargetType));
 
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(
     ulong startVersion = 0u,
     CancellationToken cancellationToken = default
-  ) => ListAsync(startVersion, stream.Version, cancellationToken);
+  ) => ListAsync(startVersion, _stream.Version, cancellationToken);
 
   public async IAsyncEnumerable<EventStreamDocument> ListAsync(
     ulong startVersion,
@@ -207,7 +208,7 @@ internal sealed class CosmosEventStream(
   )
   {
     FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
-      .Where(doc => doc.StreamId == stream.StreamId)
+      .Where(doc => doc.StreamId == _stream.StreamId && doc.DocumentType == EventStreamDocumentType.Index)
       .OrderBy(doc => doc.Version)
       .ToFeedIterator();
 
@@ -289,7 +290,7 @@ internal sealed class CosmosEventStream(
 
   private async Task CommitTransactionAsync(List<EventStreamDocumentTemplate> events, CancellationToken cancellationToken)
   {
-    ulong currentVersion = stream.Version;
+    ulong currentVersion = _stream.Version;
 
       try
       {
@@ -300,11 +301,11 @@ internal sealed class CosmosEventStream(
         {
           try
           {
-            ulong targetVersion = stream.Version + (ulong)events.Count;
+            ulong targetVersion = _stream.Version + (ulong)events.Count;
 
             ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
               .PatchItemAsync<EventStreamIndexEntity>(
-                stream.Id,
+                _stream.Id,
                 new(StreamId.ToString()),
                 new List<PatchOperation>()
                 {
@@ -312,19 +313,19 @@ internal sealed class CosmosEventStream(
                   PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
                   PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
                 },
-                new PatchItemRequestOptions() { IfMatchEtag = stream.ETag },
+                new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
                 cancellationToken).ConfigureAwait(false);
 
-            stream = indexPatch.Resource;
+            _stream = indexPatch.Resource;
             indexUpdateSuccessful = true;
           }
           catch (CosmosException e)
           {
-            Logging.IndexPatchConcurrency(logger, e, StreamId);
+            logger.IndexPatchConcurrency(e, StreamId);
             retryCount++;
             await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
             await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
-            currentVersion = stream.Version;
+            currentVersion = _stream.Version;
           }
         } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
 

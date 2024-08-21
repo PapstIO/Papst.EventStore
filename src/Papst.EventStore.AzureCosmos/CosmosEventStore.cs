@@ -23,7 +23,7 @@ internal sealed class CosmosEventStore(
 
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
-    Logging.GetEventStream(logger, streamId);
+    logger.GetEventStream(streamId);
     ItemResponse<EventStreamIndexEntity>? stream;
     try
     {
@@ -115,7 +115,7 @@ internal sealed class CosmosEventStore(
     CancellationToken cancellationToken = default
   )
   {
-    Logging.CreatingEventStream(logger, streamId, targetTypeName);
+    logger.CreatingEventStream(streamId, targetTypeName);
 
     EventStreamIndexEntity stream = new()
     {

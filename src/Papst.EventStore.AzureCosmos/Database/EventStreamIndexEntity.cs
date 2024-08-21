@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.AzureCosmos.Database;
 
@@ -34,6 +36,12 @@ public class EventStreamIndexEntity
   /// The time of the latest event
   /// </summary>
   public DateTimeOffset Updated { get; set; }
+
+  /// <summary>
+  /// Type of the Document
+  /// </summary>
+  [JsonConverter(typeof(StringEnumConverter))]
+  public EventStreamDocumentType DocumentType { get; init; } = EventStreamDocumentType.Index;
   
   /// <summary>
   /// The Target Type Name
