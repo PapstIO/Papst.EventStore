@@ -107,11 +107,29 @@ internal sealed class EntityFrameworkEventStream : IEventStream
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, CancellationToken cancellationToken = default) =>
     _dbContext.Documents
-      .Where(doc => doc.StreamId == StreamId && doc.Version >= startVersion && doc.Version <= endVersion)
+      .Where(doc => 
+        doc.StreamId == StreamId 
+        && doc.Version >= startVersion 
+        && doc.Version <= endVersion)
       .OrderBy(doc => doc.Version)
       .Select(Map())
       .AsNoTracking()
       .AsAsyncEnumerable();
+
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
+    CancellationToken cancellationToken = default)
+    => _dbContext.Documents
+      .Where(doc => 
+        doc.StreamId == StreamId 
+        && doc.Version <= endVersion
+        && doc.Version >= startVersion)
+      .OrderByDescending(doc => doc.Version)
+      .Select(Map())
+      .AsNoTracking()
+      .AsAsyncEnumerable();
+
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
+  => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
   private static Expression<Func<EventStreamDocumentEntity, EventStreamDocument>> Map() => doc => new EventStreamDocument()
   {

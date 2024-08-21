@@ -207,6 +207,35 @@ internal sealed class FileSystemEventStream : IEventStream
     }
   }
 
+  public async IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+  {
+    Logging.ReadingEventStream(_logger, StreamId, startVersion, endVersion);
+    ulong currentVersion = endVersion;
+    while (!cancellationToken.IsCancellationRequested && currentVersion <= endVersion)
+    {
+      string versionPath = Path.Combine(_path, VersionToPath(currentVersion));
+      string fileName = $"{currentVersion.ToString(FileNameFormat)}.json";
+      if (!File.Exists(Path.Combine(versionPath, fileName)))
+      {
+        throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version File does not exist!");
+      }
+      Logging.ReadingEvent(_logger, StreamId, currentVersion);
+      await using FileStream stream = File.OpenRead(Path.Combine(versionPath, fileName));
+      EventStreamDocument? entity = await JsonSerializer.
+        DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken)
+        .ConfigureAwait(false);
+      if (entity == null)
+      {
+        throw new EventStreamVersionNotFoundException(StreamId, currentVersion, "The Version is not readable!");
+      }
+      yield return entity;
+      currentVersion--;
+    }
+  }
+
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
+    => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
 
   private async Task AppendInternalAsync(EventStreamDocument document, CancellationToken cancellationToken = default)

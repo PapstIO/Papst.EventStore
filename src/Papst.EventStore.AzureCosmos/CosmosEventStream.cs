@@ -208,7 +208,11 @@ internal sealed class CosmosEventStream(
   )
   {
     FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
-      .Where(doc => doc.StreamId == _stream.StreamId && doc.DocumentType == EventStreamDocumentType.Index)
+      .Where(doc => 
+        doc.StreamId == _stream.StreamId 
+        && doc.DocumentType == EventStreamDocumentType.Index
+        && doc.Version >= startVersion
+        && doc.Version <= endVersion)
       .OrderBy(doc => doc.Version)
       .ToFeedIterator();
 
@@ -226,6 +230,36 @@ internal sealed class CosmosEventStream(
       }
     }
   }
+
+  public async IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+  {
+    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
+      .Where(doc => 
+        doc.StreamId == _stream.StreamId 
+        && doc.DocumentType == EventStreamDocumentType.Index
+        && doc.Version >= startVersion
+        && doc.Version <= endVersion)
+      .OrderByDescending(doc => doc.Version)
+      .ToFeedIterator();
+
+    while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
+    {
+      FeedResponse<EventStreamDocumentEntity> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      foreach (EventStreamDocumentEntity doc in batch)
+      {
+        if (cancellationToken.IsCancellationRequested)
+        {
+          break;
+        }
+
+        yield return Map(doc);
+      }
+    }
+  }
+
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default) 
+    => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
   private class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
   {
