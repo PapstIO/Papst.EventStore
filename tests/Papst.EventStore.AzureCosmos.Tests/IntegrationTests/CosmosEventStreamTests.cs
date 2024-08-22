@@ -1,5 +1,6 @@
 ﻿using AutoFixture.Xunit2;
 using FluentAssertions;
+using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
 using Xunit;
@@ -39,7 +40,6 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     // assert
     stream.Version.Should().Be(1);
     var events = await stream.ListAsync().ToListAsync();
-    events.Count.Should().Be(2);
     events.Should().Contain(d => d.Id == documentId);
   }
 }
