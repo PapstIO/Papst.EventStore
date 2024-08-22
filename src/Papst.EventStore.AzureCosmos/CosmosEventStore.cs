@@ -1,10 +1,10 @@
-﻿using System.Net;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
+using System.Net;
 
 namespace Papst.EventStore.AzureCosmos;
 
@@ -23,7 +23,7 @@ internal sealed class CosmosEventStore(
 
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
-    Logging.GetEventStream(logger, streamId);
+    logger.GetEventStream(streamId);
     ItemResponse<EventStreamIndexEntity>? stream;
     try
     {
@@ -33,9 +33,16 @@ internal sealed class CosmosEventStore(
           new(streamId.ToString()),
           cancellationToken: cancellationToken).ConfigureAwait(false);
     }
-    catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound && options.Value.BuildIndexOnNotFound)
+    catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound)
     {
-      stream = await ReadStreamAndBuildIndex(streamId, cancellationToken).ConfigureAwait(false);
+      if (options.Value.BuildIndexOnNotFound)
+      {
+        stream = await ReadStreamAndBuildIndex(streamId, cancellationToken).ConfigureAwait(false);
+      }
+      else
+      {
+        throw new EventStreamNotFoundException(streamId, "Event Stream has not been found!", e);
+      }
     }
 
     return new CosmosEventStream(
@@ -63,7 +70,7 @@ internal sealed class CosmosEventStore(
         OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType == 'Snapshot')
       )"
     ).WithParameter("streamId", streamId.ToString());
-    
+
     var documents = await dbProvider.Container.GetItemQueryIterator<EventStreamDocumentEntity>(query)
       .ReadNextAsync(cancellationToken)
       .ConfigureAwait(false);
@@ -72,7 +79,7 @@ internal sealed class CosmosEventStore(
     {
       throw new EventStreamNotFoundException(streamId, "The Stream has not been found when trying to built the index");
     }
-    
+
     var creationDocument = documents.First(x => x.Version == 0);
     var maxVersionDocument = documents.First(x => x.Version != 0);
 
@@ -94,7 +101,7 @@ internal sealed class CosmosEventStore(
         .CreateItemAsync(index, new PartitionKey(streamId.ToString()), cancellationToken: cancellationToken)
         .ConfigureAwait(false);
     }
-    catch (CosmosException e2) when( e2.StatusCode == HttpStatusCode.Conflict) 
+    catch (CosmosException e2) when (e2.StatusCode == HttpStatusCode.Conflict)
     {
       // when already exists reread it from the db
       return await dbProvider.Container
@@ -115,7 +122,7 @@ internal sealed class CosmosEventStore(
     CancellationToken cancellationToken = default
   )
   {
-    Logging.CreatingEventStream(logger, streamId, targetTypeName);
+    logger.CreatingEventStream(streamId, targetTypeName);
 
     EventStreamIndexEntity stream = new()
     {

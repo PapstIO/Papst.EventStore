@@ -13,5 +13,10 @@ public enum EventStreamDocumentType
   /// <summary>
   /// A Updating Event
   /// </summary>
-  Event
+  Event,
+  
+  /// <summary>
+  /// The Index Document of the stream
+  /// </summary>
+  Index
 }

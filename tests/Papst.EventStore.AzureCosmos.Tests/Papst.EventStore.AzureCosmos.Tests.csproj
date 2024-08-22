@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AutoFixture.Xunit2" />
+		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" />
+		<PackageReference Include="Microsoft.CodeAnalysis" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="Moq" />
+		<PackageReference Include="System.Formats.Asn1" />
+		<PackageReference Include="System.Linq.Async" />
+		<PackageReference Include="Testcontainers" />
+		<PackageReference Include="Testcontainers.CosmosDb" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Papst.EventStore.Aggregation.EventRegistration\Papst.EventStore.Aggregation.EventRegistration.csproj" />
+		<ProjectReference Include="..\..\src\Papst.EventStore.AzureCosmos\Papst.EventStore.AzureCosmos.csproj" />
+		<ProjectReference Include="..\..\src\Papst.EventStore\Papst.EventStore.csproj" />
+		<ProjectReference Include="..\..\src\Papst.EventStore.CodeGeneration\Papst.EventStore.CodeGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+</Project>
