@@ -26,16 +26,16 @@ namespace Papst.EventStore.CodeGeneration
       string baseNamespace;
       if (entryPoint != null)
       {
-        baseNamespace = entryPoint.ContainingNamespace.ToDisplayString();
+        baseNamespace = entryPoint.ContainingNamespace.ToDisplayString().Trim();
       }
       else
       {
-        baseNamespace = context.Compilation.Assembly.MetadataName;
+        baseNamespace = context.Compilation.Assembly.MetadataName.Trim();
       }
 
-      if (string.IsNullOrEmpty(baseNamespace))
+      if (string.IsNullOrEmpty(baseNamespace) || baseNamespace == "<global namespace>")
       {
-        throw new NotSupportedException("Assembly Should have a Base Namespace - no Namespace found to be used");
+        baseNamespace = "Papst.EventStore";
       }
 
       // based on https://andrewlock.net/using-source-generators-with-a-custom-attribute--to-generate-a-nav-component-in-a-blazor-app/

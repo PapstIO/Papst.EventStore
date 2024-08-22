@@ -10,7 +10,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
   public string DatabaseName => CosmosDatabaseName;
   public string ContainerName => CosmosContainerId;
 
-  private readonly CosmosDbContainer _cosmosDbContainer = new Testcontainers.CosmosDb.CosmosDbBuilder()
+  private readonly CosmosDbContainer _cosmosDbContainer = new CosmosDbBuilder()
     .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest")
     .WithPortBinding(8081, 8081)
     .WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
@@ -34,7 +34,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
     });
 
     var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseName);
-    await database.Database.CreateContainerIfNotExistsAsync(ContainerName, "/id");
+    await database.Database.CreateContainerIfNotExistsAsync(ContainerName, "/StreamId");
   }
 
   public IServiceProvider BuildServiceProvider(Action<IServiceCollection>? configureServices = null)
@@ -43,10 +43,13 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
     {
       throw new NotSupportedException();
     }
-    
+
     var services = new ServiceCollection();
+    services.AddLogging();
 
     services.AddCosmosEventStore(_cosmosClient, CosmosDatabaseName, CosmosContainerId);
+    services.AddCodeGeneratedEvents();
+    services.AddSingleton(_cosmosClient);
 
     configureServices?.Invoke(services);
 
