@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
+using System.Runtime.CompilerServices;
 
 namespace Papst.EventStore.AzureCosmos;
 
@@ -141,7 +141,7 @@ internal sealed class CosmosEventStream(
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
               PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion), 
+              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
             ],
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
@@ -208,9 +208,9 @@ internal sealed class CosmosEventStream(
   )
   {
     FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
-      .Where(doc => 
-        doc.StreamId == _stream.StreamId 
-        && doc.DocumentType == EventStreamDocumentType.Index
+      .Where(doc =>
+        doc.StreamId == _stream.StreamId
+        && doc.DocumentType != EventStreamDocumentType.Index
         && doc.Version >= startVersion
         && doc.Version <= endVersion)
       .OrderBy(doc => doc.Version)
@@ -235,9 +235,9 @@ internal sealed class CosmosEventStream(
     [EnumeratorCancellation] CancellationToken cancellationToken = default)
   {
     FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
-      .Where(doc => 
-        doc.StreamId == _stream.StreamId 
-        && doc.DocumentType == EventStreamDocumentType.Index
+      .Where(doc =>
+        doc.StreamId == _stream.StreamId
+        && doc.DocumentType != EventStreamDocumentType.Index
         && doc.Version >= startVersion
         && doc.Version <= endVersion)
       .OrderByDescending(doc => doc.Version)
@@ -258,7 +258,7 @@ internal sealed class CosmosEventStream(
     }
   }
 
-  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default) 
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
     => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
   private class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
@@ -299,7 +299,7 @@ internal sealed class CosmosEventStream(
       return this;
     }
 
-    
+
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)
     {
@@ -311,7 +311,7 @@ internal sealed class CosmosEventStream(
       await _stream.CommitTransactionAsync(_events, cancellationToken).ConfigureAwait(false);
     }
   }
-  
+
   private record EventStreamDocumentTemplate(
     Guid DocumentId,
     JObject Data,
@@ -326,74 +326,74 @@ internal sealed class CosmosEventStream(
   {
     ulong currentVersion = _stream.Version;
 
-      try
+    try
+    {
+      bool indexUpdateSuccessful = false;
+      int retryCount = 0;
+      // update index
+      do
       {
-        bool indexUpdateSuccessful = false;
-        int retryCount = 0;
-        // update index
-        do
+        try
         {
-          try
-          {
-            ulong targetVersion = _stream.Version + (ulong)events.Count;
+          ulong targetVersion = _stream.Version + (ulong)events.Count;
 
-            ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
-              .PatchItemAsync<EventStreamIndexEntity>(
-                _stream.Id,
-                new(StreamId.ToString()),
-                new List<PatchOperation>()
-                {
+          ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
+            .PatchItemAsync<EventStreamIndexEntity>(
+              _stream.Id,
+              new(StreamId.ToString()),
+              new List<PatchOperation>()
+              {
                   PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), targetVersion + 1),
                   PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
                   PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
-                },
-                new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
-                cancellationToken).ConfigureAwait(false);
+              },
+              new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
+              cancellationToken).ConfigureAwait(false);
 
-            _stream = indexPatch.Resource;
-            indexUpdateSuccessful = true;
-          }
-          catch (CosmosException e)
-          {
-            logger.IndexPatchConcurrency(e, StreamId);
-            retryCount++;
-            await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
-            await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
-            currentVersion = _stream.Version;
-          }
-        } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
-
-        // store events
-        var batch =
-          dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
-        foreach (var evt in events)
-        {
-          EventStreamDocumentEntity document = new()
-          {
-            Id = await idStrategy.GenerateIdAsync(StreamId, currentVersion, EventStreamDocumentType.Event),
-            DocumentId = evt.DocumentId,
-            StreamId = StreamId,
-            Version = currentVersion,
-            Data = evt.Data,
-            DataType = evt.DataType,
-            Name = evt.Name,
-            TargetType = evt.TargetType,
-            Time = evt.Time,
-            DocumentType = EventStreamDocumentType.Event,
-            MetaData = evt.MetaData,
-          };
-
-          batch.CreateItem(document);
-
-          currentVersion++;
+          _stream = indexPatch.Resource;
+          indexUpdateSuccessful = true;
         }
+        catch (CosmosException e)
+        {
+          logger.IndexPatchConcurrency(e, StreamId);
+          retryCount++;
+          await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
+          await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
+          currentVersion = _stream.Version;
+        }
+      } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
 
-        await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-      }
-      catch (Exception e)
+      // store events
+      var batch =
+        dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
+      foreach (var evt in events)
       {
-        logger.TransactionException(e, StreamId);
-        throw new EventStreamException(StreamId, "Exception during Transaction", e);
+        EventStreamDocumentEntity document = new()
+        {
+          Id = await idStrategy.GenerateIdAsync(StreamId, currentVersion, EventStreamDocumentType.Event),
+          DocumentId = evt.DocumentId,
+          StreamId = StreamId,
+          Version = currentVersion,
+          Data = evt.Data,
+          DataType = evt.DataType,
+          Name = evt.Name,
+          TargetType = evt.TargetType,
+          Time = evt.Time,
+          DocumentType = EventStreamDocumentType.Event,
+          MetaData = evt.MetaData,
+        };
+
+        batch.CreateItem(document);
+
+        currentVersion++;
       }
+
+      await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+    }
+    catch (Exception e)
+    {
+      logger.TransactionException(e, StreamId);
+      throw new EventStreamException(StreamId, "Exception during Transaction", e);
+    }
   }
 }
