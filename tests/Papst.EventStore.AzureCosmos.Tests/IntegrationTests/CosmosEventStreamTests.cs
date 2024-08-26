@@ -42,4 +42,41 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var events = await stream.ListAsync().ToListAsync();
     events.Should().Contain(d => d.Id == documentId);
   }
+  
+  [Theory, AutoData]
+  public async Task AppendTransactionAsync_ShouldAppendEvents(Guid streamId)
+  {  
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId);
+    
+    // act
+    var batch = await stream.CreateTransactionalBatchAsync();
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
+    await batch.CommitAsync(); 
+
+    // assert
+    var events = await stream.ListAsync(0).ToListAsync();
+    events.Should().HaveCount(5);
+    
+  }
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldListEvents(Guid streamId)
+  {  
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent(), new TestAppendedEvent());
+
+    // act
+    var list = stream.ListAsync(0);
+    var events = await list.ToListAsync();
+
+    // assert
+    events.Count.Should().Be(4, "3 TestAppendedEvent + 1 TestCreatedEvent");
+  }
 }

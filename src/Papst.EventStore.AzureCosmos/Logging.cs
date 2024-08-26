@@ -23,4 +23,7 @@ internal static partial class Logging
 
   [LoggerMessage(LogLevel.Warning, "Exception during Transaction Commit of Stream {StreamId}")]
   public static partial void TransactionException(this ILogger logger, Exception ex, Guid streamId);
+  
+  [LoggerMessage(LogLevel.Information, "Successful Appended Transaction to Stream {StreamId} with {Count} events")]
+  public static partial void TransactionCompleted(this ILogger logger, Guid streamId, int count);
 }

@@ -370,7 +370,7 @@ internal sealed class CosmosEventStream(
       {
         EventStreamDocumentEntity document = new()
         {
-          Id = await idStrategy.GenerateIdAsync(StreamId, currentVersion, EventStreamDocumentType.Event),
+          Id = await idStrategy.GenerateIdAsync(StreamId, currentVersion + 1, EventStreamDocumentType.Event),
           DocumentId = evt.DocumentId,
           StreamId = StreamId,
           Version = currentVersion,
@@ -388,7 +388,13 @@ internal sealed class CosmosEventStream(
         currentVersion++;
       }
 
-      await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+      TransactionalBatchResponse result = await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+      if (!result.IsSuccessStatusCode)
+      {
+        throw new EventStreamException(StreamId, $"Failed to commit events {string.Join(", ", result.Select(itm => $"{itm.StatusCode}"))}");
+      }
+
+      logger.TransactionCompleted(StreamId, result.Count);
     }
     catch (Exception e)
     {
