@@ -15,53 +15,6 @@ and comes with included compatability to the dependency injection of the .NET Co
 
 A Sample can be found in the samples directory.
 
-## Version
-
-### v3.x
-
-V3 supports mainly .NET 5.0 and registration of events and event aggregators through reflection
-
-### v4
-
-* V4 only supports .NET 6.0
-
-It introduces the concept of Code Generated registration of events and aggregators by decorating them with the `EventName` attribute.
-
-It also decouples the auto generated event type descriptor (was basically a description used to revert to a type using `Type.GetType()`) from the concrete implementation.
-This allows to version and migrate events by just adding a different descriptor.
-
-A sample on how to use the Event Descriptors is found under [Samples](samples/SampleCodeGeneratedEvents/Program.cs). The Extension Method `AddCodeGeneratedEvents()` is automatically generated during compilation if the package `Papst.EventStore.CodeGeneration` is added to the Project.
-
-Migrate v3 events by adding a `EventName` attribute and add the typename as a name: `[Fullename of the type],[assembly name of the type]`.
-For the `MyEventSourcingEvent` in the [Code Generation Sample](samples/SampleCodeGeneratedEvents/Program.cs) it would look like this:
-
-`SampleCodeGeneratedEvents.MyEventSourcingEvent,SampleCodeGeneratedEvents`
-
-#### Breaking Change
-
-V4 removes support for authenticating with shared keys against the cosmos DB. The implementation is still there, but changed and marked as obsolete.
-
-### v5
-
-* V5 Supports .NET 8.0 and upwards
-
-It introduces a separation of EventStore and EventStream. The EventStore now only offers the possibility to create or retrieve streams.
-
-#### Breaking Changes
-
-* The `IEventStore` interface no longer has methods to append to the EventStream
-* The new `IEventStream` needs an index document, which needs to be added to existing event streams. See Migration Chapter.
-* The `IEventStreamAggregator` implementation that uses the code generated events has moved to a own package to allow removing active code from the `Papst.EventStore` package.
-* The `EventName` Attribute now uses positional parameters, provided by a constructor.
-* A single EventStream can no longer contain Events for multiple Entities.
-* The `IEventStreamAggregator` now uses `ValueTask` instead of `Task`
-
-#### Changes
-
-* Meta Data Properties are now of type `string?` instead of `Guid?` to achieve greater compatability.
-
-#### Migration
-
 ## Available EventStore implementations
 
 The library brings a couple of already implemented EventStore packages:
@@ -99,47 +52,67 @@ Writing `MyEventsourcingEvent` to the Event Stream, will serialize them and name
 
 Note: `IsWriteName` is true by default!
 
-## Configuring the Cosmos Db EventStore
+## Configuring an Implementation for use
 
-The CosmosEventStore class uses the [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1) to retrieve its configuration.
-Therefore a ConfigurationSection can be added to the `AddCosmosEventStore` extension method for the IServiceCollection.
-The C# representation of the Configuration Sections looks like this:
+Please refer to the documentation in the relevant implementation sources:
 
-```csharp
-/// <summary>
-/// Configuration for the Cosmos Database Connection
-/// </summary>
-public class CosmosEventStoreOptions
-{
-    /// <summary>
-    /// Endpoint URL
-    /// </summary>
-    public string Endpoint { get; set; }
+* [Azure Cosmos](./src/Papst.EventStore.AzureCosmos/README.md)
+* [Entity Framework Core](./src/Papst.EventStore.EntityFrameworkCore/README.md)
 
-    /// <summary>
-    /// Whether to try to create Database and collection after creation of the Client
-    /// </summary>
-    public bool InitializeOnStartup { get; set; }
 
-    /// <summary>
-    /// Name of the Collection
-    /// </summary>
-    public string Collection { get; set; }
+# Changelog
 
-    /// <summary>
-    /// Name of the Database
-    /// </summary>
-    public string Database { get; set; }
+## V 5.2
 
-    /// <summary>
-    /// Whether to allow a Event Timestamp to be set from the outside or 
-    /// to override the time before inserting the document
-    /// </summary>
-    public bool AllowTimeOverride { get; set; }
+V5.2 introduces Metadata on the Stream itself. The `IEventStream` now got its own metadata Property.
 
-    /// <summary>
-    /// Credential which is used to Authenticate agains the Database
-    /// </summary>
-    public TokenCredential? Credential { get; internal set; }
-}
-```
+Meta Data for the Stream needs to be set during creation, otherwise it will be empty. To Create a stream with Meta Data the `IEventStore`has got a new extended `CreateAsync` method that takes the additional metadata.
+
+Only the Azure Cosmos Implementation offers a new option in the configuration that updates the TenantId based on the last set event.
+
+## V 5 / V5.1
+
+V5 comes with a new access model to the streams, with paging and a new library structure.
+
+* V5 Supports .NET 8.0 and upwards
+
+It introduces a separation of EventStore and EventStream. The EventStore now only offers the possibility to create or retrieve streams.
+
+### Breaking Changes
+
+* The `IEventStore` interface no longer has methods to append to the EventStream
+* The new `IEventStream` needs an index document, which needs to be added to existing event streams. See Migration Chapter.
+* The `IEventStreamAggregator` implementation that uses the code generated events has moved to a own package to allow removing active code from the `Papst.EventStore` package.
+* The `EventName` Attribute now uses positional parameters, provided by a constructor.
+* A single EventStream can no longer contain Events for multiple Entities.
+* The `IEventStreamAggregator` now uses `ValueTask` instead of `Task`
+
+### Changes
+
+* Meta Data Properties are now of type `string?` instead of `Guid?` to achieve greater compatability.
+
+## V 4
+
+* V4 only supports .NET 6.0
+
+It introduces the concept of Code Generated registration of events and aggregators by decorating them with the `EventName` attribute.
+
+It also decouples the auto generated event type descriptor (was basically a description used to revert to a type using `Type.GetType()`) from the concrete implementation.
+This allows to version and migrate events by just adding a different descriptor.
+
+A sample on how to use the Event Descriptors is found under [Samples](samples/SampleCodeGeneratedEvents/Program.cs). The Extension Method `AddCodeGeneratedEvents()` is automatically generated during compilation if the package `Papst.EventStore.CodeGeneration` is added to the Project.
+
+Migrate v3 events by adding a `EventName` attribute and add the typename as a name: `[Fullename of the type],[assembly name of the type]`.
+For the `MyEventSourcingEvent` in the [Code Generation Sample](samples/SampleCodeGeneratedEvents/Program.cs) it would look like this:
+
+`SampleCodeGeneratedEvents.MyEventSourcingEvent,SampleCodeGeneratedEvents`
+
+### Breaking Change
+
+V4 removes support for authenticating with shared keys against the cosmos DB. The implementation is still there, but changed and marked as obsolete.
+
+## v3.x
+
+V3 supports mainly .NET 5.0 and registration of events and event aggregators through reflection
+
+
