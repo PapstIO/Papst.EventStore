@@ -52,6 +52,11 @@ public class EventStreamIndexEntity
   /// The latest Snapshot version
   /// </summary>
   public ulong? LatestSnapshotVersion { get; init; }
+  
+  /// <summary>
+  /// Meta Data for the whole Stream
+  /// </summary>
+  public EventStreamMetaData MetaData { get; init; } = new();
 
   /// <summary>
   /// Cosmos Db ETag

@@ -26,6 +26,11 @@ public interface IEventStream
   /// If not null, contains the Version of the latest snapshop
   /// </summary>
   ulong? LatestSnapshotVersion { get; }
+  
+  /// <summary>
+  /// Allows to store Meta Data that is consistent over the complete stream
+  /// </summary>
+  EventStreamMetaData MetaData { get; }
 
   /// <summary>
   /// The Latest Snapshop that has been fetched (if available)

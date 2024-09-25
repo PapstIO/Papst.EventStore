@@ -3,10 +3,12 @@ using Microsoft.Extensions.Options;
 using Papst.EventStore.Exceptions;
 using Papst.EventStore.FileSystem.Entities;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.FileSystem;
 
@@ -28,7 +30,25 @@ internal class FileSystemEventStore : IEventStore
     Directory.CreateDirectory(_path);
   }
 
-  public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default)
+  public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default) => await CreateAsync(
+      streamId,
+      targetTypeName,
+      null,
+      null,
+      null,
+      null,
+      null,
+      cancellationToken).ConfigureAwait(false);
+
+  public async Task<IEventStream> CreateAsync(
+    Guid streamId,
+    string targetTypeName, 
+    string? tenantId,
+    string? userId,
+    string? username,
+    string? comment,
+    Dictionary<string, string>? additionalMetaData,
+    CancellationToken cancellationToken = default)
   {
     string streamPath = Path.Combine(_path, streamId.ToString());
     if (Directory.Exists(streamPath))
@@ -39,7 +59,21 @@ internal class FileSystemEventStore : IEventStore
 
     Directory.CreateDirectory(streamPath);
 
-    FileSystemStreamIndexEntity entity = new(streamId, DateTimeOffset.Now, 0, 0, DateTimeOffset.Now, targetTypeName, null);
+    FileSystemStreamIndexEntity entity = new(streamId,
+      DateTimeOffset.Now,
+      0,
+      0,
+      DateTimeOffset.Now,
+      targetTypeName,
+      null,
+      new EventStreamMetaData()
+      {
+        TenantId = tenantId,
+        UserId = userId,
+        UserName = username,
+        Comment = comment,
+        Additional = additionalMetaData,
+      });
     await File.WriteAllTextAsync(Path.Combine(streamPath, IndexFileName), JsonSerializer.Serialize(entity), cancellationToken).ConfigureAwait(false);
 
     IEventStream stream = new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity, _eventTypeProvider);

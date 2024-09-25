@@ -29,6 +29,8 @@ internal sealed class FileSystemEventStream : IEventStream
   
   public ulong? LatestSnapshotVersion => _entity.LatestSnapshotVersion;
 
+  public EventStreamMetaData MetaData => _entity.MetaData;
+
   public FileSystemEventStream(ILogger<FileSystemEventStream> logger, string path, FileSystemStreamIndexEntity entity, IEventTypeProvider eventTypeProvider)
   {
     _logger = logger;

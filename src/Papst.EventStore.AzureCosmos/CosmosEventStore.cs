@@ -120,7 +120,26 @@ internal sealed class CosmosEventStore(
     Guid streamId,
     string targetTypeName,
     CancellationToken cancellationToken = default
-  )
+  ) =>
+    await CreateAsync(streamId,
+        targetTypeName,
+        null,
+        null,
+        null,
+        null,
+        null,
+        cancellationToken)
+      .ConfigureAwait(false);
+
+  public async Task<IEventStream> CreateAsync(
+    Guid streamId,
+    string targetTypeName,
+    string? tenantId,
+    string? userId,
+    string? username,
+    string? comment,
+    Dictionary<string, string>? additionalMetaData,
+    CancellationToken cancellationToken = default)
   {
     logger.CreatingEventStream(streamId, targetTypeName);
 
@@ -134,6 +153,14 @@ internal sealed class CosmosEventStore(
       Created = DateTimeOffset.Now,
       ETag = string.Empty,
       LatestSnapshotVersion = null,
+      MetaData = new EventStreamMetaData()
+      {
+        UserId = userId,
+        UserName = username,
+        TenantId = tenantId,
+        Comment = comment,
+        Additional = additionalMetaData
+      },
     };
 
     ItemResponse<EventStreamIndexEntity>? response = await dbProvider.Container.CreateItemAsync(

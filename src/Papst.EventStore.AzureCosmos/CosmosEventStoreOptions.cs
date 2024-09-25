@@ -4,4 +4,6 @@ public class CosmosEventStoreOptions
 {
   public int ConcurrencyRetryCount { get; set; } = 3;
   public bool BuildIndexOnNotFound { get; set; }
+
+  public bool UpdateTenantIdOnAppend { get; set; } = true;
 }
