@@ -159,7 +159,7 @@ internal sealed class CosmosEventStream(
         ];
         if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
         {
-          patches.Add(PatchOperation.Replace(
+          patches.Add(PatchOperation.Set(
             '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId), 
             metaData.TenantId)
           );

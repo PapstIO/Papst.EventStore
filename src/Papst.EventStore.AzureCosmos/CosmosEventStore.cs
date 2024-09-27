@@ -83,6 +83,18 @@ internal sealed class CosmosEventStore(
     var creationDocument = documents.First(x => x.Version == 0);
     var maxVersionDocument = documents.First(x => x.Version != 0);
 
+    string? tenantId = null;
+    // when option is set and the latest document has a tenant id, use it here
+    if (options.Value.UpdateTenantIdOnAppend && maxVersionDocument.MetaData?.TenantId is not null)
+    {
+      tenantId = maxVersionDocument.MetaData.TenantId;
+    }
+    // if tenant id option is not set, or latest event does not have a tenant id, try to use the first one
+    else if (creationDocument.MetaData?.TenantId is not null)
+    {
+      tenantId = creationDocument.MetaData.TenantId; 
+    }
+    
     EventStreamIndexEntity index = new()
     {
       StreamId = streamId,
@@ -91,7 +103,11 @@ internal sealed class CosmosEventStore(
       NextVersion = maxVersionDocument.Version + 1,
       Updated = maxVersionDocument.Time,
       TargetType = creationDocument.TargetType,
-      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version
+      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version,
+      MetaData = new()
+      {
+        TenantId = tenantId,
+      },
     };
 
     try

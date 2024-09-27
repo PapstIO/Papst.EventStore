@@ -47,3 +47,11 @@ public class CosmosEventStoreOptions
   public bool UpdateTenantIdOnAppend { get; set; } = true;
 }
 ```
+
+## Migration
+
+With the new V5 based implementation, there is need for an index document in the cosmos database for each stream.
+
+For a convenient upgrade, there has been an option to the configuration added, that builds an index, when a stream is requested using `GetAsync` method in `IEventStore` and the stream is not found.
+
+A manual upgrade is not yet supported.

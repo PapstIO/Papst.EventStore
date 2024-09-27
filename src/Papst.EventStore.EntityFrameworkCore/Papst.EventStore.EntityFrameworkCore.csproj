@@ -3,7 +3,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>Papst.EventStore.AzureCosmos</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseUrl>https://github.com/PapstIO/Papst.EventStore/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore/</PackageProjectUrl>
+    <Authors>Marco Papst</Authors>
+    <Description>This library contains a EntityFrameworkCore based implementation for the Package Papst.EventStore</Description>
+    <PackageTags>eventsourcing;eventstore;entityframeworkcore;sqlserver</PackageTags>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
   </ItemGroup>
