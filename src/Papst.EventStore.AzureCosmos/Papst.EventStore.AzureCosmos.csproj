@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.Core" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Newtonsoft.Json" />
