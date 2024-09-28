@@ -7,7 +7,6 @@
     <Description>FileSystem based EventStore Implementation for testing purpose only!</Description>
     <Title>Papst.EventStore.FileSystem</Title>
     <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/PapstIO/Papst.EventStore/blob/main/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/PapstIO/Papst.EventStore</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
