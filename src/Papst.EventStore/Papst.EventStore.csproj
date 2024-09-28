@@ -10,7 +10,6 @@
     <Title>Papst EventStore</Title>
     <PackageId>Papst.EventStore</PackageId>
     <PackageTags>eventsourcing;eventstore</PackageTags>
-    <PackageLicenseUrl>https://github.com/PapstIO/Papst.EventStore/blob/main/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
