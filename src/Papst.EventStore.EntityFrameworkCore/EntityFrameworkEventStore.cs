@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.EntityFrameworkCore.Database;
 using Papst.EventStore.Exceptions;
@@ -18,7 +19,25 @@ public sealed class EntityFrameworkEventStore : IEventStore
     _eventTypeProvider = eventTypeProvider;
     _dbContext = dbContext;
   }
-  public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default)
+  public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default) =>
+    await CreateAsync(streamId,
+        targetTypeName,
+        null,
+        null,
+        null,
+        null,
+        null,
+        cancellationToken)
+      .ConfigureAwait(false);
+
+  public async Task<IEventStream> CreateAsync(
+    Guid streamId,
+    string targetTypeName,
+    string? tenantId,
+    string? userId,
+    string? username,
+    string? comment, Dictionary<string, string>? additionalMetaData,
+    CancellationToken cancellationToken = default)
   {
     Logging.CreatingEventStream(_logger, streamId, targetTypeName);
     EventStreamEntity stream = new()
@@ -29,6 +48,11 @@ public sealed class EntityFrameworkEventStore : IEventStore
       NextVersion = 0,
       TargetType = targetTypeName,
       Updated = DateTimeOffset.Now,
+      MetaDataTenantId = tenantId,
+      MetaDataUserId = userId,
+      MetaDataUserName = username,
+      MetaDataComment = comment,
+      MetaDataAdditionJson = JsonSerializer.Serialize(additionalMetaData ?? new Dictionary<string, string>())
     };
 
     await _dbContext.Streams.AddAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -39,6 +63,7 @@ public sealed class EntityFrameworkEventStore : IEventStore
 
     return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStream>(), _dbContext, stream, _eventTypeProvider);
   }
+
 
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {

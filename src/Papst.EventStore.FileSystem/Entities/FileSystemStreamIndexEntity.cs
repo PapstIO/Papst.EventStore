@@ -1,4 +1,5 @@
 ﻿using System;
+using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.FileSystem.Entities;
 internal record FileSystemStreamIndexEntity(
@@ -8,4 +9,5 @@ internal record FileSystemStreamIndexEntity(
   ulong NextVersion,
   DateTimeOffset Updated,
   string TargetType,
-  ulong? LatestSnapshotVersion);
+  ulong? LatestSnapshotVersion,
+  EventStreamMetaData MetaData);

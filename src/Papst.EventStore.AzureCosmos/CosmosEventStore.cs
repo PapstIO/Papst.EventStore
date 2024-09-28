@@ -83,6 +83,18 @@ internal sealed class CosmosEventStore(
     var creationDocument = documents.First(x => x.Version == 0);
     var maxVersionDocument = documents.First(x => x.Version != 0);
 
+    string? tenantId = null;
+    // when option is set and the latest document has a tenant id, use it here
+    if (options.Value.UpdateTenantIdOnAppend && maxVersionDocument.MetaData?.TenantId is not null)
+    {
+      tenantId = maxVersionDocument.MetaData.TenantId;
+    }
+    // if tenant id option is not set, or latest event does not have a tenant id, try to use the first one
+    else if (creationDocument.MetaData?.TenantId is not null)
+    {
+      tenantId = creationDocument.MetaData.TenantId; 
+    }
+    
     EventStreamIndexEntity index = new()
     {
       StreamId = streamId,
@@ -91,7 +103,11 @@ internal sealed class CosmosEventStore(
       NextVersion = maxVersionDocument.Version + 1,
       Updated = maxVersionDocument.Time,
       TargetType = creationDocument.TargetType,
-      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version
+      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version,
+      MetaData = new()
+      {
+        TenantId = tenantId,
+      },
     };
 
     try
@@ -120,7 +136,26 @@ internal sealed class CosmosEventStore(
     Guid streamId,
     string targetTypeName,
     CancellationToken cancellationToken = default
-  )
+  ) =>
+    await CreateAsync(streamId,
+        targetTypeName,
+        null,
+        null,
+        null,
+        null,
+        null,
+        cancellationToken)
+      .ConfigureAwait(false);
+
+  public async Task<IEventStream> CreateAsync(
+    Guid streamId,
+    string targetTypeName,
+    string? tenantId,
+    string? userId,
+    string? username,
+    string? comment,
+    Dictionary<string, string>? additionalMetaData,
+    CancellationToken cancellationToken = default)
   {
     logger.CreatingEventStream(streamId, targetTypeName);
 
@@ -134,6 +169,14 @@ internal sealed class CosmosEventStore(
       Created = DateTimeOffset.Now,
       ETag = string.Empty,
       LatestSnapshotVersion = null,
+      MetaData = new EventStreamMetaData()
+      {
+        UserId = userId,
+        UserName = username,
+        TenantId = tenantId,
+        Comment = comment,
+        Additional = additionalMetaData
+      },
     };
 
     ItemResponse<EventStreamIndexEntity>? response = await dbProvider.Container.CreateItemAsync(

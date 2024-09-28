@@ -25,6 +25,14 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     _dbContext = dbContext;
     _stream = stream;
     _eventTypeProvider = eventTypeProvider;
+    MetaData = new EventStreamMetaData
+    {
+      UserId = _stream.MetaDataUserId,
+      UserName = _stream.MetaDataUserName,
+      TenantId = _stream.MetaDataTenantId,
+      Comment = _stream.MetaDataComment,
+      Additional = JsonSerializer.Deserialize<Dictionary<string, string>>(_stream.MetaDataAdditionJson ?? "{}")
+    };
   }
 
   public Guid StreamId => _stream.StreamId;
@@ -34,6 +42,9 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   public DateTimeOffset Created => _stream.Created;
   
   public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
+  
+  /// <inheritdoc />
+  public EventStreamMetaData MetaData { get; }
 
   public async Task AppendAsync<TEvent>(
     Guid id,

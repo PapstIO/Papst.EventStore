@@ -22,11 +22,20 @@ internal sealed class CosmosEventStream(
 {
   private EventStreamIndexEntity _stream = stream;
 
+  /// <inheritdoc />
   public Guid StreamId => _stream.StreamId;
+  
+  /// <inheritdoc />
   public ulong Version => _stream.Version;
+  
+  /// <inheritdoc />
   public DateTimeOffset Created => _stream.Created;
+  
+  /// <inheritdoc />
   public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
-
+  
+  /// <inheritdoc />
+  public EventStreamMetaData MetaData => _stream.MetaData;
 
   public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
@@ -85,15 +94,24 @@ internal sealed class CosmosEventStream(
     {
       try
       {
-        ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
+        List<PatchOperation> patches =
+        [
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
+        ];
+        if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
+        {
+          patches.Add(PatchOperation.Replace(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId), 
+            metaData.TenantId)
+          );
+        }
+        ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
             _stream.Id,
             new(StreamId.ToString()),
-            [
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
-            ],
+            patches,
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
 
@@ -133,16 +151,24 @@ internal sealed class CosmosEventStream(
     {
       try
       {
-        ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
+        List<PatchOperation> patches = [
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
+          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
+        ];
+        if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
+        {
+          patches.Add(PatchOperation.Set(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId), 
+            metaData.TenantId)
+          );
+        }
+        ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
             _stream.Id,
             new PartitionKey(StreamId.ToString()),
-            [
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-              PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
-            ],
+            patches,
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
 
