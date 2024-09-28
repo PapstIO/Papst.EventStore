@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageId>Papst.EventStore.AzureCosmos</PackageId>
+    <PackageId>Papst.EventStore.EntityFrameworkCore</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore/</PackageProjectUrl>
