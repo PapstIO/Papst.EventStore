@@ -61,27 +61,46 @@ internal sealed class CosmosEventStore(
   )
   {
     // read the stream latest versions
-    QueryDefinition query = new QueryDefinition(
-      @"SELECT * FROM c
-      WHERE c.StreamId = @streamId
-      AND (
-        c.Version = (SELECT VALUE MAX(c2.Version) FROM c c2 WHERE c2.StreamId = @streamId)
-        OR c.Version = 0
-        OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType = 'Snapshot')
-      )"
-    ).WithParameter("@streamId", streamId.ToString());
+    // QueryDefinition query = new QueryDefinition(
+    //   @"SELECT * FROM c
+    //   WHERE c.StreamId = @streamId
+    //   AND (
+    //     c.Version = (SELECT VALUE MAX(c2.Version) FROM c c2 WHERE c2.StreamId = @streamId)
+    //     OR c.Version = 0
+    //     OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType = 'Snapshot')
+    //   )"
+    // ).WithParameter("@streamId", streamId.ToString());
 
-    var documents = await dbProvider.Container.GetItemQueryIterator<EventStreamDocumentEntity>(query)
-      .ReadNextAsync(cancellationToken)
-      .ConfigureAwait(false);
-
-    if (documents.Count < 2)
-    {
-      throw new EventStreamNotFoundException(streamId, "The Stream has not been found when trying to built the index");
-    }
-
-    var creationDocument = documents.First(x => x.Version == 0);
-    var maxVersionDocument = documents.First(x => x.Version != 0);
+    // var documents = await dbProvider.Container.GetItemQueryIterator<EventStreamDocumentEntity>(query)
+    //   .ReadNextAsync(cancellationToken)
+    //   .ConfigureAwait(false);
+      
+    // read document with version = 0
+    EventStreamDocumentEntity creationDocument = (await dbProvider.Container
+      .GetItemQueryIterator<EventStreamDocumentEntity>(
+        new QueryDefinition("SELECT * FROM c WHERE c.StreamId = @streamId AND c.DocumentType = 'Event' AND c.Version = 0")
+          .WithParameter("@streamId", streamId.ToString()), 
+        requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) }
+        ).ReadNextAsync(cancellationToken).ConfigureAwait(false))
+      .First();
+    
+    // read the latest event document
+    EventStreamDocumentEntity maxVersionDocument = (await dbProvider.Container
+      .GetItemQueryIterator<EventStreamDocumentEntity>(
+        new QueryDefinition("SELECT * FROM c WHERE c.StreamId = @streamId AND c.DocumentType = 'Event' ORDER BY c.Version DESC OFFSET 0 LIMIT 1")
+          .WithParameter("@streamId", streamId.ToString()), 
+        requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) }
+        ).ReadNextAsync(cancellationToken).ConfigureAwait(false))
+      .First();
+    
+    // read the latest snapshot document, this document may not exist!
+    EventStreamDocumentEntity? snapShotDocument = (await dbProvider.Container
+      .GetItemQueryIterator<EventStreamDocumentEntity>(
+        new QueryDefinition("SELECT * FROM c WHERE c.StreamId = @streamId AND c.DocumentType = 'Snapshot' ORDER BY c.Version DESC OFFSET 0 LIMIT 1").
+          WithParameter("@streamId", streamId.ToString()), 
+        requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) }
+        ).ReadNextAsync(cancellationToken).ConfigureAwait(false))
+      .FirstOrDefault();
 
     string? tenantId = null;
     // when option is set and the latest document has a tenant id, use it here
@@ -103,7 +122,7 @@ internal sealed class CosmosEventStore(
       NextVersion = maxVersionDocument.Version + 1,
       Updated = maxVersionDocument.Time,
       TargetType = creationDocument.TargetType,
-      LatestSnapshotVersion = documents.FirstOrDefault(x => x.DocumentType == EventStreamDocumentType.Snapshot)?.Version,
+      LatestSnapshotVersion = snapShotDocument?.Version,
       MetaData = new()
       {
         TenantId = tenantId,
