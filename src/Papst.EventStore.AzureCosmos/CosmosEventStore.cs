@@ -67,7 +67,7 @@ internal sealed class CosmosEventStore(
       AND (
         c.Version = (SELECT VALUE MAX(c2.Version) FROM c c2 WHERE c2.StreamId = @streamId)
         OR c.Version = 0
-        OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType == 'Snapshot')
+        OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType = 'Snapshot')
       )"
     ).WithParameter("@streamId", streamId.ToString());
 
