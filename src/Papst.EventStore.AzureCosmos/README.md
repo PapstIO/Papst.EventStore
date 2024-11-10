@@ -24,7 +24,7 @@ In addition it is necessary to Configure the class `CosmosEventStoreOptions` wit
 ## Configuration
 
 The CosmosEventStore class uses the [Options pattern](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1) to retrieve its configuration.
-Therefore a ConfigurationSection can be added to the `AddCosmosEventStore` extension method for the IServiceCollection.
+Therefore, a the Configuration must be added to the Dependency Injection by using `services.Configure<CosmosEventStoreOptions>()`.
 The C# representation of the Configuration Sections looks like this:
 
 ```csharp
