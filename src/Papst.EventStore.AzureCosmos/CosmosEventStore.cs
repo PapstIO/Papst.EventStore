@@ -69,7 +69,7 @@ internal sealed class CosmosEventStore(
         OR c.Version = 0
         OR c.Version = (SELECT VALUE MAX(c3.Version) FROM c c3 WHERE c3.StreamId = @streamId AND c.DocumentType == 'Snapshot')
       )"
-    ).WithParameter("streamId", streamId.ToString());
+    ).WithParameter("@streamId", streamId.ToString());
 
     var documents = await dbProvider.Container.GetItemQueryIterator<EventStreamDocumentEntity>(query)
       .ReadNextAsync(cancellationToken)
