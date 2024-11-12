@@ -16,7 +16,8 @@
     <None Include="README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
+    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" Condition="'$(Configuration)' == 'DEBUG'" />
+    <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Core" />
