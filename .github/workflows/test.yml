@@ -20,11 +20,8 @@ jobs:
       with:
         dotnet-version: '8.x'
 
-    - name: Restore dependencies
-      run: dotnet restore --configuration Release
-
     - name: Build
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build --configuration Release
 
     - name: Run tests
       run: dotnet test --no-build --verbosity normal --configuration Release
