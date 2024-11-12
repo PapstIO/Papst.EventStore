@@ -10,7 +10,8 @@
     <RepositoryUrl>https://github.com/PapstIO/Papst.EventStore</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" />
+    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" Condition="'$(Configuration)' == 'DEBUG'" />
+    <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
