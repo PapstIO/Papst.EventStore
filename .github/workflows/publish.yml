@@ -28,11 +28,8 @@ jobs:
     - name: Use Nerdbank.GitVersioning to get version
       run: nbgv get-version
 
-    - name: Restore dependencies
-      run: dotnet restore --configuration Release
-
     - name: Build solution
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build --configuration Release
 
     - name: Run tests
       run: dotnet test --no-build --verbosity normal --configuration Release
