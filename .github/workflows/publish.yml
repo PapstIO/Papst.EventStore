@@ -37,20 +37,24 @@ jobs:
     - name: Pack Papst.EventStore project
       run: dotnet pack src/Papst.EventStore/Papst.EventStore.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: Pack Papst.EventStore project
+    - name: Pack Papst.EventStore.EventRegistration project
       run: dotnet pack src/Papst.EventStore.Aggregation.EventRegistration/Papst.EventStore.Aggregation.EventRegistration.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: Pack Papst.EventStore project
+    - name: Pack Papst.EventStore.CodeGeneration project
       run: dotnet pack src/Papst.EventStore.CodeGeneration/Papst.EventStore.CodeGeneration.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: Pack Papst.EventStore project
+    - name: Pack Papst.EventStore.AzureCosmos project
       run: dotnet pack src/Papst.EventStore.AzureCosmos/Papst.EventStore.AzureCosmos.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: Pack Papst.EventStore project
+    - name: Pack Papst.EventStore.EntityFrameworkCore project
       run: dotnet pack src/Papst.EventStore.EntityFrameworkCore/Papst.EventStore.EntityFrameworkCore.csproj --no-build --configuration Release --output ./artifacts
 
-    - name: Pack Papst.EventStore project
+    - name: Pack Papst.EventStore.FileSystem project
       run: dotnet pack src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj --no-build --configuration Release --output ./artifacts
+      
+    - name: Pack Papst.EventStore.InMemory project
+      run: dotnet pack src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj --no-build --configuration Release --output ./artifacts
+
 
     - name: Publish to NuGet
       env:

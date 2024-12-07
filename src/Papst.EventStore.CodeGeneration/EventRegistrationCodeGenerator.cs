@@ -42,7 +42,9 @@ namespace Papst.EventStore.CodeGeneration
       var allNodes = context.Compilation.SyntaxTrees.SelectMany(s => s.GetRoot().DescendantNodes());
 
       // find all class and record declarations
-      var allClasses = allNodes.Where(d => d.IsKind(SyntaxKind.ClassDeclaration) || d.IsKind(SyntaxKind.RecordDeclaration)).OfType<TypeDeclarationSyntax>();
+      var allClasses = allNodes
+        .Where(d => d.IsKind(SyntaxKind.ClassDeclaration) || d.IsKind(SyntaxKind.RecordDeclaration)).OfType<TypeDeclarationSyntax>()
+        .ToArray();
 
       // filter for all Classes and records that are attributed with EventNameAttribute
       var events = allClasses
