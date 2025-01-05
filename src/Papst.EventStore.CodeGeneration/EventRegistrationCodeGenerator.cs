@@ -13,7 +13,7 @@ namespace Papst.EventStore.CodeGeneration
   /// EventNameAttribute defined in Papst.EventStore.Aggregation.EventRegistration
   /// Each Class or Record is then added to a registration which is passed to the DI
   /// </summary>
-  [Generator]
+  // [Generator]
   public class EventRegistrationCodeGenerator : ISourceGenerator
   {
     private const string EventAggregatorBaseClassName = "EventAggregatorBase";
