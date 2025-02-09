@@ -38,6 +38,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
     return await AggregateAsync(
       stream,
       new TEntity() { Version = 0 },
+      targetVersion,
       cancellationToken
     ).ConfigureAwait(false);
   }
@@ -78,6 +79,12 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           {
             Version = previousVersion
           };
+        }
+
+        if (target.Version == targetVersion)
+        {
+          // if the current version is already the target version, stop the aggregation
+          break;
         }
 
         context = context with
