@@ -96,9 +96,9 @@ internal sealed class CosmosEventStream(
       {
         List<PatchOperation> patches =
         [
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
         ];
         if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
         {
@@ -114,7 +114,7 @@ internal sealed class CosmosEventStream(
             patches,
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
-
+        
         _stream = indexPatch.Resource;
         indexUpdateSuccessful = true;
       }
