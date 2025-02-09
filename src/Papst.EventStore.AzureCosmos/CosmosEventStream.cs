@@ -152,10 +152,10 @@ internal sealed class CosmosEventStream(
       try
       {
         List<PatchOperation> patches = [
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-          PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
+          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
         ];
         if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
         {
@@ -187,7 +187,7 @@ internal sealed class CosmosEventStream(
     logger.AppendingEvent(document.DataType, document.StreamId, document.Version);
     _ = await dbProvider.Container.CreateItemAsync(
         document,
-        new(StreamId.ToString()),
+        new PartitionKey(StreamId.ToString()),
         cancellationToken: cancellationToken)
       .ConfigureAwait(false);
   }
