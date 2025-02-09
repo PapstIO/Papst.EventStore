@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Aggregation;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
 using Xunit;
 
@@ -64,6 +65,26 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     events.Should().HaveCount(5);
     
   }
+  
+  [Theory, AutoData]
+  public async Task AppenSnapshotAsync_ShouldAppendSnapshot(Guid streamId, Guid documentId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId);
+    var aggregator = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
+    var entity = await aggregator.AggregateAsync(stream, CancellationToken.None);
+    
+    // act
+    Func<Task> act = async () => await stream.AppendSnapshotAsync(documentId, entity, null, CancellationToken.None);
+    
+    // assert
+    await act.Should().NotThrowAsync();
+    entity.Should().NotBeNull();
+    stream.LatestSnapshotVersion.Should().HaveValue().And.Be(entity!.Version);
+  }
+  
   [Theory, AutoData]
   public async Task ListAsync_ShouldListEvents(Guid streamId)
   {  

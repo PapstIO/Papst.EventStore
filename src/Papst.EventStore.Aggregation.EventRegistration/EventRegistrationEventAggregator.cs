@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Papst.EventStore.Abstractions;
 using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.Aggregation.EventRegistration;
 
@@ -97,8 +96,16 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
         {
           hasBeenDeleted = false;
         }
-
-        target = await aggregator.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
+        
+        if (evt.DocumentType == EventStreamDocumentType.Snapshot)
+        {
+          // when the event is a snapshot, just use it as target
+          target = evt.Data.ToObject<TEntity>() ?? target;
+        }
+        else
+        {
+          target = await aggregator.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
+        }
 
         if (target == null)
         {

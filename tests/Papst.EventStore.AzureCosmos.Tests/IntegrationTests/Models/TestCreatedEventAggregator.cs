@@ -6,6 +6,7 @@ public class TestCreatedEventAggregator : EventAggregatorBase<TestEntity, TestCr
 {
   public override ValueTask<TestEntity?> ApplyAsync(TestCreatedEvent evt, TestEntity entity, IAggregatorStreamContext ctx)
   {
+    entity.AppenedEvents.Add(nameof(TestCreatedEvent));
     return AsTask(entity);
   }
 }

@@ -11,7 +11,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
   public string ContainerName => CosmosContainerId;
 
   private readonly CosmosDbContainer _cosmosDbContainer = new CosmosDbBuilder()
-    .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest")
+    .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
     .WithPortBinding(8081, true)
     //.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
     .WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTANCE", "false")
