@@ -1,6 +1,5 @@
 ﻿using AutoFixture.Xunit2;
 using FluentAssertions;
-using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Aggregation;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
@@ -43,29 +42,29 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var events = await stream.ListAsync().ToListAsync();
     events.Should().Contain(d => d.Id == documentId);
   }
-  
+
   [Theory, AutoData]
   public async Task AppendTransactionAsync_ShouldAppendEvents(Guid streamId)
-  {  
+  {
     // arrange
     var services = _fixture.BuildServiceProvider();
     var store = services.GetRequiredService<IEventStore>();
     var stream = await CreateStreamAsync(store, streamId);
-    
+
     // act
     var batch = await stream.CreateTransactionalBatchAsync();
     batch.Add(Guid.NewGuid(), new TestAppendedEvent());
     batch.Add(Guid.NewGuid(), new TestAppendedEvent());
     batch.Add(Guid.NewGuid(), new TestAppendedEvent());
     batch.Add(Guid.NewGuid(), new TestAppendedEvent());
-    await batch.CommitAsync(); 
+    await batch.CommitAsync();
 
     // assert
     var events = await stream.ListAsync(0).ToListAsync();
     events.Should().HaveCount(5);
-    
+
   }
-  
+
   [Theory, AutoData]
   public async Task AppenSnapshotAsync_ShouldAppendSnapshot(Guid streamId, Guid documentId)
   {
@@ -75,19 +74,23 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var stream = await CreateStreamAsync(store, streamId);
     var aggregator = services.GetRequiredService<IEventStreamAggregator<TestEntity>>();
     var entity = await aggregator.AggregateAsync(stream, CancellationToken.None);
-    
+
     // act
-    Func<Task> act = async () => await stream.AppendSnapshotAsync(documentId, entity, null, CancellationToken.None);
-    
+    Func<Task> act = async () =>
+    {
+      await stream.AppendSnapshotAsync(documentId, entity, null, CancellationToken.None);
+      entity = await aggregator.AggregateAsync(stream, CancellationToken.None);
+    };
+
     // assert
     await act.Should().NotThrowAsync();
     entity.Should().NotBeNull();
     stream.LatestSnapshotVersion.Should().HaveValue().And.Be(entity!.Version);
   }
-  
+
   [Theory, AutoData]
   public async Task ListAsync_ShouldListEvents(Guid streamId)
-  {  
+  {
     // arrange
     var services = _fixture.BuildServiceProvider();
     var store = services.GetRequiredService<IEventStore>();

@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
+using Papst.EventStore.Documents;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.Aggregation.EventRegistration;
 
@@ -66,12 +66,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
     {
       try
       {
-        Type eventType = _eventTypeProvider.ResolveIdentifier(evt.DataType);
-        Logging.ApplyingEvent(_logger, evt.DataType, entityType.Name, stream.StreamId);
-        IEventAggregator<TEntity> aggregator = (_serviceProvider.GetRequiredService(aggregatorType.MakeGenericType(entityType, eventType)) as IEventAggregator<TEntity>)!;
-
         ulong previousVersion = hasBeenDeleted || target == null ? evt.Version : target.Version;
-
         if (target == null)
         {
           target = new TEntity()
@@ -79,6 +74,11 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
             Version = previousVersion
           };
         }
+        context = context with
+        {
+          CurrentVersion = evt.Version,
+          EventTime = evt.Time
+        };
 
         if (target.Version == targetVersion)
         {
@@ -86,26 +86,28 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           break;
         }
 
-        context = context with
+        Logging.ApplyingEvent(_logger, evt.DataType, entityType.Name, stream.StreamId);
+
+
+        if (evt.DocumentType == EventStreamDocumentType.Snapshot)
         {
-          CurrentVersion = evt.Version,
-          EventTime = evt.Time
-        };
+          // when the event is a snapshot, just use it as target
+          target = evt.Data.ToObject<TEntity>() ?? target ?? new();
+          // update the targets Version to match the current Snapshot
+          target.Version = context.CurrentVersion;
+
+          continue;
+        }
+        Type eventType = _eventTypeProvider.ResolveIdentifier(evt.DataType);
+        IEventAggregator<TEntity> aggregator = (_serviceProvider.GetRequiredService(aggregatorType.MakeGenericType(entityType, eventType)) as IEventAggregator<TEntity>)!;
+
 
         if (hasBeenDeleted)
         {
           hasBeenDeleted = false;
         }
-        
-        if (evt.DocumentType == EventStreamDocumentType.Snapshot)
-        {
-          // when the event is a snapshot, just use it as target
-          target = evt.Data.ToObject<TEntity>() ?? target;
-        }
-        else
-        {
-          target = await aggregator.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
-        }
+
+        target = await aggregator.ApplyAsync(evt.Data, target, context).ConfigureAwait(false);
 
         if (target == null)
         {

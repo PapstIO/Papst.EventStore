@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Aggregation.EventRegistration;
 using Testcontainers.CosmosDb;
 using Xunit;
 
@@ -11,7 +12,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
   public string ContainerName => CosmosContainerId;
 
   private readonly CosmosDbContainer _cosmosDbContainer = new CosmosDbBuilder()
-    .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
+    .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest")
     .WithPortBinding(8081, true)
     //.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
     .WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTANCE", "false")
@@ -49,6 +50,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
 
     services.AddCosmosEventStore(_cosmosClient, CosmosDatabaseName, CosmosContainerId);
     services.AddCodeGeneratedEvents();
+    services.AddRegisteredEventAggregation();
     services.AddSingleton(_cosmosClient);
 
     configureServices?.Invoke(services);
