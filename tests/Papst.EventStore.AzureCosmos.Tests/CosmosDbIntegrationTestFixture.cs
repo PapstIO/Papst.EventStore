@@ -1,5 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Aggregation.EventRegistration;
 using Testcontainers.CosmosDb;
 using Xunit;
 
@@ -49,6 +50,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
 
     services.AddCosmosEventStore(_cosmosClient, CosmosDatabaseName, CosmosContainerId);
     services.AddCodeGeneratedEvents();
+    services.AddRegisteredEventAggregation();
     services.AddSingleton(_cosmosClient);
 
     configureServices?.Invoke(services);

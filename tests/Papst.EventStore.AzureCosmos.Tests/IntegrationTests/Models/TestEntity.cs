@@ -3,4 +3,5 @@ public class TestEntity : IEntity
 {
   public Guid Id { get; set; }
   public ulong Version { get; set; }
+  public List<string> AppenedEvents { get; set; } = [];
 }
