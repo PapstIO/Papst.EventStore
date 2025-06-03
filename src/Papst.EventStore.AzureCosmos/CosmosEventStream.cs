@@ -396,7 +396,7 @@ internal sealed class CosmosEventStream(
       {
         EventStreamDocumentEntity document = new()
         {
-          Id = await idStrategy.GenerateIdAsync(StreamId, currentVersion + 1, EventStreamDocumentType.Event),
+          Id = await idStrategy.GenerateIdAsync(StreamId, ++currentVersion, EventStreamDocumentType.Event),
           DocumentId = evt.DocumentId,
           StreamId = StreamId,
           Version = currentVersion,
@@ -410,8 +410,6 @@ internal sealed class CosmosEventStream(
         };
 
         batch.CreateItem(document);
-
-        currentVersion++;
       }
 
       TransactionalBatchResponse result = await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
