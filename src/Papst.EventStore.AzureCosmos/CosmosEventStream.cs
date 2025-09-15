@@ -26,16 +26,16 @@ internal sealed class CosmosEventStream(
 
   /// <inheritdoc />
   public Guid StreamId => _stream.StreamId;
-  
+
   /// <inheritdoc />
   public ulong Version => _stream.Version;
-  
+
   /// <inheritdoc />
   public DateTimeOffset Created => _stream.Created;
-  
+
   /// <inheritdoc />
   public ulong? LatestSnapshotVersion => _stream.LatestSnapshotVersion;
-  
+
   /// <inheritdoc />
   public EventStreamMetaData MetaData => _stream.MetaData;
 
@@ -105,10 +105,11 @@ internal sealed class CosmosEventStream(
         if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
         {
           patches.Add(PatchOperation.Set(
-            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId), 
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
             metaData.TenantId)
           );
         }
+
         ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
             _stream.Id,
@@ -116,7 +117,7 @@ internal sealed class CosmosEventStream(
             patches,
             new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
             cancellationToken).ConfigureAwait(false);
-        
+
         _stream = indexPatch.Resource;
         indexUpdateSuccessful = true;
       }
@@ -146,14 +147,16 @@ internal sealed class CosmosEventStream(
     where TEntity : notnull
   {
     string eventName = typeof(TEntity).Name;
-    EventStreamDocumentEntity document = await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
+    EventStreamDocumentEntity document =
+      await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
     bool indexUpdateSuccessful = false;
     int retryCount = 0;
     do
     {
       try
       {
-        List<PatchOperation> patches = [
+        List<PatchOperation> patches =
+        [
           PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
           PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
           PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
@@ -162,10 +165,11 @@ internal sealed class CosmosEventStream(
         if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
         {
           patches.Add(PatchOperation.Set(
-            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId), 
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
             metaData.TenantId)
           );
         }
+
         ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
             _stream.Id,
@@ -221,7 +225,8 @@ internal sealed class CosmosEventStream(
 
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync() =>
-    Task.FromResult<IEventStoreTransactionAppender>(new CosmosEventStreamTransactionAppender(this, timeProvider, eventTypeProvider, _stream.TargetType));
+    Task.FromResult<IEventStoreTransactionAppender>(
+      new CosmosEventStreamTransactionAppender(this, timeProvider, eventTypeProvider, _stream.TargetType));
 
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(
@@ -235,7 +240,8 @@ internal sealed class CosmosEventStream(
     [EnumeratorCancellation] CancellationToken cancellationToken = default
   )
   {
-    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
+    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container
+      .GetItemLinqQueryable<EventStreamDocumentEntity>()
       .Where(doc =>
         doc.StreamId == _stream.StreamId
         && doc.DocumentType != EventStreamDocumentType.Index
@@ -246,7 +252,8 @@ internal sealed class CosmosEventStream(
 
     while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
     {
-      FeedResponse<EventStreamDocumentEntity> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      FeedResponse<EventStreamDocumentEntity> batch =
+        await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
       foreach (EventStreamDocumentEntity doc in batch)
       {
         if (cancellationToken.IsCancellationRequested)
@@ -259,10 +266,12 @@ internal sealed class CosmosEventStream(
     }
   }
 
-  public async IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
+  public async IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion,
+    ulong startVersion,
     [EnumeratorCancellation] CancellationToken cancellationToken = default)
   {
-    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container.GetItemLinqQueryable<EventStreamDocumentEntity>()
+    FeedIterator<EventStreamDocumentEntity> iterator = dbProvider.Container
+      .GetItemLinqQueryable<EventStreamDocumentEntity>()
       .Where(doc =>
         doc.StreamId == _stream.StreamId
         && doc.DocumentType != EventStreamDocumentType.Index
@@ -273,7 +282,8 @@ internal sealed class CosmosEventStream(
 
     while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
     {
-      FeedResponse<EventStreamDocumentEntity> batch = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      FeedResponse<EventStreamDocumentEntity> batch =
+        await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
       foreach (EventStreamDocumentEntity doc in batch)
       {
         if (cancellationToken.IsCancellationRequested)
@@ -286,7 +296,8 @@ internal sealed class CosmosEventStream(
     }
   }
 
-  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion,
+    CancellationToken cancellationToken = default)
     => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
   private class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
@@ -298,7 +309,10 @@ internal sealed class CosmosEventStream(
     private readonly TimeProvider _timeProvider;
     private readonly string _targetType;
 
-    internal CosmosEventStreamTransactionAppender(CosmosEventStream stream, TimeProvider timeProvider, IEventTypeProvider eventTypeProvider, string targetType)
+    internal CosmosEventStreamTransactionAppender(CosmosEventStream stream,
+      TimeProvider timeProvider,
+      IEventTypeProvider eventTypeProvider,
+      string targetType)
     {
       _stream = stream;
       _timeProvider = timeProvider;
@@ -326,7 +340,6 @@ internal sealed class CosmosEventStream(
 
       return this;
     }
-
 
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)
