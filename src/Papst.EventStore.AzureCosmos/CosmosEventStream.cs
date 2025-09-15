@@ -20,6 +20,8 @@ internal sealed class CosmosEventStream(
 )
   : IEventStream
 {
+  private const int MaxBatchSize = 100;
+
   private EventStreamIndexEntity _stream = stream;
 
   /// <inheritdoc />
@@ -348,20 +350,20 @@ internal sealed class CosmosEventStream(
     string TargetType
   );
 
-  private async Task CommitTransactionAsync(List<EventStreamDocumentTemplate> events, CancellationToken cancellationToken)
+  private async Task CommitTransactionAsync(List<EventStreamDocumentTemplate> events,
+    CancellationToken cancellationToken)
   {
-    ulong currentVersion = _stream.Version;
-
     try
     {
       bool indexUpdateSuccessful = false;
       int retryCount = 0;
+      var baseVersion = _stream.Version;
       // update index
       do
       {
         try
         {
-          ulong targetVersion = _stream.Version + (ulong)events.Count;
+          ulong targetVersion = baseVersion + (ulong)events.Count;
 
           ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
             .PatchItemAsync<EventStreamIndexEntity>(
@@ -369,9 +371,9 @@ internal sealed class CosmosEventStream(
               new(StreamId.ToString()),
               new List<PatchOperation>()
               {
-                  PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), targetVersion + 1),
-                  PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
-                  PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
+                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), targetVersion + 1),
+                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
+                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
               },
               new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
               cancellationToken).ConfigureAwait(false);
@@ -385,45 +387,81 @@ internal sealed class CosmosEventStream(
           retryCount++;
           await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
           await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
-          currentVersion = _stream.Version;
+
+          baseVersion = _stream.Version;
         }
       } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
 
-      // store events
-      var batch =
-        dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
-      foreach (var evt in events)
+      if (!indexUpdateSuccessful)
       {
-        EventStreamDocumentEntity document = new()
+        throw new EventStreamException(StreamId, "Failed to update Index");
+      }
+
+      var totalOps = 0;
+      // Index updated, now commit events in batches MaxBatchSize at a time. Don't respect cancellation here, we want to finish the transaction
+      // since we already updated the index
+      await foreach (var batch in CreateBatches(events, MaxBatchSize, baseVersion)
+                       .WithCancellation(CancellationToken.None))
+      {
+        TransactionalBatchResponse result = await batch.ExecuteAsync(CancellationToken.None).ConfigureAwait(false);
+        if (!result.IsSuccessStatusCode)
         {
-          Id = await idStrategy.GenerateIdAsync(StreamId, ++currentVersion, EventStreamDocumentType.Event),
-          DocumentId = evt.DocumentId,
-          StreamId = StreamId,
-          Version = currentVersion,
-          Data = evt.Data,
-          DataType = evt.DataType,
-          Name = evt.Name,
-          TargetType = evt.TargetType,
-          Time = evt.Time,
-          DocumentType = EventStreamDocumentType.Event,
-          MetaData = evt.MetaData,
-        };
+          var firstFailed = result.FirstOrDefault(itm => !itm.IsSuccessStatusCode);
+          var message = firstFailed is null
+            ? $"Failed to commit events {string.Join(", ", result.Select(itm => $"{itm.StatusCode}"))} ActivityId: {result.ActivityId}"
+            : $"Failed to commit event at op. Status={firstFailed.StatusCode}, ActivityId: {result.ActivityId}";
+          throw new EventStreamException(StreamId, message);
+        }
 
-        batch.CreateItem(document);
+        totalOps += result.Count;
       }
 
-      TransactionalBatchResponse result = await batch.ExecuteAsync(cancellationToken).ConfigureAwait(false);
-      if (!result.IsSuccessStatusCode)
-      {
-        throw new EventStreamException(StreamId, $"Failed to commit events {string.Join(", ", result.Select(itm => $"{itm.StatusCode}"))}");
-      }
-
-      logger.TransactionCompleted(StreamId, result.Count);
+      logger.TransactionCompleted(StreamId, totalOps);
     }
     catch (Exception e)
     {
       logger.TransactionException(e, StreamId);
       throw new EventStreamException(StreamId, "Exception during Transaction", e);
+    }
+  }
+
+  private async IAsyncEnumerable<TransactionalBatch> CreateBatches(IReadOnlyList<EventStreamDocumentTemplate> events,
+    int batchSize,
+    ulong currentVersion = 0)
+  {
+    var currentBatch = dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
+
+    for (int i = 0; i < events.Count; i++)
+    {
+      var version = currentVersion + (ulong)i + 1;
+
+      currentBatch.CreateItem(new EventStreamDocumentEntity
+      {
+        Id = await idStrategy.GenerateIdAsync(StreamId, version, EventStreamDocumentType.Event),
+        DocumentId = events[i].DocumentId,
+        StreamId = StreamId,
+        Version = version,
+        Data = events[i].Data,
+        DataType = events[i].DataType,
+        Name = events[i].Name,
+        TargetType = events[i].TargetType,
+        Time = events[i].Time,
+        DocumentType = EventStreamDocumentType.Event,
+        MetaData = events[i].MetaData
+      });
+
+      if ((i + 1) % batchSize != 0)
+      {
+        continue;
+      }
+
+      yield return currentBatch;
+      currentBatch = dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
+    }
+
+    if (events.Count % batchSize != 0)
+    {
+      yield return currentBatch;
     }
   }
 }
