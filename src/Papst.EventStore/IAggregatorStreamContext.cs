@@ -29,4 +29,9 @@ public interface IAggregatorStreamContext
   /// The Time when the Event was created
   /// </summary>
   DateTimeOffset EventTime { get; }
+  
+  /// <summary>
+  /// Dictonary containing information that is transferred between aggregations
+  /// </summary>
+  Dictionary<string, string> AggregationData { get; }
 }

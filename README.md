@@ -62,6 +62,10 @@ Please refer to the documentation in the relevant implementation sources:
 
 # Changelog
 
+## V 5.3
+
+V5.3 introduces a new property on the `IAggregatorStreamContext` that allows to transfer information from the Aggregator.
+
 ## V 5.2
 
 V5.2 introduces Metadata on the Stream itself. The `IEventStream` now got its own metadata Property.

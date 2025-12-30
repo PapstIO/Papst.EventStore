@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 
-namespace Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
+namespace Papst.EventStore.Aggregation.EventRegistration;
 
 /// <inheritdoc/>
 internal record EventRegistrationEventAggregatorStreamContext(
@@ -8,5 +9,6 @@ internal record EventRegistrationEventAggregatorStreamContext(
   ulong TargetVersion,
   ulong CurrentVersion,
   DateTimeOffset StreamCreated,
-  DateTimeOffset EventTime)
+  DateTimeOffset EventTime,
+  Dictionary<string, string> AggregationData)
   : IAggregatorStreamContext;

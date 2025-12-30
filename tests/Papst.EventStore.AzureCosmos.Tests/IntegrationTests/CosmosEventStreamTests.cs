@@ -78,7 +78,7 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     // act
     Func<Task> act = async () =>
     {
-      await stream.AppendSnapshotAsync(documentId, entity, null, CancellationToken.None);
+      await stream.AppendSnapshotAsync(documentId, entity!, null, CancellationToken.None);
       entity = await aggregator.AggregateAsync(stream, CancellationToken.None);
     };
 
