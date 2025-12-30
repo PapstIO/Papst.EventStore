@@ -17,7 +17,7 @@
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="System.Linq.Async" />
+        <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'net8.0'" />
         <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" Condition="'$(Configuration)' == 'DEBUG'" />
         <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
     </ItemGroup>

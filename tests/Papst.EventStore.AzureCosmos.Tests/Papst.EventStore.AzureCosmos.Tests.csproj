@@ -18,7 +18,7 @@
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
 		<PackageReference Include="Moq" />
 		<PackageReference Include="System.Formats.Asn1" />
-		<PackageReference Include="System.Linq.Async" />
+		<PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'net8.0'" />
 		<PackageReference Include="Testcontainers" />
 		<PackageReference Include="Testcontainers.CosmosDb" />
 		<PackageReference Include="xunit" />
