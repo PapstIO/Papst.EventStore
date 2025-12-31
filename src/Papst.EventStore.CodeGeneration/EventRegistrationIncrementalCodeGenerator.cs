@@ -10,8 +10,6 @@ namespace Papst.EventStore.CodeGeneration
 {
   /// <summary>
   /// Incremental Source Generator equivalent to EventRegistrationCodeGenerator.
-  /// Produces the same generated source as the original generator,
-  /// but implements the IIncrementalGenerator pattern.
   /// </summary>
   [Generator]
   public class EventRegistrationIncrementalCodeGenerator : IIncrementalGenerator
