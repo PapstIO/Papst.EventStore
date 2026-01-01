@@ -10,5 +10,32 @@ internal record EventRegistrationEventAggregatorStreamContext(
   ulong CurrentVersion,
   DateTimeOffset StreamCreated,
   DateTimeOffset EventTime,
-  Dictionary<string, string> AggregationData)
-  : IAggregatorStreamContext;
+  Dictionary<string, AggregationContextData> AggregationData)
+  : IAggregatorStreamContext
+{
+  private readonly Dictionary<string, AggregationContextData> _aggregationData = AggregationData;
+
+  /// <inheritdoc/>
+  public void SetAggregationData(string key, ulong version, string value, ulong? validUntilVersion = null)
+  {
+    _aggregationData[key] = new AggregationContextData(
+      key,
+      version,
+      validUntilVersion,
+      value);
+  }
+
+  /// <inheritdoc/>
+  public AggregationContextData? GetAggregationData(string key, bool ignoreValidity = false)
+  {
+    if (!_aggregationData.TryGetValue(key, out var data))
+    {
+      return null;
+    }
+    if (!ignoreValidity && (data.Version > CurrentVersion || data.ValidUntilVersion is not null && CurrentVersion > data.ValidUntilVersion))
+    {
+      return null;
+    }
+    return data;
+  }
+}
