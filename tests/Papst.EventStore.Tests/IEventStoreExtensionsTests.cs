@@ -1,4 +1,4 @@
-﻿namespace Papst.EventStore.Abstractions.Tests;
+﻿namespace Papst.EventStore.Tests;
 
 public class IEventStoreExtensionsTests
 {

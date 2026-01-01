@@ -1,30 +1,20 @@
+using System;
 using AutoFixture.Xunit2;
 using FluentAssertions;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
 using Xunit;
-using Papst.EventStore;
 
-namespace Papst.EventStore.Abstractions.Tests;
+namespace Papst.EventStore.Tests;
 
 public class AggregationContextDataTests
 {
   private static IAggregatorStreamContext CreateContext(ulong currentVersion)
   {
-    // locate the internal type in the assembly
-    var asm = typeof(AggregationContextData).Assembly;
-    var type = asm.GetType("Papst.EventStore.Aggregation.EventRegistration.EventRegistrationEventAggregatorStreamContext", throwOnError: true);
-
-    var ctor = type.GetConstructor(
-      BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
-      binder: null,
-      types: new Type[] { typeof(Guid), typeof(ulong), typeof(ulong), typeof(DateTimeOffset), typeof(DateTimeOffset), typeof(Dictionary<string, AggregationContextData>) },
-      modifiers: null);
-
-    var instance = ctor.Invoke(new object[] { Guid.NewGuid(), 0UL, currentVersion, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, new Dictionary<string, AggregationContextData>() });
-
-    return (IAggregatorStreamContext)instance!;
+    return new Papst.EventStore.Aggregation.EventRegistration.EventRegistrationEventAggregatorStreamContext(
+      StreamId: Guid.NewGuid(),
+      TargetVersion: 0UL,
+      CurrentVersion: currentVersion,
+      StreamCreated: DateTimeOffset.UtcNow,
+      EventTime: DateTimeOffset.UtcNow);
   }
 
   [Theory, AutoData]

@@ -59,8 +59,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       originalTarget.Version,
       targetVersion,
       stream.Created,
-      stream.Created,
-      new());
+      stream.Created);
 
     await foreach (var evt in stream.ListAsync(originalTarget.Version, cancellationToken))
     {

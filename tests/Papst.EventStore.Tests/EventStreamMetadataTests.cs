@@ -1,12 +1,11 @@
-﻿using AutoFixture.Xunit2;
+﻿using System.Collections.Generic;
+using AutoFixture.Xunit2;
 using FluentAssertions;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 using Papst.EventStore.Documents;
 using Xunit;
 
-namespace Papst.EventStore.Abstractions.Tests;
+namespace Papst.EventStore.Tests;
 
 public class EventStreamMetadataTests
 {

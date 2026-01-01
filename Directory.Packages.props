@@ -6,7 +6,7 @@
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
         <PackageVersion Include="Azure.Core" Version="1.50.0" />
-        <PackageVersion Include="Azure.Identity" Version="(1.15.0, 2.0]" />
+        <PackageVersion Include="Azure.Identity" Version="[1.15.0, 2.0]" />
         <PackageVersion Include="coverlet.collector" Version="6.0.4">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

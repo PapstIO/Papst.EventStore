@@ -9,11 +9,10 @@ internal record EventRegistrationEventAggregatorStreamContext(
   ulong TargetVersion,
   ulong CurrentVersion,
   DateTimeOffset StreamCreated,
-  DateTimeOffset EventTime,
-  Dictionary<string, AggregationContextData> AggregationData)
+  DateTimeOffset EventTime)
   : IAggregatorStreamContext
 {
-  private readonly Dictionary<string, AggregationContextData> _aggregationData = AggregationData;
+  private readonly Dictionary<string, AggregationContextData> _aggregationData = new();
 
   /// <inheritdoc/>
   public void SetAggregationData(string key, ulong version, string value, ulong? validUntilVersion = null)
