@@ -20,7 +20,7 @@ jobs:
     - name: Setup .NET Core SDK
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '8.x' 
+        dotnet-version: '10.x' 
 
     - name: Setup Nerdbank.GitVersioning
       run: dotnet tool install -g nbgv
