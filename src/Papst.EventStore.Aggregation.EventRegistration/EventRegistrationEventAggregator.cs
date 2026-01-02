@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Papst.EventStore.Abstractions.EventAggregation.EventRegistration;
 using Papst.EventStore.Documents;
 using System;
 using System.Threading;
@@ -32,7 +31,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   /// <inheritdoc/>
   public async Task<TEntity?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken)
   {
-    Logging.CreatingNewEntity(_logger, typeof(TEntity).Name, stream.StreamId);
+    _logger.CreatingNewEntity(typeof(TEntity).Name, stream.StreamId);
     // create the Entity using the StartVersion - 1 because the Aggregator will increment it after applying the first Event
     return await AggregateAsync(
       stream,
@@ -87,7 +86,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           break;
         }
 
-        Logging.ApplyingEvent(_logger, evt.DataType, entityType.Name, stream.StreamId);
+        _logger.ApplyingEvent(evt.DataType, entityType.Name, stream.StreamId);
 
 
         if (evt.DocumentType == EventStreamDocumentType.Snapshot)
@@ -112,7 +111,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
 
         if (target == null)
         {
-          Logging.EntityDeleted(_logger, stream.StreamId, evt.DataType, evt.Version);
+          _logger.EntityDeleted(stream.StreamId, evt.DataType, evt.Version);
           hasBeenDeleted = true;
         }
         else
@@ -123,7 +122,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       }
       catch (InvalidOperationException exc)
       {
-        Logging.EventAggregatorNotRegistered(_logger, exc, entityType.Name, evt.DataType);
+        _logger.EventAggregatorNotRegistered(exc, entityType.Name, evt.DataType);
         throw new EventStreamAggregatorNotRegisteredException(exc, stream.StreamId, entityType.Name, evt.DataType);
       }
     }

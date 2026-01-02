@@ -1,0 +1,39 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Build/">
+    <File Path=".github/workflows/publish.yml" />
+    <File Path=".github/workflows/test.yml" />
+    <File Path="version.json" />
+  </Folder>
+  <Folder Name="/Samples/">
+    <Project Path="samples/SampleFileEventStore/SampleFileEventStore.csproj" />
+    <Project Path="samples/SampleSqlServerEfCoreEventStore/SampleSqlServerEfCoreEventStore.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+    <File Path="version.json" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Papst.EventStore.Aggregation.EventRegistration/Papst.EventStore.Aggregation.EventRegistration.csproj" />
+    <Project Path="src/Papst.EventStore.AzureCosmos/Papst.EventStore.AzureCosmos.csproj" />
+    <Project Path="src/Papst.EventStore.CodeGeneration/Papst.EventStore.CodeGeneration.csproj" />
+    <Project Path="src/Papst.EventStore.EntityFrameworkCore/Papst.EventStore.EntityFrameworkCore.csproj" />
+    <Project Path="src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj" />
+    <Project Path="src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj" />
+    <Project Path="src/Papst.EventStore/Papst.EventStore.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/Papst.EventsStore.InMemory.Tests/Papst.EventsStore.InMemory.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.AzureCosmos.Tests/Papst.EventStore.AzureCosmos.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.CodeGeneration.Tests/Papst.EventStore.CodeGeneration.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.Tests/Papst.EventStore.Tests.csproj" />
+  </Folder>
+</Solution>

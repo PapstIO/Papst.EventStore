@@ -1,3 +1,4 @@
+
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,7 +13,7 @@ public class CodeGeneratorTests
   [Fact]
   public void TestFindsNamespaceWithEntryPoint()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -46,7 +47,7 @@ namespace MyCode
   [Fact]
   public void TestFindsNamespaceWithoutEntryPoint()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -75,7 +76,7 @@ namespace MyCode
   [Fact]
   public void TestCodeGeneration()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -112,7 +113,7 @@ namespace MyCode
   [Fact]
   public void TestCodeGenerationFullAttributeName()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -150,7 +151,7 @@ namespace MyCode
   [Fact]
   public void TestFileScopedNamespaceEventRegistration()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -186,7 +187,7 @@ public class TestEventFoo
   [Fact]
   public void TestEventWithTwoDescriptors()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -226,7 +227,7 @@ namespace MyCode
   [Fact]
   public void TestEventWithReadOnlyDescriptor()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -266,7 +267,7 @@ namespace MyCode
   [Fact]
   public void TestRecordCodeGeneration()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -304,7 +305,7 @@ namespace MyCode
   [Fact]
   public void TestAddsEventAggregatorToSource()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -351,7 +352,7 @@ namespace MyCode
   [Fact]
   public void TestAddsEventWithMultipleImplementationsAggregatorToSource()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -405,7 +406,7 @@ namespace MyCode
   [Fact]
   public void TestAddsInternalAggregatorsToRegistration()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -451,7 +452,7 @@ namespace MyCode
   [Fact]
   public void TestAddsDiagnosticsOnEmptyCompilation()
   {
-    var generator = new EventRegistrationCodeGenerator();
+    var generator = new EventRegistrationIncrementalCodeGenerator();
     GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
 
     Compilation inputCompilation = CreateCompilation(@"
@@ -474,7 +475,7 @@ namespace MyCode
   {
     return CSharpCompilation.Create("compilation",
                 new[] { CSharpSyntaxTree.ParseText(source) },
-                new[] { MetadataReference.CreateFromFile(typeof(Binder).GetTypeInfo().Assembly.Location) },
+                new[] { MetadataReference.CreateFromFile(typeof(System.Reflection.Binder).GetTypeInfo().Assembly.Location) },
                 new CSharpCompilationOptions(OutputKind.ConsoleApplication));
   }
 
