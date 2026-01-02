@@ -21,7 +21,7 @@ jobs:
         dotnet-version: '10.x'
 
     - name: Build
-      run: dotnet build --configuration Release
+      run: dotnet build --configuration Debug Papst.EventStore.slnx
 
     - name: Run tests
-      run: dotnet test --no-build --verbosity normal --configuration Release
+      run: dotnet test --no-build --verbosity normal --configuration Debug Papst.EventStore.slnx
