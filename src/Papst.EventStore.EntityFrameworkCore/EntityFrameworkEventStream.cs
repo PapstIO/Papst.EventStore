@@ -142,6 +142,17 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
   => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
+  public async Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
+  {
+    _dbContext.Streams.Attach(_stream);
+    _stream.MetaDataUserId = metaData.UserId;
+    _stream.MetaDataTenantId = metaData.TenantId;
+    _stream.MetaDataUserName = metaData.UserName;
+    _stream.MetaDataComment = metaData.Comment;
+    _stream.MetaDataAdditionJson = JsonSerializer.Serialize(metaData);
+    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+  }
+
   private static Expression<Func<EventStreamDocumentEntity, EventStreamDocument>> Map() => doc => new EventStreamDocument()
   {
     Id = doc.Id,

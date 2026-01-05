@@ -3,6 +3,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Aggregation;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
+using Papst.EventStore.Documents;
 using Xunit;
 
 namespace Papst.EventStore.AzureCosmos.Tests.IntegrationTests;
@@ -102,5 +103,39 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
 
     // assert
     events.Count.Should().Be(4, "3 TestAppendedEvent + 1 TestCreatedEvent");
+  }
+
+  [Theory, AutoData]
+  public async Task UpdateMetadata_ShouldUpdate(Guid streamId, EventStreamMetaData metaData,
+    CancellationToken cancellationToken = default)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent());
+
+    // act
+    await stream.UpdateStreamMetaData(metaData, cancellationToken);
+
+    // assert
+    stream.MetaData.Should().NotBeNull().And.BeEquivalentTo(metaData);
+  }
+  
+  [Theory, AutoData]
+  public async Task UpdateMetadata_ShouldPersist(Guid streamId, EventStreamMetaData metaData,
+    CancellationToken cancellationToken = default)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent());
+    
+    // act
+    await stream.UpdateStreamMetaData(metaData, cancellationToken);
+    // enforce reload
+    stream = await store.GetAsync(streamId, cancellationToken);
+
+    // assert
+    stream.MetaData.Should().NotBeNull().And.BeEquivalentTo(metaData);
   }
 }

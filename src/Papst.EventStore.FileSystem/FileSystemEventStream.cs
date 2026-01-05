@@ -239,6 +239,15 @@ internal sealed class FileSystemEventStream : IEventStream
   public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
     => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
+  public async Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
+  {
+    _entity = _entity with
+    {
+      MetaData = metaData
+    };
+    await UpdateIndexAsync().ConfigureAwait(false);
+  }
+
 
   private async Task AppendInternalAsync(EventStreamDocument document, CancellationToken cancellationToken = default)
   {
@@ -257,6 +266,7 @@ internal sealed class FileSystemEventStream : IEventStream
     };
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document), cancellationToken);
+    await UpdateIndexAsync().ConfigureAwait(false);
   }
 
   private static string VersionToPath(ulong version) => (version / 100).ToString("0000000000");
