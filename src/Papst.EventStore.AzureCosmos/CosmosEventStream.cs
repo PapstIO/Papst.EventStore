@@ -300,7 +300,91 @@ internal sealed class CosmosEventStream(
     CancellationToken cancellationToken = default)
     => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
-  private class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
+  public async Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
+  {
+    bool indexUpdateSuccessful = false;
+    int retryCount = 0;
+    do
+    {
+      try
+      {
+        List<PatchOperation> patches = [];
+        if (metaData.UserId != _stream.MetaData.UserId)
+        {
+          patches.Add(PatchOperation.Set(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.UserId),
+            metaData.UserId
+          ));
+        }
+
+        if (metaData.UserName != _stream.MetaData.UserName)
+        {
+          patches.Add(PatchOperation.Set(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.UserName),
+            metaData.UserName));
+        }
+
+        if (metaData.TenantId != _stream.MetaData.TenantId)
+        {
+          patches.Add(PatchOperation.Set(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
+            metaData.TenantId
+          ));
+        }
+
+        if (metaData.Comment != _stream.MetaData.Comment)
+        {
+          patches.Add(PatchOperation.Set(
+            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Comment),
+            metaData.Comment
+          ));
+        }
+
+        if (metaData.Additional is not null)
+        {
+          if (_stream.MetaData.Additional is null)
+          {
+            patches.Add(PatchOperation.Add(
+              '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional),
+              metaData.Additional)
+            );
+          }
+          else
+          {
+            patches.Add(PatchOperation.Replace(
+              '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional),
+              metaData.Additional)
+            );
+          }
+        }
+        else if (_stream.MetaData is not null)
+        {
+          patches.Add(PatchOperation.Remove('/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional)));
+        }
+
+
+        ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
+          .PatchItemAsync<EventStreamIndexEntity>(
+            _stream.Id,
+            new PartitionKey(StreamId.ToString()),
+            patches,
+            new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
+            cancellationToken).ConfigureAwait(false);
+
+        _stream = indexPatch.Resource;
+        indexUpdateSuccessful = true;
+      }
+      catch (CosmosException e)
+      {
+        logger.IndexPatchConcurrency(e, _stream.StreamId);
+        retryCount++;
+        await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
+        await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
+      }
+    } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
+  }
+
+  private sealed class CosmosEventStreamTransactionAppender : IEventStoreTransactionAppender
   {
     private readonly CosmosEventStream _stream;
 

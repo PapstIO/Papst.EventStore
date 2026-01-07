@@ -28,12 +28,12 @@ public interface IEventStream
   ulong? LatestSnapshotVersion { get; }
   
   /// <summary>
-  /// Allows to store Meta Data that is consistent over the complete stream
+  /// Allows to store Metadata that is consistent over the complete stream
   /// </summary>
   EventStreamMetaData MetaData { get; }
 
   /// <summary>
-  /// The Latest Snapshop that has been fetched (if available)
+  /// The Latest Snapshot that has been fetched (if available)
   /// </summary>
   Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default);
 
@@ -110,26 +110,12 @@ public interface IEventStream
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
   IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default);
-}
-
-public interface IEventStoreTransactionAppender
-{
+  
   /// <summary>
-  /// Appends an Event to the Stream as part of a batch
+  /// Updates the Even Stream Metadata
   /// </summary>
-  /// <typeparam name="TEvent">Type of the Event</typeparam>
-  /// <param name="id">Id of the Event</param>
-  /// <param name="evt">The Event</param>
-  /// <param name="metaData">The Events Meta Data</param>
+  /// <param name="metaData"></param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
-  IEventStoreTransactionAppender Add<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
-    where TEvent: notnull;
-
-  /// <summary>
-  /// Commits all Events in the Transactional Appender
-  /// </summary>
-  /// <param name="cancellationToken"></param>
-  /// <returns></returns>
-  Task CommitAsync(CancellationToken cancellationToken = default);
+  Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default);
 }

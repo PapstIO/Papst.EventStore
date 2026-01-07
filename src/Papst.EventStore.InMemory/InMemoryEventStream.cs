@@ -121,9 +121,11 @@ internal class InMemoryEventStream : IEventStream
       .OrderByDescending(evt => evt.Version)
       .ToAsyncEnumerable();
   }
-  
-  
-  
+
+  public Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
+  {
+    return Task.CompletedTask;
+  }
 }
 
 internal class InMemoryTransactionalBatch(

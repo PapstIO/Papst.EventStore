@@ -1,3 +1,5 @@
+using DotNet.Testcontainers.Configurations;
+using DotNet.Testcontainers.Containers;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Aggregation.EventRegistration;
@@ -11,13 +13,18 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
   public string DatabaseName => CosmosDatabaseName;
   public string ContainerName => CosmosContainerId;
 
-  private readonly CosmosDbContainer _cosmosDbContainer = new CosmosDbBuilder()
-    .WithImage("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest")
-    .WithPortBinding(8081, true)
-    //.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
-    .WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTANCE", "false")
-    .WithAutoRemove(true)
-    .Build();
+  private const ushort InternalPort = 8081;
+
+  private readonly CosmosDbContainer _cosmosDbContainer =
+    //new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
+    new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest")
+      .WithPortBinding(InternalPort, true)
+      //.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
+      .WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTANCE", "false")
+      //.WithCommand("--protocol", "https")
+      .WithAutoRemove(true)
+      //.WithWaitStrategy(Wait.ForUnixContainer().AddCustomWaitStrategy(new WaitUntil()))
+      .Build();
   private CosmosClient? _cosmosClient;
 
   public const string CosmosContainerId = "Events";
@@ -26,12 +33,13 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
 
   public async Task InitializeAsync()
   {
+
     await _cosmosDbContainer.StartAsync();
 
     _cosmosClient = new CosmosClient(_cosmosDbContainer.GetConnectionString(), new CosmosClientOptions
     {
       HttpClientFactory = () => _cosmosDbContainer.HttpClient,
-      ConnectionMode = ConnectionMode.Gateway
+      ConnectionMode = Microsoft.Azure.Cosmos.ConnectionMode.Gateway
     });
 
     var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync(DatabaseName);
@@ -64,5 +72,46 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
 
     await _cosmosDbContainer.StopAsync();
     await _cosmosDbContainer.DisposeAsync();
+  }
+
+  private sealed class WaitUntil : IWaitUntil
+  {
+    private readonly HttpClient _client;
+
+    public WaitUntil()
+    {
+      var handler = new HttpClientHandler();
+      handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+      handler.ServerCertificateCustomValidationCallback =
+          (httpRequestMessage, cert, cetChain, policyErrors) =>
+          {
+            return true;
+          };
+      _client = new HttpClient(handler);
+    }
+    public async Task<bool> UntilAsync(IContainer container)
+    {
+      // CosmosDB's preconfigured HTTP client will redirect the request to the container.
+
+      bool foundPort = container.GetMappedPublicPorts().TryGetValue(InternalPort, out ushort port);
+
+      string requestUri = "https://localhost" + (foundPort ? $":{port}" : "");
+      //var httpClient = ((CosmosDbContainer)container).HttpClient;
+
+      try
+      {
+        using var httpResponse = await _client.GetAsync(requestUri).ConfigureAwait(false);
+
+        return httpResponse.IsSuccessStatusCode;
+      }
+      catch (Exception)
+      {
+        return false;
+      }
+      finally
+      {
+        //httpClient.Dispose();
+      }
+    }
   }
 }
