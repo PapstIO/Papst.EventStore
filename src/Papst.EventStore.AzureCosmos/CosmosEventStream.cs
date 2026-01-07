@@ -342,15 +342,26 @@ internal sealed class CosmosEventStream(
 
         if (metaData.Additional is not null)
         {
-          patches.Add(
-            PatchOperation.Remove('/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional)));
-
-          if (metaData.Additional.Count > 0)
+          if (_stream.MetaData.Additional is null)
           {
-            patches.AddRange(metaData.Additional.Select(itm => 
-              PatchOperation.Set('/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional) + '/' + itm.Key, itm.Value)));
+            patches.Add(PatchOperation.Add(
+              '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional),
+              metaData.Additional)
+            );
+          }
+          else
+          {
+            patches.Add(PatchOperation.Replace(
+              '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional),
+              metaData.Additional)
+            );
           }
         }
+        else if (_stream.MetaData is not null)
+        {
+          patches.Add(PatchOperation.Remove('/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.Additional)));
+        }
+
 
         ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
