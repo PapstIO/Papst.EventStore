@@ -62,6 +62,10 @@ Please refer to the documentation in the relevant implementation sources:
 
 # Changelog
 
+## V 5.4
+
+Adds a possibility to update a streams MetaData object.
+
 ## V 5.3
 
 V5.3 introduces new methods on the `IAggregatorStreamContext` that allows to transfer information from the Aggregator to the next one.
