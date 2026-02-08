@@ -41,7 +41,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var stream = await eventStore.CreateAsync(streamId, "TestType", CancellationToken.None);
 
     // act
-    await stream.AppendAsync(System.Guid.NewGuid(), testEvent, cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), testEvent, cancellationToken: CancellationToken.None);
 
     // assert
     var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
@@ -59,7 +59,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     foreach (var @event in testEvents)
     {
-      await stream.AppendAsync(System.Guid.NewGuid(), @event, cancellationToken: CancellationToken.None);
+      await stream.AppendAsync(Guid.NewGuid(), @event, cancellationToken: CancellationToken.None);
     }
 
     // act
@@ -80,7 +80,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     foreach (var @event in testEvents)
     {
-      await stream.AppendAsync(System.Guid.NewGuid(), @event, cancellationToken: CancellationToken.None);
+      await stream.AppendAsync(Guid.NewGuid(), @event, cancellationToken: CancellationToken.None);
     }
 
     // act
@@ -100,7 +100,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var stream = await eventStore.CreateAsync(streamId, "TestType", CancellationToken.None);
 
     // act
-    await stream.AppendSnapshotAsync(System.Guid.NewGuid(), snapshot, cancellationToken: CancellationToken.None);
+    await stream.AppendSnapshotAsync(Guid.NewGuid(), snapshot, cancellationToken: CancellationToken.None);
 
     // assert
     var latestSnapshot = await stream.GetLatestSnapshot(CancellationToken.None);
@@ -120,7 +120,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var batch = await stream.CreateTransactionalBatchAsync();
     foreach (var @event in testEvents)
     {
-      batch.Add(System.Guid.NewGuid(), @event);
+      batch.Add(Guid.NewGuid(), @event);
     }
     await batch.CommitAsync(CancellationToken.None);
 

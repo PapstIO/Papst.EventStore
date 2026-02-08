@@ -9,7 +9,6 @@
         <Title>Papst.EventStore.MongoDB</Title>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore/</PackageProjectUrl>
-        <Authors>Marco Papst</Authors>
         <PackageTags>eventsourcing;eventstore;mongodb</PackageTags>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     </PropertyGroup>

@@ -11,8 +11,7 @@ namespace Papst.EventStore.MongoDB.Tests;
 
 public class MongoDBIntegrationTestFixture : IAsyncLifetime
 {
-  private readonly MongoDbContainer _mongoDbContainer = new MongoDbBuilder()
-    .WithImage("mongo:8.0")
+  private readonly MongoDbContainer _mongoDbContainer = new MongoDbBuilder("mongo:8.0")
     .WithPortBinding(27017, true)
     .WithAutoRemove(true)
     .Build();

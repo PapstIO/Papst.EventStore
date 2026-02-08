@@ -12,7 +12,7 @@ using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.MongoDB;
 
-public class MongoDBEventStore : IEventStore
+public class MongoDBEventStore : IEventStore, System.IDisposable
 {
   private readonly IMongoDatabase _database;
   private readonly IMongoCollection<EventStreamDocument> _documentsCollection;
@@ -169,5 +169,10 @@ public class MongoDBEventStore : IEventStore
       _documentsCollection,
       _metadataCollection
     );
+  }
+
+  public void Dispose()
+  {
+    _indexCreationLock?.Dispose();
   }
 }
