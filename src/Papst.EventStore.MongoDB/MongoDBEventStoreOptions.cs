@@ -8,20 +8,20 @@ public class MongoDBEventStoreOptions
   /// <summary>
   /// MongoDB connection string
   /// </summary>
-  public string ConnectionString { get; set; } = "mongodb://localhost:27017";
+  public string ConnectionString { get; set; } = string.Empty;
 
   /// <summary>
   /// Database name for the event store
   /// </summary>
-  public string DatabaseName { get; set; } = "EventStore";
+  public string DatabaseName { get; set; } = string.Empty;
 
   /// <summary>
   /// Collection name for event stream documents
   /// </summary>
-  public string CollectionName { get; set; } = "EventStreams";
+  public string CollectionName { get; set; } = string.Empty;
 
   /// <summary>
   /// Collection name for stream metadata
   /// </summary>
-  public string StreamMetadataCollectionName { get; set; } = "StreamMetadata";
+  public string StreamMetadataCollectionName { get; set; } = string.Empty;
 }

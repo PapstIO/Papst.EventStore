@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Papst.EventStore.MongoDB;
 
@@ -17,6 +18,31 @@ public static class MongoDBEventStoreProvider
     Action<MongoDBEventStoreOptions> configureOptions)
   {
     services.Configure(configureOptions);
+    
+    // Add PostConfigure validation
+    services.PostConfigure<MongoDBEventStoreOptions>(options =>
+    {
+      if (string.IsNullOrWhiteSpace(options.ConnectionString))
+      {
+        throw new InvalidOperationException("MongoDB ConnectionString must be configured.");
+      }
+      
+      if (string.IsNullOrWhiteSpace(options.DatabaseName))
+      {
+        throw new InvalidOperationException("MongoDB DatabaseName must be configured.");
+      }
+      
+      if (string.IsNullOrWhiteSpace(options.CollectionName))
+      {
+        options.CollectionName = "EventStreams";
+      }
+      
+      if (string.IsNullOrWhiteSpace(options.StreamMetadataCollectionName))
+      {
+        options.StreamMetadataCollectionName = "StreamMetadata";
+      }
+    });
+    
     services.AddSingleton<IEventStore, MongoDBEventStore>();
     services.TryAddSingleton(TimeProvider.System);
     return services;

@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -20,16 +21,22 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
   private readonly TimeProvider _timeProvider;
   private readonly IEventTypeProvider _eventTypeProvider;
   private readonly MongoDBEventStoreOptions _options;
+  private readonly ILogger<MongoDBEventStore> _logger;
+  private readonly ILoggerFactory _loggerFactory;
   private readonly System.Threading.SemaphoreSlim _indexCreationLock = new(1, 1);
   private bool _indexesCreated = false;
   private static readonly object _conventionLock = new();
   private static bool _conventionsRegistered = false;
 
   public MongoDBEventStore(
+    ILogger<MongoDBEventStore> logger,
+    ILoggerFactory loggerFactory,
     IOptions<MongoDBEventStoreOptions> options,
     TimeProvider timeProvider,
     IEventTypeProvider eventTypeProvider)
   {
+    _logger = logger;
+    _loggerFactory = loggerFactory;
     _options = options.Value;
     _timeProvider = timeProvider;
     _eventTypeProvider = eventTypeProvider;
@@ -54,7 +61,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       BsonSerializer.RegisterSerializer(guidSerializer);
 
       // Register custom serializer for JObject
-      BsonSerializer.RegisterSerializer(typeof(Newtonsoft.Json.Linq.JObject), new JObjectSerializer());
+      BsonSerializer.RegisterSerializer(typeof(Newtonsoft.Json.Linq.JObject), new JObjectBsonSerializer());
 
       _conventionsRegistered = true;
     }
@@ -69,12 +76,20 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     {
       if (_indexesCreated) return;
 
+      _logger.EnsuringIndexes();
+
       // Index on StreamId and Version for efficient querying
       var documentsIndexKeysDefinition = Builders<EventStreamDocument>.IndexKeys
         .Ascending(d => d.StreamId)
         .Ascending(d => d.Version);
       var documentsIndexModel = new CreateIndexModel<EventStreamDocument>(documentsIndexKeysDefinition);
       await _documentsCollection.Indexes.CreateOneAsync(documentsIndexModel, cancellationToken: cancellationToken);
+
+      // Index on Name for future use (event name queries)
+      var nameIndexKeysDefinition = Builders<EventStreamDocument>.IndexKeys
+        .Ascending(d => d.Name);
+      var nameIndexModel = new CreateIndexModel<EventStreamDocument>(nameIndexKeysDefinition);
+      await _documentsCollection.Indexes.CreateOneAsync(nameIndexModel, cancellationToken: cancellationToken);
 
       // Unique index on StreamId for metadata
       var metadataIndexKeysDefinition = Builders<MongoEventStreamMetadata>.IndexKeys
@@ -85,6 +100,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       );
       await _metadataCollection.Indexes.CreateOneAsync(metadataIndexModel, cancellationToken: cancellationToken);
 
+      _logger.IndexesCreated();
       _indexesCreated = true;
     }
     finally
@@ -95,6 +111,8 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
 
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
+    _logger.GetEventStream(streamId);
+    
     var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, streamId);
     var metadata = await _metadataCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
 
@@ -112,7 +130,8 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       _timeProvider,
       _eventTypeProvider,
       _documentsCollection,
-      _metadataCollection
+      _metadataCollection,
+      _loggerFactory.CreateLogger<MongoDBEventStream>()
     );
   }
 
@@ -132,6 +151,8 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     System.Collections.Generic.Dictionary<string, string>? additionalMetaData,
     CancellationToken cancellationToken = default)
   {
+    _logger.CreatingEventStream(streamId, targetTypeName);
+    
     var metadata = new MongoEventStreamMetadata
     {
       StreamId = streamId,
@@ -167,7 +188,8 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       _timeProvider,
       _eventTypeProvider,
       _documentsCollection,
-      _metadataCollection
+      _metadataCollection,
+      _loggerFactory.CreateLogger<MongoDBEventStream>()
     );
   }
 

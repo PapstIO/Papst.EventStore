@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
@@ -16,6 +17,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
   private readonly TimeProvider _timeProvider;
   private readonly Guid _streamId;
   private readonly string _targetType;
+  private readonly ILogger _logger;
   private readonly List<EventStreamDocument> _pendingDocuments = new();
 
   public MongoDBTransactionalBatch(
@@ -24,7 +26,8 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     IEventTypeProvider typeProvider,
     TimeProvider timeProvider,
     Guid streamId,
-    string targetType)
+    string targetType,
+    ILogger logger)
   {
     _documentsCollection = documentsCollection;
     _metadataCollection = metadataCollection;
@@ -32,6 +35,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     _timeProvider = timeProvider;
     _streamId = streamId;
     _targetType = targetType;
+    _logger = logger;
   }
 
   public IEventStoreTransactionAppender Add<TEvent>(
@@ -103,19 +107,23 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
         await _metadataCollection.UpdateOneAsync(session, filter, update, new UpdateOptions(), cancellationToken);
 
         await session.CommitTransactionAsync(cancellationToken);
+        _logger.TransactionCompleted(_streamId, _pendingDocuments.Count);
       }
-      catch
+      catch (Exception ex)
       {
         if (session.IsInTransaction)
         {
           await session.AbortTransactionAsync(cancellationToken);
         }
+        _logger.TransactionException(ex, _streamId);
         throw;
       }
     }
     catch (System.NotSupportedException)
     {
       // MongoDB standalone doesn't support transactions, fall back to non-transactional
+      _logger.TransactionNotSupported(_streamId);
+      
       await _documentsCollection.InsertManyAsync(_pendingDocuments, new InsertManyOptions(), cancellationToken);
 
       var newVersion = currentVersion + (ulong)_pendingDocuments.Count;

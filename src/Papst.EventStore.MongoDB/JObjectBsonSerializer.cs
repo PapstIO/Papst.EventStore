@@ -8,7 +8,7 @@ namespace Papst.EventStore.MongoDB;
 /// <summary>
 /// Custom BSON serializer for Newtonsoft.Json JObject
 /// </summary>
-internal class JObjectSerializer : SerializerBase<JObject>
+internal class JObjectBsonSerializer : SerializerBase<JObject>
 {
   public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, JObject value)
   {

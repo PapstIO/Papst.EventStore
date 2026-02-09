@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
@@ -17,6 +18,7 @@ internal class MongoDBEventStream : IEventStream
   private readonly TimeProvider _timeProvider;
   private readonly string _targetType;
   private readonly IEventTypeProvider _typeProvider;
+  private readonly ILogger<MongoDBEventStream> _logger;
 
   public MongoDBEventStream(
     Guid streamId,
@@ -27,7 +29,8 @@ internal class MongoDBEventStream : IEventStream
     TimeProvider timeProvider,
     IEventTypeProvider typeProvider,
     IMongoCollection<EventStreamDocument> documentsCollection,
-    IMongoCollection<MongoEventStreamMetadata> metadataCollection)
+    IMongoCollection<MongoEventStreamMetadata> metadataCollection,
+    ILogger<MongoDBEventStream> logger)
   {
     StreamId = streamId;
     Version = version;
@@ -38,6 +41,7 @@ internal class MongoDBEventStream : IEventStream
     _typeProvider = typeProvider;
     _documentsCollection = documentsCollection;
     _metadataCollection = metadataCollection;
+    _logger = logger;
   }
 
   public Guid StreamId { get; }
@@ -78,6 +82,8 @@ internal class MongoDBEventStream : IEventStream
     string name = _typeProvider.ResolveType(typeof(TEvent));
     var newVersion = Version + 1;
 
+    _logger.AppendingEvent(name, StreamId, newVersion);
+
     var document = new EventStreamDocument
     {
       Id = id,
@@ -109,6 +115,8 @@ internal class MongoDBEventStream : IEventStream
     CancellationToken cancellationToken = default) where TEntity : notnull
   {
     var newVersion = Version + 1;
+
+    _logger.AppendingSnapshot(StreamId, newVersion);
 
     var document = new EventStreamDocument
     {
@@ -145,7 +153,8 @@ internal class MongoDBEventStream : IEventStream
         _typeProvider,
         _timeProvider,
         StreamId,
-        _targetType
+        _targetType,
+        _logger
       )
     );
   }
