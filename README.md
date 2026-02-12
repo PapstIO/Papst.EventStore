@@ -23,7 +23,7 @@ The library brings a couple of already implemented EventStore packages:
   **Note**: This is for testing purpose only!
 * [Papst.EventStore.EntityFrameworkCore](https://www.nuget.org/packages/Papst.EventStore.EntityFrameworkCore/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.EntityFrameworkCore?style=plastic)
 * [Papst.EventStore.AzureCosmos](https://www.nuget.org/packages/Papst.EventStore.AzureCosmos/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureCosmos?style=plastic)
-* [Papst.EventStore.AzureBlob](https://www.nuget.org/packages/Papst.EventStore.AzureBlob/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.AzureBlob?style=plastic)
+* [Papst.EventStore.MongoDB](https://www.nuget.org/packages/Papst.EventStore.AzureBlob/) ![Nuget](https://img.shields.io/nuget/v/Papst.EventStore.MongoDB?style=plastic)
 
 ## Installing the Library
 
