@@ -76,6 +76,7 @@ jobs:
 
     - name: Run tests for Contracts
       run: dotnet test --no-build --verbosity normal --configuration Release Papst.EventStore.Stores.slnx
+      
     - name: Pack Papst.EventStore.AzureCosmos project
       run: dotnet pack src/Papst.EventStore.AzureCosmos/Papst.EventStore.AzureCosmos.csproj --no-build --configuration Release --output ./artifacts
 
@@ -88,7 +89,9 @@ jobs:
     - name: Pack Papst.EventStore.InMemory project
       run: dotnet pack src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj --no-build --configuration Release --output ./artifacts
 
-
+    - name: Pack Papst.EventStore.InMemory project
+      run: dotnet pack src/Papst.EventStore.MongoDB/Papst.EventStore.MongoDB.csproj --no-build --configuration Release --output ./artifacts
+      
     - name: Publish Stores to NuGet
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
