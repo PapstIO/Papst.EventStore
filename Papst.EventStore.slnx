@@ -29,6 +29,7 @@
     <Project Path="src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj" />
     <Project Path="src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj" />
     <Project Path="src/Papst.EventStore.MongoDB/Papst.EventStore.MongoDB.csproj" />
+    <Project Path="src/Papst.EventStore.OpenTelemetry/Papst.EventStore.OpenTelemetry.csproj" />
     <Project Path="src/Papst.EventStore/Papst.EventStore.csproj" />
   </Folder>
   <Folder Name="/Tests/">
@@ -36,6 +37,7 @@
     <Project Path="tests/Papst.EventStore.AzureCosmos.Tests/Papst.EventStore.AzureCosmos.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.CodeGeneration.Tests/Papst.EventStore.CodeGeneration.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.MongoDB.Tests/Papst.EventStore.MongoDB.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.OpenTelemetry.Tests/Papst.EventStore.OpenTelemetry.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.Tests/Papst.EventStore.Tests.csproj" />
   </Folder>
 </Solution>

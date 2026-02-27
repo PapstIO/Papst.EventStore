@@ -8,10 +8,12 @@
   <Folder Name="/src/">
     <Project Path="src/Papst.EventStore.Aggregation.EventRegistration/Papst.EventStore.Aggregation.EventRegistration.csproj" />
     <Project Path="src/Papst.EventStore.CodeGeneration/Papst.EventStore.CodeGeneration.csproj" />
+    <Project Path="src/Papst.EventStore.OpenTelemetry/Papst.EventStore.OpenTelemetry.csproj" />
     <Project Path="src/Papst.EventStore/Papst.EventStore.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/Papst.EventStore.CodeGeneration.Tests/Papst.EventStore.CodeGeneration.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.OpenTelemetry.Tests/Papst.EventStore.OpenTelemetry.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.Tests/Papst.EventStore.Tests.csproj" />
   </Folder>
 </Solution>
