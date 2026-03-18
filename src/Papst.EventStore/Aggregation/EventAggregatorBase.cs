@@ -27,6 +27,20 @@ public abstract class EventAggregatorBase<TEntity, TEvent> : IEventAggregator<TE
       setter.Invoke(value);
     }
   }
+
+  /// <summary>
+  /// Executes the <paramref name="setter"/> action when <paramref name="value"/>.HasValue is true
+  /// </summary>
+  /// <typeparam name="TProperty"></typeparam>
+  /// <param name="value"></param>
+  /// <param name="setter"></param>
+  protected void Update<TProperty>(TProperty? value, Action<TProperty> setter) where TProperty : struct
+  {
+    if (value.HasValue)
+    {
+      setter.Invoke(value.Value);
+    }
+  }
   
   /// <summary>
   /// Executes the <paramref name="setter"/> action when <paramref name="value"/> is not null
@@ -39,6 +53,21 @@ public abstract class EventAggregatorBase<TEntity, TEvent> : IEventAggregator<TE
     if (value is not null)
     {
       setter.Invoke(value);
+    }
+  }
+
+  /// <summary>
+  /// This overload is for nullable value types.
+  /// Executes the <paramref name="setter"/> action when <paramref name="value"/>.HasValue is true.
+  /// </summary>
+  /// <param name="setter"></param>
+  /// <param name="value"></param>
+  /// <typeparam name="TProperty"></typeparam>
+  protected void SetIfNotNull<TProperty>(Action<TProperty> setter, TProperty? value) where TProperty : struct
+  {
+    if (value.HasValue)
+    {
+      setter(value.Value);
     }
   }
   
