@@ -78,6 +78,73 @@ public class EventAggregatorBaseTests
     result.Should().Be(Guid.Empty);
   }
 
+  [Fact]
+  public void Update_ShouldInvokeSetter_WhenNullableStructHasValue()
+  {
+    int result = 0;
+    int? value = 42;
+
+    _sut.CallUpdate<int>(value, v => result = v);
+
+    result.Should().Be(42);
+  }
+
+  [Fact]
+  public void Update_ShouldNotInvokeSetter_WhenNullableStructIsNull()
+  {
+    int result = 0;
+    int? value = null;
+
+    _sut.CallUpdate<int>(value, v => result = v);
+
+    result.Should().Be(0);
+  }
+
+  [Fact]
+  public void Update_ShouldInvokeSetter_WhenNullableDateTimeHasValue()
+  {
+    DateTime result = default;
+    DateTime? value = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    _sut.CallUpdate<DateTime>(value, v => result = v);
+
+    result.Should().Be(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+  }
+
+  [Fact]
+  public void Update_ShouldNotInvokeSetter_WhenNullableDateTimeIsNull()
+  {
+    DateTime result = default;
+    DateTime? value = null;
+
+    _sut.CallUpdate<DateTime>(value, v => result = v);
+
+    result.Should().Be(default(DateTime));
+  }
+
+  [Fact]
+  public void Update_ShouldInvokeSetter_WhenNullableGuidHasValue()
+  {
+    Guid result = Guid.Empty;
+    Guid expected = Guid.NewGuid();
+    Guid? value = expected;
+
+    _sut.CallUpdate<Guid>(value, v => result = v);
+
+    result.Should().Be(expected);
+  }
+
+  [Fact]
+  public void Update_ShouldNotInvokeSetter_WhenNullableGuidIsNull()
+  {
+    Guid result = Guid.Empty;
+    Guid? value = null;
+
+    _sut.CallUpdate<Guid>(value, v => result = v);
+
+    result.Should().Be(Guid.Empty);
+  }
+
   private class TestEntity
   {
     public int IntValue { get; set; }
@@ -92,5 +159,8 @@ public class EventAggregatorBaseTests
 
     public void CallSetIfNotNull<T>(Action<T> setter, T? value) where T : struct
       => SetIfNotNull(setter, value);
+
+    public void CallUpdate<T>(T? value, Action<T> setter) where T : struct
+      => Update(value, setter);
   }
 }
