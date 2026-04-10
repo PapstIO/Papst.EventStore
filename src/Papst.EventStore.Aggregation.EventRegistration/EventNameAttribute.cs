@@ -20,6 +20,16 @@ public sealed class EventNameAttribute : Attribute
   public bool IsWriteName { get; }
 
   /// <summary>
+  /// Optional description of the Event
+  /// </summary>
+  public string? Description { get; set; }
+
+  /// <summary>
+  /// Optional constraints associated with the Event
+  /// </summary>
+  public string[]? Constraints { get; set; }
+
+  /// <summary>
   /// Mark the Event with Read/Write information
   /// </summary>
   /// <param name="name"></param>
@@ -30,6 +40,53 @@ public sealed class EventNameAttribute : Attribute
     IsWriteName = isWriteName;
   }
   
+  /// <summary>
+  /// Mark the Event with the <paramref name="name"/> as Write Attribute
+  /// </summary>
+  /// <param name="name"></param>
+  public EventNameAttribute(string name) : this(name, true)
+  { }
+}
+
+/// <summary>
+/// Marks an Event Sourcing Event associated with entity <typeparamref name="TEntity"/>
+/// If <see cref="IsWriteName"/> is true, the <see cref="Name"/> Property is used to write Events
+/// </summary>
+/// <typeparam name="TEntity">The Entity Type this Event is associated with</typeparam>
+[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+public sealed class EventNameAttribute<TEntity> : Attribute
+{
+  /// <summary>
+  /// Name of the Event
+  /// </summary>
+  public string Name { get; }
+
+  /// <summary>
+  /// Flag whether the Attribute is used for Writing the Name
+  /// </summary>
+  public bool IsWriteName { get; }
+
+  /// <summary>
+  /// Optional description of the Event
+  /// </summary>
+  public string? Description { get; set; }
+
+  /// <summary>
+  /// Optional constraints associated with the Event
+  /// </summary>
+  public string[]? Constraints { get; set; }
+
+  /// <summary>
+  /// Mark the Event with Read/Write information
+  /// </summary>
+  /// <param name="name"></param>
+  /// <param name="isWriteName"></param>
+  public EventNameAttribute(string name, bool isWriteName)
+  {
+    Name = name;
+    IsWriteName = isWriteName;
+  }
+
   /// <summary>
   /// Mark the Event with the <paramref name="name"/> as Write Attribute
   /// </summary>

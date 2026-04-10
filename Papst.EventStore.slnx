@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/SampleFileEventStore/SampleFileEventStore.csproj" />
+    <Project Path="samples/SampleEventCatalog/SampleEventCatalog.csproj" />
     <Project Path="samples/SampleSqlServerEfCoreEventStore/SampleSqlServerEfCoreEventStore.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
