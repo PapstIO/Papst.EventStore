@@ -12,12 +12,22 @@ public interface IEventCatalog
   /// <param name="name">Optional event name filter (exact match)</param>
   /// <param name="constraints">Optional constraints filter (events matching any of the given constraints)</param>
   /// <returns>A list of matching <see cref="EventCatalogEntry"/> instances</returns>
-  IReadOnlyList<EventCatalogEntry> ListEvents<TEntity>(string? name = null, string[]? constraints = null);
+  ValueTask<IReadOnlyList<EventCatalogEntry>> ListEvents<TEntity>(string? name = null, string[]? constraints = null);
 
   /// <summary>
-  /// Get detailed information (including JSON Schema) for a specific event by name
+  /// Get detailed information (including JSON Schema) for a specific event by name.
+  /// If the same event name exists for multiple entities, the first match is returned.
   /// </summary>
   /// <param name="eventName">The event name to look up</param>
   /// <returns>The <see cref="EventCatalogEventDetails"/> or <c>null</c> if the event is not registered</returns>
-  EventCatalogEventDetails? GetEventDetails(string eventName);
+  ValueTask<EventCatalogEventDetails?> GetEventDetails(string eventName);
+
+  /// <summary>
+  /// Get detailed information (including JSON Schema) for a specific event by name, scoped to entity <typeparamref name="TEntity"/>.
+  /// Use this overload when the same event name may exist for different entities.
+  /// </summary>
+  /// <typeparam name="TEntity">The entity type to scope the lookup to</typeparam>
+  /// <param name="eventName">The event name to look up</param>
+  /// <returns>The <see cref="EventCatalogEventDetails"/> or <c>null</c> if the event is not registered for this entity</returns>
+  ValueTask<EventCatalogEventDetails?> GetEventDetails<TEntity>(string eventName);
 }

@@ -59,6 +59,60 @@ Please refer to the documentation in the relevant implementation sources:
 * [Azure Cosmos](./src/Papst.EventStore.AzureCosmos/README.md)
 * [Entity Framework Core](./src/Papst.EventStore.EntityFrameworkCore/README.md)
 
+## Event Catalog
+
+The **Event Catalog** provides a queryable registry of all events associated with a given entity type, including metadata (description, constraints) and a compile-time generated JSON Schema. This is useful for documentation, API discovery, and runtime introspection.
+
+### Registering Events for the Catalog
+
+Use the generic `EventNameAttribute<TEntity>` to associate an event with an entity:
+
+```csharp
+[EventName<User>("UserCreated", Description = "Raised when a new user is created", Constraints = new[] { "Create" })]
+public record UserCreatedEvent(string Name, string Email);
+
+[EventName<User>("UserRenamed", Description = "Raised when a user changes their name", Constraints = new[] { "Update" })]
+public record UserRenamedEvent(string NewName);
+```
+
+Events can also be discovered automatically via aggregator registrations (`EventAggregatorBase<TEntity, TEvent>` / `IEventAggregator<TEntity, TEvent>`).
+
+The same event name may exist for different entity types — the catalog tracks them independently per entity.
+
+### Code Generation
+
+When the `Papst.EventStore.CodeGeneration` package is referenced, the source generator automatically emits an `AddCodeGeneratedEventCatalog()` extension method alongside the existing `AddCodeGeneratedEvents()`:
+
+```csharp
+var services = new ServiceCollection();
+services.AddCodeGeneratedEvents();
+services.AddCodeGeneratedEventCatalog();
+```
+
+### Querying the Catalog
+
+Resolve `IEventCatalog` from DI and use the async API:
+
+```csharp
+var catalog = serviceProvider.GetRequiredService<IEventCatalog>();
+
+// List all events for an entity
+IReadOnlyList<EventCatalogEntry> events = await catalog.ListEvents<User>();
+
+// Filter by name and/or constraints
+IReadOnlyList<EventCatalogEntry> filtered = await catalog.ListEvents<User>(
+    name: "UserCreated",
+    constraints: new[] { "Create" }
+);
+
+// Get event details including JSON Schema (global lookup)
+EventCatalogEventDetails? details = await catalog.GetEventDetails("UserCreated");
+
+// Get event details scoped to a specific entity (for duplicate event names across entities)
+EventCatalogEventDetails? scoped = await catalog.GetEventDetails<User>("UserCreated");
+```
+
+A full working sample is available at [`samples/SampleEventCatalog/`](./samples/SampleEventCatalog/).
 
 # Changelog
 

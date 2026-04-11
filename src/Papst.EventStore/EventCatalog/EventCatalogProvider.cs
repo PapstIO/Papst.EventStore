@@ -15,21 +15,37 @@ public sealed class EventCatalogProvider : IEventCatalog
   }
 
   /// <inheritdoc/>
-  public IReadOnlyList<EventCatalogEntry> ListEvents<TEntity>(string? name = null, string[]? constraints = null)
+  public ValueTask<IReadOnlyList<EventCatalogEntry>> ListEvents<TEntity>(string? name = null, string[]? constraints = null)
   {
     Type entityType = typeof(TEntity);
 
-    return _registrations
+    IReadOnlyList<EventCatalogEntry> result = _registrations
       .SelectMany(r => r.GetEntries(entityType, name, constraints))
       .ToList()
       .AsReadOnly();
+
+    return new ValueTask<IReadOnlyList<EventCatalogEntry>>(result);
   }
 
   /// <inheritdoc/>
-  public EventCatalogEventDetails? GetEventDetails(string eventName)
+  public ValueTask<EventCatalogEventDetails?> GetEventDetails(string eventName)
   {
-    return _registrations
+    EventCatalogEventDetails? result = _registrations
       .Select(r => r.GetDetails(eventName))
       .FirstOrDefault(d => d is not null);
+
+    return new ValueTask<EventCatalogEventDetails?>(result);
+  }
+
+  /// <inheritdoc/>
+  public ValueTask<EventCatalogEventDetails?> GetEventDetails<TEntity>(string eventName)
+  {
+    Type entityType = typeof(TEntity);
+
+    EventCatalogEventDetails? result = _registrations
+      .Select(r => r.GetDetails(entityType, eventName))
+      .FirstOrDefault(d => d is not null);
+
+    return new ValueTask<EventCatalogEventDetails?>(result);
   }
 }

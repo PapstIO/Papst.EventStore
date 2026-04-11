@@ -10,7 +10,6 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
   private readonly record struct CatalogItem(string EventName, string? Description, string[]? Constraints, Lazy<string> SchemaJson);
 
   private readonly Dictionary<Type, List<CatalogItem>> _entityEvents = new();
-  private readonly Dictionary<string, CatalogItem> _eventsByName = new();
 
   /// <inheritdoc/>
   public void RegisterEvent<TEntity>(string eventName, string? description, string[]? constraints, Lazy<string> schemaJson)
@@ -24,8 +23,6 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
       _entityEvents[entityType] = items;
     }
     items.Add(item);
-
-    _eventsByName.TryAdd(eventName, item);
   }
 
   /// <inheritdoc/>
@@ -59,11 +56,34 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
   /// <inheritdoc/>
   EventCatalogEventDetails? IEventCatalogRegistration.GetDetails(string eventName)
   {
-    if (!_eventsByName.TryGetValue(eventName, out CatalogItem item))
+    foreach (List<CatalogItem> items in _entityEvents.Values)
+    {
+      CatalogItem? found = items.Cast<CatalogItem?>().FirstOrDefault(i => i!.Value.EventName == eventName);
+      if (found.HasValue)
+      {
+        CatalogItem item = found.Value;
+        return new EventCatalogEventDetails(item.EventName, item.Description, item.Constraints, item.SchemaJson.Value);
+      }
+    }
+
+    return null;
+  }
+
+  /// <inheritdoc/>
+  EventCatalogEventDetails? IEventCatalogRegistration.GetDetails(Type entityType, string eventName)
+  {
+    if (!_entityEvents.TryGetValue(entityType, out List<CatalogItem>? items))
     {
       return null;
     }
 
+    CatalogItem? found = items.Cast<CatalogItem?>().FirstOrDefault(i => i!.Value.EventName == eventName);
+    if (!found.HasValue)
+    {
+      return null;
+    }
+
+    CatalogItem item = found.Value;
     return new EventCatalogEventDetails(item.EventName, item.Description, item.Constraints, item.SchemaJson.Value);
   }
 }

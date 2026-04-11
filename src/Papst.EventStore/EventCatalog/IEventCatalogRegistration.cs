@@ -21,7 +21,12 @@ public interface IEventCatalogRegistration
   internal IReadOnlyList<EventCatalogEntry> GetEntries(Type entityType, string? name, string[]? constraints);
 
   /// <summary>
-  /// Get detailed event information by name
+  /// Get detailed event information by name (first match across all entities)
   /// </summary>
   internal EventCatalogEventDetails? GetDetails(string eventName);
+
+  /// <summary>
+  /// Get detailed event information by name, scoped to a specific entity type
+  /// </summary>
+  internal EventCatalogEventDetails? GetDetails(Type entityType, string eventName);
 }
