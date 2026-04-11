@@ -1,7 +1,7 @@
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.CodeGeneration.Tests;
@@ -23,16 +23,16 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("AddCodeGeneratedEventCatalog");
-    source.Should().Contain("catalog.RegisterEvent<MyCode.UserEntity>(");
-    source.Should().Contain("\"UserCreated\"");
-    source.Should().Contain("\"A user was created\"");
-    source.Should().Contain("new string[] { \"Create\" }");
-    source.Should().Contain("\"\"name\"\"");
+    source.ShouldContain("AddCodeGeneratedEventCatalog");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.UserEntity>(");
+    source.ShouldContain("\"UserCreated\"");
+    source.ShouldContain("\"A user was created\"");
+    source.ShouldContain("new string[] { \"Create\" }");
+    source.ShouldContain("\"\"name\"\"");
   }
 
   [Fact]
@@ -55,15 +55,15 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("AddCodeGeneratedEventCatalog");
-    source.Should().Contain("catalog.RegisterEvent<MyCode.FooEntity>(");
-    source.Should().Contain("\"FooEvent\"");
-    source.Should().Contain("\"\"value\"\"");
-    source.Should().Contain("\"\"integer\"\"");
+    source.ShouldContain("AddCodeGeneratedEventCatalog");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.FooEntity>(");
+    source.ShouldContain("\"FooEvent\"");
+    source.ShouldContain("\"\"value\"\"");
+    source.ShouldContain("\"\"integer\"\"");
   }
 
   [Fact]
@@ -82,15 +82,15 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("\"\"name\"\":{\"\"type\"\":\"\"string\"\"}");
-    source.Should().Contain("\"\"count\"\":{\"\"type\"\":\"\"integer\"\"}");
-    source.Should().Contain("\"\"isActive\"\":{\"\"type\"\":\"\"boolean\"\"}");
-    source.Should().Contain("\"\"status\"\":{\"\"type\"\":\"\"string\"\",\"\"enum\"\":[\"\"Active\"\",\"\"Inactive\"\"]}");
-    source.Should().Contain("\"\"tags\"\":{\"\"type\"\":\"\"array\"\",\"\"items\"\":{\"\"type\"\":\"\"string\"\"}}");
+    source.ShouldContain("\"\"name\"\":{\"\"type\"\":\"\"string\"\"}");
+    source.ShouldContain("\"\"count\"\":{\"\"type\"\":\"\"integer\"\"}");
+    source.ShouldContain("\"\"isActive\"\":{\"\"type\"\":\"\"boolean\"\"}");
+    source.ShouldContain("\"\"status\"\":{\"\"type\"\":\"\"string\"\",\"\"enum\"\":[\"\"Active\"\",\"\"Inactive\"\"]}");
+    source.ShouldContain("\"\"tags\"\":{\"\"type\"\":\"\"array\"\",\"\"items\"\":{\"\"type\"\":\"\"string\"\"}}");
   }
 
   [Fact]
@@ -113,11 +113,11 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("catalog.RegisterEvent<MyCode.BarEntity>(\"BarEvent\", \"Bar happened\", new string[] { \"Read\", \"Write\" },");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.BarEntity>(\"BarEvent\", \"Bar happened\", new string[] { \"Read\", \"Write\" },");
   }
 
   [Fact]
@@ -134,12 +134,12 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().NotContain("AddCodeGeneratedEventCatalog");
-    source.Should().Contain("AddCodeGeneratedEvents");
+    source.ShouldNotContain("AddCodeGeneratedEventCatalog");
+    source.ShouldContain("AddCodeGeneratedEvents");
   }
 
   [Fact]
@@ -157,11 +157,11 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("catalog.RegisterEvent<MyCode.MyEntity>(\"SimpleEvent\", null, null,");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.MyEntity>(\"SimpleEvent\", null, null,");
   }
 
   [Fact]
@@ -179,11 +179,11 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("catalog.RegisterEvent<MyCode.OrderEntity>(\"OrderCreated\", null, null,");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.OrderEntity>(\"OrderCreated\", null, null,");
   }
 
   [Fact]
@@ -201,10 +201,10 @@ namespace MyCode
 }
 ");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
-    diagnostics.Should().BeEmpty();
+    diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.Diagnostics.ShouldBeEmpty();
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("catalog.RegisterEvent<MyCode.InvoiceEntity>(\"InvoiceIssued\", null, null,");
+    source.ShouldContain("catalog.RegisterEvent<MyCode.InvoiceEntity>(\"InvoiceIssued\", null, null,");
   }
 }

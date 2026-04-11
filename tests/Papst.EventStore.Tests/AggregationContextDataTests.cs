@@ -1,6 +1,6 @@
 using System;
 using AutoFixture.Xunit2;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.Tests;
@@ -22,11 +22,11 @@ public class AggregationContextDataTests
   {
     var data = new AggregationContextData(key, version, validUntil, value);
 
-    data.Should().NotBeNull();
-    data.Key.Should().Be(key);
-    data.Version.Should().Be(version);
-    data.ValidUntilVersion.Should().Be(validUntil);
-    data.Value.Should().Be(value);
+    data.ShouldNotBeNull();
+    data.Key.ShouldBe(key);
+    data.Version.ShouldBe(version);
+    data.ValidUntilVersion.ShouldBe(validUntil);
+    data.Value.ShouldBe(value);
   }
 
   [Fact]
@@ -35,7 +35,7 @@ public class AggregationContextDataTests
     var d1 = new AggregationContextData("key", 1UL, 5UL, "value");
     var d2 = new AggregationContextData("key", 1UL, 5UL, "value");
 
-    d1.Should().Be(d2);
+    d1.ShouldBe(d2);
   }
 
   [Fact]
@@ -44,7 +44,7 @@ public class AggregationContextDataTests
     var d1 = new AggregationContextData("k1", 1UL, 5UL, "value");
     var d2 = new AggregationContextData("k2", 1UL, 5UL, "value");
 
-    d1.Should().NotBe(d2);
+    d1.ShouldNotBe(d2);
   }
 
   [Fact]
@@ -53,7 +53,7 @@ public class AggregationContextDataTests
     var d1 = new AggregationContextData("key", 1UL, 5UL, "value");
     var d2 = new AggregationContextData("key", 2UL, 5UL, "value");
 
-    d1.Should().NotBe(d2);
+    d1.ShouldNotBe(d2);
   }
 
   [Fact]
@@ -65,11 +65,11 @@ public class AggregationContextDataTests
 
     var data = ctx.GetAggregationData("key1");
 
-    data.Should().NotBeNull();
-    data!.Key.Should().Be("key1");
-    data.Value.Should().Be("value1");
-    data.Version.Should().Be(4UL);
-    data.ValidUntilVersion.Should().BeNull();
+    data.ShouldNotBeNull();
+    data!.Key.ShouldBe("key1");
+    data.Value.ShouldBe("value1");
+    data.Version.ShouldBe(4UL);
+    data.ValidUntilVersion.ShouldBeNull();
   }
 
   [Fact]
@@ -81,7 +81,7 @@ public class AggregationContextDataTests
 
     var data = ctx.GetAggregationData("k");
 
-    data.Should().BeNull();
+    data.ShouldBeNull();
   }
 
   [Fact]
@@ -93,7 +93,7 @@ public class AggregationContextDataTests
 
     var data = ctx.GetAggregationData("k2");
 
-    data.Should().BeNull();
+    data.ShouldBeNull();
   }
 
   [Fact]
@@ -109,7 +109,7 @@ public class AggregationContextDataTests
     var newer = ctx.GetAggregationData("newer", ignoreValidity: true);
     var expired = ctx.GetAggregationData("expired", ignoreValidity: true);
 
-    newer.Should().NotBeNull();
-    expired.Should().NotBeNull();
+    newer.ShouldNotBeNull();
+    expired.ShouldNotBeNull();
   }
 }

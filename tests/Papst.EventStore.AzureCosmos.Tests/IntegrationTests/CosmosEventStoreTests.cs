@@ -1,10 +1,10 @@
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Exceptions;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.AzureCosmos.Tests.IntegrationTests;
@@ -31,8 +31,8 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
       CosmosDbIntegrationTestFixture.CosmosContainerId);
     var iterator = container.GetItemLinqQueryable<EventStreamIndexEntity>().ToFeedIterator();
     var batch = await iterator.ReadNextAsync();
-    batch.Count.Should().Be(1);
-    batch.Resource.First().StreamId.Should().Be(streamId);
+    batch.Count.ShouldBe(1);
+    batch.Resource.First().StreamId.ShouldBe(streamId);
   }
 
   [Theory, AutoData]
@@ -46,7 +46,7 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
     Func<Task> act = () => eventStore.GetAsync(streamId, CancellationToken.None);
 
     // assert
-    await act.Should().ThrowAsync<EventStreamNotFoundException>();
+    await Should.ThrowAsync<EventStreamNotFoundException>(act);
   }
 
   [Theory, AutoData]
@@ -63,7 +63,7 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
     var stream = await eventStore.GetAsync(index.StreamId, CancellationToken.None);
 
     // assert
-    stream.Should().NotBeNull();
-    stream.StreamId.Should().Be(index.StreamId);
+    stream.ShouldNotBeNull();
+    stream.StreamId.ShouldBe(index.StreamId);
   }
 }

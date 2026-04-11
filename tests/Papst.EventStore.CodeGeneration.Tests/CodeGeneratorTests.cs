@@ -1,9 +1,9 @@
 
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 using System.Reflection;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.CodeGeneration.Tests;
@@ -32,16 +32,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("namespace MyCode");
+    source.ShouldContain("namespace MyCode");
   }
 
   [Fact]
@@ -60,17 +60,17 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
     //source.Should().Contain("namespace MyCode");
-    source.Should().Contain("namespace compilation", "This does not return MyCode, because the compiling process is called compilation!");
+    source.ShouldContain("namespace compilation");
   }
 
   [Fact]
@@ -98,16 +98,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
   }
 
   [Fact]
@@ -135,16 +135,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -171,16 +171,16 @@ public class TestEventFoo
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -211,16 +211,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -251,16 +251,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"FooOld\", false), new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -289,16 +289,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
 
   }
 
@@ -336,17 +336,17 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -389,18 +389,18 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
+    source.ShouldContain("registration.AddEvent<MyCode.TestEventFoo>(new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"Foo\", true));");
+    source.ShouldContain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.ShouldContain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo2>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -437,16 +437,16 @@ namespace MyCode
 
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().BeEmpty();
-    outputCompilation.SyntaxTrees.Should().HaveCount(2);
+    diagnostics.ShouldBeEmpty();
+    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Should().HaveCount(1);
-    runResult.Diagnostics.Should().BeEmpty();
+    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
-    source.Should().Contain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
+    source.ShouldContain("services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<MyCode.FooEntity, MyCode.TestEventFoo>, MyCode.TestEventFooAgg");
   }
 
   [Fact]
@@ -467,7 +467,7 @@ namespace MyCode
 }");
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
-    diagnostics.Should().HaveCount(1);
-    diagnostics.First().Id.Should().Be("EVTSRC0002");
+    diagnostics.Length.ShouldBe(1);
+    diagnostics.First().Id.ShouldBe("EVTSRC0002");
   }
 }

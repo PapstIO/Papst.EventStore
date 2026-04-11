@@ -1,9 +1,9 @@
 ﻿using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Aggregation;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
 using Papst.EventStore.Documents;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.AzureCosmos.Tests.IntegrationTests;
@@ -28,6 +28,26 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     return stream;
   }
 
+  private static void ShouldMatch(EventStreamMetaData actual, EventStreamMetaData expected)
+  {
+    actual.UserId.ShouldBe(expected.UserId);
+    actual.UserName.ShouldBe(expected.UserName);
+    actual.TenantId.ShouldBe(expected.TenantId);
+    actual.Comment.ShouldBe(expected.Comment);
+    if (expected.Additional is null)
+    {
+      actual.Additional.ShouldBeNull();
+      return;
+    }
+
+    actual.Additional.ShouldNotBeNull();
+    actual.Additional.Count.ShouldBe(expected.Additional.Count);
+    foreach (var entry in expected.Additional)
+    {
+      actual.Additional[entry.Key].ShouldBe(entry.Value);
+    }
+  }
+
   [Theory, AutoData]
   public async Task AppendAsync_ShouldAppendEvent(Guid streamId, Guid documentId)
   {
@@ -40,9 +60,9 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     await stream.AppendAsync(documentId, new TestAppendedEvent());
 
     // assert
-    stream.Version.Should().Be(1);
+    stream.Version.ShouldBe(1UL);
     var events = await stream.ListAsync().ToListAsync();
-    events.Should().Contain(d => d.Id == documentId);
+    events.ShouldContain(d => d.Id == documentId);
   }
 
   [Theory, AutoData]
@@ -63,7 +83,7 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
 
     // assert
     var events = await stream.ListAsync(0).ToListAsync();
-    events.Should().HaveCount(5);
+    events.Count.ShouldBe(5);
 
   }
 
@@ -85,9 +105,10 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     };
 
     // assert
-    await act.Should().NotThrowAsync();
-    entity.Should().NotBeNull();
-    stream.LatestSnapshotVersion.Should().HaveValue().And.Be(entity!.Version);
+    await Should.NotThrowAsync(act);
+    entity.ShouldNotBeNull();
+    stream.LatestSnapshotVersion.HasValue.ShouldBeTrue();
+    stream.LatestSnapshotVersion.ShouldBe(entity.Version);
   }
 
   [Theory, AutoData]
@@ -103,7 +124,7 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var events = await list.ToListAsync();
 
     // assert
-    events.Count.Should().Be(4, "3 TestAppendedEvent + 1 TestCreatedEvent");
+    events.Count.ShouldBe(4);
   }
 
   [Theory, AutoData]
@@ -118,7 +139,8 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     await stream.UpdateStreamMetaData(metaData, default);
 
     // assert
-    stream.MetaData.Should().NotBeNull().And.BeEquivalentTo(metaData);
+    stream.MetaData.ShouldNotBeNull();
+    ShouldMatch(stream.MetaData, metaData);
   }
 
   [Theory, AutoData]
@@ -135,6 +157,7 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     stream = await store.GetAsync(streamId, default);
 
     // assert
-    stream.MetaData.Should().NotBeNull().And.BeEquivalentTo(metaData);
+    stream.MetaData.ShouldNotBeNull();
+    ShouldMatch(stream.MetaData, metaData);
   }
 }

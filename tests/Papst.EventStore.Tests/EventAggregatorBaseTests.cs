@@ -1,8 +1,8 @@
 #nullable enable
 using System;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Papst.EventStore.Aggregation;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.Tests;
@@ -19,7 +19,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<int>(v => result = v, value);
 
-    result.Should().Be(42);
+    result.ShouldBe(42);
   }
 
   [Fact]
@@ -30,7 +30,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<int>(v => result = v, value);
 
-    result.Should().Be(0);
+    result.ShouldBe(0);
   }
 
   [Fact]
@@ -41,7 +41,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<DateTime>(v => result = v, value);
 
-    result.Should().Be(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    result.ShouldBe(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
   }
 
   [Fact]
@@ -52,7 +52,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<DateTime>(v => result = v, value);
 
-    result.Should().Be(default(DateTime));
+    result.ShouldBe(default(DateTime));
   }
 
   [Fact]
@@ -64,7 +64,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<Guid>(v => result = v, value);
 
-    result.Should().Be(expected);
+    result.ShouldBe(expected);
   }
 
   [Fact]
@@ -75,7 +75,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallSetIfNotNull<Guid>(v => result = v, value);
 
-    result.Should().Be(Guid.Empty);
+    result.ShouldBe(Guid.Empty);
   }
 
   [Fact]
@@ -86,7 +86,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<int>(value, v => result = v);
 
-    result.Should().Be(42);
+    result.ShouldBe(42);
   }
 
   [Fact]
@@ -97,7 +97,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<int>(value, v => result = v);
 
-    result.Should().Be(0);
+    result.ShouldBe(0);
   }
 
   [Fact]
@@ -108,7 +108,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<DateTime>(value, v => result = v);
 
-    result.Should().Be(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    result.ShouldBe(new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
   }
 
   [Fact]
@@ -119,7 +119,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<DateTime>(value, v => result = v);
 
-    result.Should().Be(default(DateTime));
+    result.ShouldBe(default(DateTime));
   }
 
   [Fact]
@@ -131,7 +131,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<Guid>(value, v => result = v);
 
-    result.Should().Be(expected);
+    result.ShouldBe(expected);
   }
 
   [Fact]
@@ -142,7 +142,7 @@ public class EventAggregatorBaseTests
 
     _sut.CallUpdate<Guid>(value, v => result = v);
 
-    result.Should().Be(Guid.Empty);
+    result.ShouldBe(Guid.Empty);
   }
 
   private class TestEntity

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.MongoDB.Tests.IntegrationTests.Events;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.MongoDB.Tests.IntegrationTests;
@@ -29,7 +29,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
 
     // assert
-    events.Should().BeEmpty();
+    events.ShouldBeEmpty();
   }
 
   [Theory, AutoData]
@@ -45,8 +45,8 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     // assert
     var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
-    events.Should().HaveCount(1);
-    events[0].Data.ToObject<TestEvent>().Should().BeEquivalentTo(testEvent);
+    events.Count.ShouldBe(1);
+    events[0].Data.ToObject<TestEvent>().ShouldBe(testEvent);
   }
 
   [Theory, AutoData]
@@ -66,8 +66,12 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var result = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
 
     // assert
-    result.Should().HaveCount(testEvents.Count);
-    result.Select(e => e.Data.ToObject<TestEvent>()).Should().BeEquivalentTo(testEvents);
+    result.Count.ShouldBe(testEvents.Count);
+    result.Select(e => e.Data.ToObject<TestEvent>())
+      .Where(e => e is not null)
+      .Select(e => e!)
+      .ToList()
+      .ShouldBe(testEvents);
   }
 
   [Theory, AutoData]
@@ -87,8 +91,9 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var result = await stream.ListDescendingAsync((ulong)testEvents.Count, CancellationToken.None).ToListAsync(CancellationToken.None);
 
     // assert
-    result.Should().HaveCount(testEvents.Count);
-    result.Select(e => e.Version).Should().BeInDescendingOrder();
+    result.Count.ShouldBe(testEvents.Count);
+    var versions = result.Select(e => e.Version).ToList();
+    versions.ShouldBe(versions.OrderByDescending(version => version).ToList());
   }
 
   [Theory, AutoData]
@@ -104,8 +109,8 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     // assert
     var latestSnapshot = await stream.GetLatestSnapshot(CancellationToken.None);
-    latestSnapshot.Should().NotBeNull();
-    latestSnapshot!.Data.ToObject<TestEvent>().Should().BeEquivalentTo(snapshot);
+    latestSnapshot.ShouldNotBeNull();
+    latestSnapshot!.Data.ToObject<TestEvent>().ShouldBe(snapshot);
   }
 
   [Theory, AutoData]
@@ -126,6 +131,6 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     // assert
     var result = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
-    result.Should().HaveCount(testEvents.Count);
+    result.Count.ShouldBe(testEvents.Count);
   }
 }

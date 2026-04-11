@@ -1,8 +1,8 @@
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventsStore.InMemory.Tests.IntegrationTests.Events;
 using Papst.EventStore;
+using Shouldly;
 
 namespace Papst.EventsStore.InMemory.Tests.IntegrationTests;
 
@@ -24,7 +24,7 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
     
     // assert
-    events.Should().BeEmpty();
+    events.ShouldBeEmpty();
   }
   
   [Theory, AutoData]
@@ -43,8 +43,12 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     var result = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
     
     // assert
-    result.Should().HaveCount(events.Count);
-    result.Select(e => e.Data.ToObject<TestEvent>()).Should().BeEquivalentTo(events);
+    result.Count.ShouldBe(events.Count);
+    result.Select(e => e.Data.ToObject<TestEvent>())
+      .Where(e => e is not null)
+      .Select(e => e!)
+      .ToList()
+      .ShouldBe(events);
   }
   
 }

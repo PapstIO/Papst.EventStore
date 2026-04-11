@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Newtonsoft.Json;
 using Papst.EventStore.Documents;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.Tests;
@@ -27,32 +27,42 @@ public class EventStreamMetadataTests
       Additional = add
     };
 
-    meta.Should().NotBeNull();
-    meta.UserId.Should().Be(id);
-    meta.UserName.Should().Be(name);
-    meta.TenantId.Should().Be(tenant);
-    meta.Comment.Should().Be(comment);
-    meta.Additional.Should().BeEquivalentTo(add);
+    meta.ShouldNotBeNull();
+    meta.UserId.ShouldBe(id);
+    meta.UserName.ShouldBe(name);
+    meta.TenantId.ShouldBe(tenant);
+    meta.Comment.ShouldBe(comment);
+    meta.Additional.ShouldNotBeNull();
+    meta.Additional.Count.ShouldBe(add.Count);
+    foreach (var entry in add)
+    {
+      meta.Additional[entry.Key].ShouldBe(entry.Value);
+    }
   }
 
   [Theory, AutoData]
   public void TestEventMetaDataSerialization(EventStreamMetaData doc)
   {
-    doc.Should().NotBeNull();
+    doc.ShouldNotBeNull();
 
     string serialized = JsonConvert.SerializeObject(doc);
 
-    serialized.Should().NotBeNull().And.NotBeEmpty().And.StartWith("{");
+    serialized.ShouldNotBeNullOrEmpty();
+    serialized.ShouldStartWith("{");
   }
 
   [Theory, AutoData]
   public void TestEventMetaDataDeserialization(EventStreamMetaData doc)
   {
-    doc.Should().NotBeNull();
+    doc.ShouldNotBeNull();
 
-    JsonConvert.DeserializeObject<EventStreamMetaData>(JsonConvert.SerializeObject(doc))
-        .Should()
-        .NotBeNull()
-        .And.BeEquivalentTo(doc);
+    var deserialized = JsonConvert.DeserializeObject<EventStreamMetaData>(JsonConvert.SerializeObject(doc));
+
+    deserialized.ShouldNotBeNull();
+    deserialized.UserId.ShouldBe(doc.UserId);
+    deserialized.UserName.ShouldBe(doc.UserName);
+    deserialized.TenantId.ShouldBe(doc.TenantId);
+    deserialized.Comment.ShouldBe(doc.Comment);
+    deserialized.Additional.ShouldBe(doc.Additional);
   }
 }

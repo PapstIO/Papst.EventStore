@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
 using Papst.EventStore.EventCatalog;
 using Papst.EventStore.Exceptions;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.Tests.EventCatalog;
@@ -32,8 +32,8 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>();
 
-    entries.Should().ContainSingle()
-      .Which.EventName.Should().Be("TestEvent");
+    entries.Count().ShouldBe(1);
+    entries.Single().EventName.ShouldBe("TestEvent");
   }
 
   [Fact]
@@ -46,8 +46,8 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>(name: "EventA");
 
-    entries.Should().ContainSingle()
-      .Which.EventName.Should().Be("EventA");
+    entries.Count().ShouldBe(1);
+    entries.Single().EventName.ShouldBe("EventA");
   }
 
   [Fact]
@@ -60,8 +60,8 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>(constraints: new[] { "admin" });
 
-    entries.Should().ContainSingle()
-      .Which.EventName.Should().Be("EventX");
+    entries.Count().ShouldBe(1);
+    entries.Single().EventName.ShouldBe("EventX");
   }
 
   [Fact]
@@ -75,8 +75,8 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>(name: "EventA", constraints: new[] { "admin" });
 
-    entries.Should().ContainSingle()
-      .Which.EventName.Should().Be("EventA");
+    entries.Count().ShouldBe(1);
+    entries.Single().EventName.ShouldBe("EventA");
   }
 
   [Fact]
@@ -88,7 +88,7 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<OtherEntity>();
 
-    entries.Should().BeEmpty();
+    entries.ShouldBeEmpty();
   }
 
   [Fact]
@@ -101,11 +101,11 @@ public class EventCatalogProviderTests
 
     var details = await provider.GetEventDetails("DetailedEvent");
 
-    details.Should().NotBeNull();
-    details!.EventName.Should().Be("DetailedEvent");
-    details.Description.Should().Be("Has a schema");
-    details.Constraints.Should().BeEquivalentTo(new[] { "v1" });
-    details.JsonSchema.Should().Be(schema);
+    details.ShouldNotBeNull();
+    details!.EventName.ShouldBe("DetailedEvent");
+    details.Description.ShouldBe("Has a schema");
+    details.Constraints.ShouldBe(new[] { "v1" });
+    details.JsonSchema.ShouldBe(schema);
   }
 
   [Fact]
@@ -115,7 +115,7 @@ public class EventCatalogProviderTests
 
     var details = await provider.GetEventDetails("NonExistent");
 
-    details.Should().BeNull();
+    details.ShouldBeNull();
   }
 
   [Fact]
@@ -131,12 +131,13 @@ public class EventCatalogProviderTests
 
     registration.RegisterEvent<TestEntity>("LazyEvent", null, null, lazySchema);
 
-    evaluated.Should().BeFalse("schema should not be evaluated at registration time");
+    evaluated.ShouldBeFalse();
 
     var details = await provider.GetEventDetails("LazyEvent");
 
-    evaluated.Should().BeTrue("schema should be evaluated when details are requested");
-    details!.JsonSchema.Should().Be("""{"type":"object"}""");
+    evaluated.ShouldBeTrue();
+    details.ShouldNotBeNull();
+    details.JsonSchema.ShouldBe("""{"type":"object"}""");
   }
 
   // --- EventCatalogProvider delegation tests ---
@@ -150,8 +151,11 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>();
 
-    entries.Should().ContainSingle()
-      .Which.Should().BeEquivalentTo(new EventCatalogEntry("Evt1", "desc", null));
+    entries.Count().ShouldBe(1);
+    var entry = entries.Single();
+    entry.EventName.ShouldBe("Evt1");
+    entry.Description.ShouldBe("desc");
+    entry.Constraints.ShouldBeNull();
   }
 
   [Fact]
@@ -163,8 +167,11 @@ public class EventCatalogProviderTests
 
     var details = await provider.GetEventDetails("Evt2");
 
-    details.Should().NotBeNull();
-    details.Should().BeEquivalentTo(new EventCatalogEventDetails("Evt2", "desc2", new[] { "c1" }, """{"schema":true}"""));
+    details.ShouldNotBeNull();
+    details!.EventName.ShouldBe("Evt2");
+    details.Description.ShouldBe("desc2");
+    details.Constraints.ShouldBe(new[] { "c1" });
+    details.JsonSchema.ShouldBe("""{"schema":true}""");
   }
 
   [Fact]
@@ -180,8 +187,8 @@ public class EventCatalogProviderTests
 
     var entries = await provider.ListEvents<TestEntity>();
 
-    entries.Should().HaveCount(2);
-    entries.Select(e => e.EventName).Should().BeEquivalentTo("FromReg1", "FromReg2");
+    entries.Count().ShouldBe(2);
+    entries.Select(e => e.EventName).OrderBy(name => name).ToArray().ShouldBe(new[] { "FromReg1", "FromReg2" });
   }
 
   // --- Entity-scoped GetEventDetails tests ---
@@ -197,13 +204,13 @@ public class EventCatalogProviderTests
     var testDetails = await provider.GetEventDetails<TestEntity>("SharedEvent");
     var otherDetails = await provider.GetEventDetails<OtherEntity>("SharedEvent");
 
-    testDetails.Should().NotBeNull();
-    testDetails!.Description.Should().Be("Test version");
-    testDetails.JsonSchema.Should().Be("""{"entity":"test"}""");
+    testDetails.ShouldNotBeNull();
+    testDetails!.Description.ShouldBe("Test version");
+    testDetails.JsonSchema.ShouldBe("""{"entity":"test"}""");
 
-    otherDetails.Should().NotBeNull();
-    otherDetails!.Description.Should().Be("Other version");
-    otherDetails.JsonSchema.Should().Be("""{"entity":"other"}""");
+    otherDetails.ShouldNotBeNull();
+    otherDetails!.Description.ShouldBe("Other version");
+    otherDetails.JsonSchema.ShouldBe("""{"entity":"other"}""");
   }
 
   [Fact]
@@ -215,7 +222,7 @@ public class EventCatalogProviderTests
 
     var details = await provider.GetEventDetails<OtherEntity>("SomeEvent");
 
-    details.Should().BeNull();
+    details.ShouldBeNull();
   }
 
   [Fact]
@@ -228,8 +235,8 @@ public class EventCatalogProviderTests
 
     Func<Task> act = async () => _ = await provider.GetEventDetails("DuplicateName");
 
-    await act.Should().ThrowAsync<EventCatalogAmbiguousEventException>()
-      .WithMessage("*DuplicateName*");
+    var exception = await Should.ThrowAsync<EventCatalogAmbiguousEventException>(act);
+    exception.Message.ShouldContain("DuplicateName");
   }
 
   [Fact]
@@ -245,7 +252,7 @@ public class EventCatalogProviderTests
 
     Func<Task> act = async () => _ = await provider.GetEventDetails("DuplicateName");
 
-    await act.Should().ThrowAsync<EventCatalogAmbiguousEventException>()
-      .WithMessage("*DuplicateName*");
+    var exception = await Should.ThrowAsync<EventCatalogAmbiguousEventException>(act);
+    exception.Message.ShouldContain("DuplicateName");
   }
 }

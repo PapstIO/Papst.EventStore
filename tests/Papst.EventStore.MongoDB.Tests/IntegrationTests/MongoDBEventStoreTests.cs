@@ -2,9 +2,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.Exceptions;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.MongoDB.Tests.IntegrationTests;
@@ -27,8 +27,8 @@ public class MongoDBEventStoreTests : IClassFixture<MongoDBIntegrationTestFixtur
 
     // assert
     var stream = await eventStore.GetAsync(streamId, CancellationToken.None);
-    stream.StreamId.Should().Be(streamId);
-    stream.Version.Should().Be(0);
+    stream.StreamId.ShouldBe(streamId);
+    stream.Version.ShouldBe(0UL);
   }
 
   [Theory, AutoData]
@@ -43,12 +43,12 @@ public class MongoDBEventStoreTests : IClassFixture<MongoDBIntegrationTestFixtur
 
     // assert
     var stream = await eventStore.GetAsync(streamId, CancellationToken.None);
-    stream.StreamId.Should().Be(streamId);
-    stream.Version.Should().Be(0);
-    stream.MetaData.TenantId.Should().Be(tenantId);
-    stream.MetaData.UserId.Should().Be(userId);
-    stream.MetaData.UserName.Should().Be(username);
-    stream.MetaData.Comment.Should().Be(comment);
+    stream.StreamId.ShouldBe(streamId);
+    stream.Version.ShouldBe(0UL);
+    stream.MetaData.TenantId.ShouldBe(tenantId);
+    stream.MetaData.UserId.ShouldBe(userId);
+    stream.MetaData.UserName.ShouldBe(username);
+    stream.MetaData.Comment.ShouldBe(comment);
   }
 
   [Theory, AutoData]
