@@ -18,15 +18,16 @@ public interface IEventCatalogRegistration
   /// <summary>
   /// Get catalog entries for a given entity type, optionally filtered
   /// </summary>
-  internal IReadOnlyList<EventCatalogEntry> GetEntries(Type entityType, string? name, string[]? constraints);
+  IReadOnlyList<EventCatalogEntry> GetEntries(Type entityType, string? name, string[]? constraints);
 
   /// <summary>
-  /// Get detailed event information by name (first match across all entities)
+  /// Get detailed event information by name.
+  /// Throws when more than one event with the same name is registered.
   /// </summary>
-  internal EventCatalogEventDetails? GetDetails(string eventName);
+  EventCatalogEventDetails? GetDetails(string eventName);
 
   /// <summary>
   /// Get detailed event information by name, scoped to a specific entity type
   /// </summary>
-  internal EventCatalogEventDetails? GetDetails(Type entityType, string eventName);
+  EventCatalogEventDetails? GetDetails(Type entityType, string eventName);
 }

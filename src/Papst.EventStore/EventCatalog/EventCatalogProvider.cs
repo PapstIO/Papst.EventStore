@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System.Linq;
+using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.EventCatalog;
 
@@ -30,11 +31,18 @@ public sealed class EventCatalogProvider : IEventCatalog
   /// <inheritdoc/>
   public ValueTask<EventCatalogEventDetails?> GetEventDetails(string eventName)
   {
-    EventCatalogEventDetails? result = _registrations
+    List<EventCatalogEventDetails> matches = _registrations
       .Select(r => r.GetDetails(eventName))
-      .FirstOrDefault(d => d is not null);
+      .Where(d => d is not null)
+      .Cast<EventCatalogEventDetails>()
+      .ToList();
 
-    return new ValueTask<EventCatalogEventDetails?>(result);
+    if (matches.Count > 1)
+    {
+      throw new EventCatalogAmbiguousEventException(eventName, matches.Count);
+    }
+
+    return new ValueTask<EventCatalogEventDetails?>(matches.FirstOrDefault());
   }
 
   /// <inheritdoc/>

@@ -575,9 +575,22 @@ namespace Papst.EventStore.CodeGeneration
         return ins.Identifier.ValueText;
       if (name is GenericNameSyntax gns)
         return gns.Identifier.ValueText;
+      if (name is AliasQualifiedNameSyntax aqns)
+        return GetSimpleName(aqns.Name);
       if (name is QualifiedNameSyntax qns)
         return GetSimpleName(qns.Right);
       return "";
+    }
+
+    private static GenericNameSyntax GetGenericName(NameSyntax name)
+    {
+      if (name is GenericNameSyntax gns)
+        return gns;
+      if (name is AliasQualifiedNameSyntax aqns)
+        return GetGenericName(aqns.Name);
+      if (name is QualifiedNameSyntax qns)
+        return GetGenericName(qns.Right);
+      return null;
     }
 
     private static EventAttributeInfo ParseEventNameAttribute(
@@ -594,7 +607,8 @@ namespace Papst.EventStore.CodeGeneration
       string entityTypeNamespace = null;
 
       // Check if this is a generic attribute EventName<TEntity>
-      if (attr.Name is GenericNameSyntax gns && gns.TypeArgumentList.Arguments.Count == 1)
+      GenericNameSyntax gns = GetGenericName(attr.Name);
+      if (gns != null && gns.TypeArgumentList.Arguments.Count == 1)
       {
         isGeneric = true;
         var entityTypeSyntax = gns.TypeArgumentList.Arguments[0];

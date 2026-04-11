@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Papst.EventStore.EventCatalog;
+using Papst.EventStore.Exceptions;
 using Xunit;
 
 namespace Papst.EventStore.Tests.EventCatalog;
@@ -218,16 +219,33 @@ public class EventCatalogProviderTests
   }
 
   [Fact]
-  public async Task GetEventDetails_DuplicateEventNamesAcrossEntities_GlobalReturnsFirst()
+  public async Task GetEventDetails_DuplicateEventNamesAcrossEntities_GlobalThrowsAmbiguousException()
   {
     var (registration, provider) = CreateCatalog();
 
     registration.RegisterEvent<TestEntity>("DuplicateName", "First", null, new Lazy<string>(() => """{"first":true}"""));
     registration.RegisterEvent<OtherEntity>("DuplicateName", "Second", null, new Lazy<string>(() => """{"second":true}"""));
 
-    var details = await provider.GetEventDetails("DuplicateName");
+    Func<Task> act = async () => _ = await provider.GetEventDetails("DuplicateName");
 
-    details.Should().NotBeNull();
-    details!.Description.Should().Be("First");
+    await act.Should().ThrowAsync<EventCatalogAmbiguousEventException>()
+      .WithMessage("*DuplicateName*");
+  }
+
+  [Fact]
+  public async Task GetEventDetails_DuplicateEventNamesAcrossRegistrations_GlobalThrowsAmbiguousException()
+  {
+    var reg1 = new EventCatalogRegistration();
+    reg1.RegisterEvent<TestEntity>("DuplicateName", "First", null, new Lazy<string>(() => """{"first":true}"""));
+
+    var reg2 = new EventCatalogRegistration();
+    reg2.RegisterEvent<OtherEntity>("DuplicateName", "Second", null, new Lazy<string>(() => """{"second":true}"""));
+
+    var provider = new EventCatalogProvider(new IEventCatalogRegistration[] { reg1, reg2 });
+
+    Func<Task> act = async () => _ = await provider.GetEventDetails("DuplicateName");
+
+    await act.Should().ThrowAsync<EventCatalogAmbiguousEventException>()
+      .WithMessage("*DuplicateName*");
   }
 }

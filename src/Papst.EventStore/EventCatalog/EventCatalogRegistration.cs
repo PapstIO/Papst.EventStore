@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System.Linq;
+using Papst.EventStore.Exceptions;
 
 namespace Papst.EventStore.EventCatalog;
 
@@ -26,7 +27,7 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
   }
 
   /// <inheritdoc/>
-  IReadOnlyList<EventCatalogEntry> IEventCatalogRegistration.GetEntries(Type entityType, string? name, string[]? constraints)
+  public IReadOnlyList<EventCatalogEntry> GetEntries(Type entityType, string? name, string[]? constraints)
   {
     if (!_entityEvents.TryGetValue(entityType, out List<CatalogItem>? items))
     {
@@ -54,23 +55,29 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
   }
 
   /// <inheritdoc/>
-  EventCatalogEventDetails? IEventCatalogRegistration.GetDetails(string eventName)
+  public EventCatalogEventDetails? GetDetails(string eventName)
   {
-    foreach (List<CatalogItem> items in _entityEvents.Values)
+    List<(Type EntityType, CatalogItem Item)> matches = _entityEvents
+      .SelectMany(pair => pair.Value
+        .Where(item => item.EventName == eventName)
+        .Select(item => (pair.Key, item)))
+      .ToList();
+
+    if (matches.Count == 0)
     {
-      CatalogItem? found = items.Cast<CatalogItem?>().FirstOrDefault(i => i!.Value.EventName == eventName);
-      if (found.HasValue)
-      {
-        CatalogItem item = found.Value;
-        return new EventCatalogEventDetails(item.EventName, item.Description, item.Constraints, item.SchemaJson.Value);
-      }
+      return null;
     }
 
-    return null;
+    if (matches.Count > 1)
+    {
+      throw new EventCatalogAmbiguousEventException(eventName, matches.Select(match => match.EntityType), matches.Count);
+    }
+
+    return CreateDetails(matches[0].Item);
   }
 
   /// <inheritdoc/>
-  EventCatalogEventDetails? IEventCatalogRegistration.GetDetails(Type entityType, string eventName)
+  public EventCatalogEventDetails? GetDetails(Type entityType, string eventName)
   {
     if (!_entityEvents.TryGetValue(entityType, out List<CatalogItem>? items))
     {
@@ -83,7 +90,11 @@ public sealed class EventCatalogRegistration : IEventCatalogRegistration
       return null;
     }
 
-    CatalogItem item = found.Value;
+    return CreateDetails(found.Value);
+  }
+
+  private static EventCatalogEventDetails CreateDetails(CatalogItem item)
+  {
     return new EventCatalogEventDetails(item.EventName, item.Description, item.Constraints, item.SchemaJson.Value);
   }
 }

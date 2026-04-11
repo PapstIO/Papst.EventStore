@@ -163,4 +163,48 @@ namespace MyCode
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
     source.Should().Contain("catalog.RegisterEvent<MyCode.MyEntity>(\"SimpleEvent\", null, null,");
   }
+
+  [Fact]
+  public void TestQualifiedGenericEventNameAttributeGeneratesCatalog()
+  {
+    var generator = new EventRegistrationIncrementalCodeGenerator();
+    GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+    Compilation inputCompilation = CreateCompilation(@"
+namespace MyCode
+{
+  public class Program { public static void Main(string[] args) {} }
+  public class OrderEntity {}
+  [Papst.EventStore.Aggregation.EventRegistration.EventName<OrderEntity>(""OrderCreated"")]
+  public record OrderCreatedEvent(string Number);
+}
+");
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    diagnostics.Should().BeEmpty();
+    var runResult = driver.GetRunResult();
+    runResult.Diagnostics.Should().BeEmpty();
+    var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
+    source.Should().Contain("catalog.RegisterEvent<MyCode.OrderEntity>(\"OrderCreated\", null, null,");
+  }
+
+  [Fact]
+  public void TestGlobalQualifiedGenericEventNameAttributeGeneratesCatalog()
+  {
+    var generator = new EventRegistrationIncrementalCodeGenerator();
+    GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
+    Compilation inputCompilation = CreateCompilation(@"
+namespace MyCode
+{
+  public class Program { public static void Main(string[] args) {} }
+  public class InvoiceEntity {}
+  [global::Papst.EventStore.Aggregation.EventRegistration.EventName<InvoiceEntity>(""InvoiceIssued"")]
+  public record InvoiceIssuedEvent(string Number);
+}
+");
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    diagnostics.Should().BeEmpty();
+    var runResult = driver.GetRunResult();
+    runResult.Diagnostics.Should().BeEmpty();
+    var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
+    source.Should().Contain("catalog.RegisterEvent<MyCode.InvoiceEntity>(\"InvoiceIssued\", null, null,");
+  }
 }

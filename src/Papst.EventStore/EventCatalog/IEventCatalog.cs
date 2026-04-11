@@ -16,10 +16,11 @@ public interface IEventCatalog
 
   /// <summary>
   /// Get detailed information (including JSON Schema) for a specific event by name.
-  /// If the same event name exists for multiple entities, the first match is returned.
+  /// Throws when the same event name exists for multiple registrations.
   /// </summary>
   /// <param name="eventName">The event name to look up</param>
   /// <returns>The <see cref="EventCatalogEventDetails"/> or <c>null</c> if the event is not registered</returns>
+  /// <exception cref="Exceptions.EventCatalogAmbiguousEventException">Thrown when the event name matches more than one registration.</exception>
   ValueTask<EventCatalogEventDetails?> GetEventDetails(string eventName);
 
   /// <summary>
