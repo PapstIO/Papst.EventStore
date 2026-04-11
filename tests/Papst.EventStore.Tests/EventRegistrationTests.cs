@@ -1,8 +1,8 @@
 ﻿using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Papst.EventStore.EventRegistration;
+using Shouldly;
 using Xunit;
 
 namespace Papst.EventStore.Tests;
@@ -20,8 +20,8 @@ public class EventRegistrationTests
     var eventreg = new EventRegistrationTypeProvider(loggerMock.Object, new[] { registration });
 
     var resolved = eventreg.ResolveType(typeof(FooEvent));
-    resolved.Should().NotBeNull();
-    resolved.Should().Be(writeName);
+    resolved.ShouldNotBeNull();
+    resolved.ShouldBe(writeName);
   }
 
   [Theory, AutoData]
@@ -35,8 +35,8 @@ public class EventRegistrationTests
     var eventreg = new EventRegistrationTypeProvider(loggerMock.Object, new[] { registration });
 
     var resolved = eventreg.ResolveIdentifier(readName);
-    resolved.Should().NotBeNull();
-    resolved.Should().Be(typeof(FooEvent));
+    resolved.ShouldNotBeNull();
+    resolved.ShouldBe(typeof(FooEvent));
   }
 
   private record FooEvent();

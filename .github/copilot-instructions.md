@@ -28,7 +28,7 @@ samples/                                     # Sample applications
 ## Technology Stack
 
 - **Language**: C# on .NET 10
-- **Test framework**: xUnit with AutoFixture, FluentAssertions, and Moq
+- **Test framework**: xUnit with AutoFixture, Shouldly, and Moq
 - **Serialization**: Newtonsoft.Json
 - **Versioning**: Nerdbank.GitVersioning (`version.json`)
 - **Package management**: Central package management via `Directory.Packages.props`

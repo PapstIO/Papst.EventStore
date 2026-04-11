@@ -11,7 +11,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AutoFixture.Xunit2" />
-		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="Shouldly" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" />
 		<PackageReference Include="Microsoft.CodeAnalysis" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" />

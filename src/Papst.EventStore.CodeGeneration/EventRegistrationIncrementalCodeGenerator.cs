@@ -18,6 +18,39 @@ namespace Papst.EventStore.CodeGeneration
     private const string EventAggregatorInterfaceName = "IEventAggregator";
     private const string ClassName = "EventStoreEventAggregator";
 
+    private class EventAttributeInfo
+    {
+      public string Name { get; set; }
+      public bool IsWrite { get; set; }
+      public string Description { get; set; }
+      public List<string> Constraints { get; set; }
+      public string EntityTypeName { get; set; }
+      public string EntityTypeNamespace { get; set; }
+      public bool IsGeneric { get; set; }
+    }
+
+    private class EventInfo
+    {
+      public string ClassName { get; set; }
+      public string Namespace { get; set; }
+      public List<EventAttributeInfo> Attributes { get; set; } = new List<EventAttributeInfo>();
+    }
+
+    private class AggregatorTypeArg
+    {
+      public string Entity { get; set; }
+      public string EntityNamespace { get; set; }
+      public string Event { get; set; }
+      public string EventNamespace { get; set; }
+    }
+
+    private class AggregatorInfo
+    {
+      public string Class { get; set; }
+      public string Namespace { get; set; }
+      public List<AggregatorTypeArg> TypeArguments { get; set; } = new List<AggregatorTypeArg>();
+    }
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
       context.RegisterSourceOutput(context.CompilationProvider, (productionContext, compilation) =>
@@ -49,7 +82,7 @@ namespace Papst.EventStore.CodeGeneration
             .ToArray();
 
           var events = allClasses
-            .Select(c => FindEvents(compilation, c))
+            .Select(c => FindEvents(compilation, c, allClasses))
             .Where(c => c != null)
             .ToList();
 
@@ -62,7 +95,7 @@ namespace Papst.EventStore.CodeGeneration
                 ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
               )
             )
-            .Select(c => new
+            .Select(c => new AggregatorInfo
             {
               Class = c.Identifier.ValueText,
               Namespace = FindNamespace(c),
@@ -76,13 +109,14 @@ namespace Papst.EventStore.CodeGeneration
                   Entity = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[0]).Identifier.ValueText,
                   Event = ((IdentifierNameSyntax)((GenericNameSyntax)bt.Type).TypeArgumentList.Arguments[1]).Identifier.ValueText
                 })
-                .Select(bt => new
+                .Select(bt => new AggregatorTypeArg
                 {
                   Entity = bt.Entity,
                   EntityNamespace = FindNamespace(bt.Entity, allClasses),
                   Event = bt.Event,
                   EventNamespace = FindNamespace(bt.Event, allClasses)
                 })
+                .ToList()
             })
             .ToList();
 
@@ -99,6 +133,14 @@ namespace Papst.EventStore.CodeGeneration
               .AppendLine($"namespace {baseNamespace};")
               .AppendLine($"public static class {ClassName}")
               .AppendLine("{")
+              ;
+
+            // --- Generate schema fields for catalog ---
+            var catalogEntries = BuildCatalogEntries(events, aggregators, compilation, allClasses);
+            var schemaFields = GenerateSchemaFields(catalogEntries, compilation, allClasses, builder);
+
+            // --- AddCodeGeneratedEvents (existing behavior) ---
+            builder
               .AppendLine("  public static IServiceCollection AddCodeGeneratedEvents(this IServiceCollection services)")
               .AppendLine("  {")
               ;
@@ -108,7 +150,7 @@ namespace Papst.EventStore.CodeGeneration
               builder.AppendLine("    var registration = new Papst.EventStore.EventRegistration.EventDescriptionEventRegistration();");
               foreach (var evt in events)
               {
-                builder.AppendLine($"    registration.AddEvent<{evt.Value.NameSpace}.{evt.Value.Name}>({string.Join(", ", evt.Value.Attributes.Select(attr => $"new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
+                builder.AppendLine($"    registration.AddEvent<{evt.Namespace}.{evt.ClassName}>({string.Join(", ", evt.Attributes.Select(attr => $"new Papst.EventStore.EventRegistration.EventAttributeDescriptor(\"{attr.Name}\", {(attr.IsWrite ? bool.TrueString.ToLower() : bool.FalseString.ToLower())})"))});");
               }
               builder.AppendLine("    services.AddSingleton<Papst.EventStore.EventRegistration.IEventRegistration>(registration);");
             }
@@ -132,10 +174,15 @@ namespace Papst.EventStore.CodeGeneration
               ;
 
             builder.AppendLine("   return services;");
-            builder
-              .AppendLine("  }")
-              .AppendLine("}")
-              ;
+            builder.AppendLine("  }");
+
+            // --- AddCodeGeneratedEventCatalog (new) ---
+            if (catalogEntries.Count > 0)
+            {
+              GenerateCatalogMethod(builder, catalogEntries, schemaFields);
+            }
+
+            builder.AppendLine("}");
 
             productionContext.AddSource("EventRegistration.g.cs", builder.ToString());
           }
@@ -167,15 +214,330 @@ namespace Papst.EventStore.CodeGeneration
       });
     }
 
+    #region Catalog Generation
+
+    private class CatalogEntry
+    {
+      public string EntityNamespace { get; set; }
+      public string EntityName { get; set; }
+      public string EventName { get; set; }
+      public string Description { get; set; }
+      public List<string> Constraints { get; set; }
+      public string EventClassName { get; set; }
+      public string EventClassNamespace { get; set; }
+    }
+
+    private static List<CatalogEntry> BuildCatalogEntries(
+      List<EventInfo> events,
+      List<AggregatorInfo> aggregators,
+      Compilation compilation,
+      TypeDeclarationSyntax[] allClasses)
+    {
+      var entries = new List<CatalogEntry>();
+      var seen = new HashSet<string>();
+
+      // From generic EventNameAttribute<TEntity>
+      foreach (var evt in events)
+      {
+        foreach (var attr in evt.Attributes.Where(a => a.IsGeneric))
+        {
+          string key = $"{attr.EntityTypeNamespace}.{attr.EntityTypeName}|{attr.Name}";
+          if (seen.Add(key))
+          {
+            entries.Add(new CatalogEntry
+            {
+              EntityNamespace = attr.EntityTypeNamespace,
+              EntityName = attr.EntityTypeName,
+              EventName = attr.Name,
+              Description = attr.Description,
+              Constraints = attr.Constraints,
+              EventClassName = evt.ClassName,
+              EventClassNamespace = evt.Namespace
+            });
+          }
+        }
+      }
+
+      // From aggregators
+      foreach (var aggregator in aggregators)
+      {
+        foreach (var impl in aggregator.TypeArguments)
+        {
+          string entityNs = impl.EntityNamespace;
+          string entityName = impl.Entity;
+          string eventNs = impl.EventNamespace;
+          string eventName = impl.Event;
+
+          // Find the event info to get attribute metadata
+          var eventInfo = events.FirstOrDefault(e => e.ClassName == eventName && e.Namespace == eventNs);
+          if (eventInfo != null)
+          {
+            foreach (var attr in eventInfo.Attributes)
+            {
+              string key = $"{entityNs}.{entityName}|{attr.Name}";
+              if (seen.Add(key))
+              {
+                entries.Add(new CatalogEntry
+                {
+                  EntityNamespace = entityNs,
+                  EntityName = entityName,
+                  EventName = attr.Name,
+                  Description = attr.Description,
+                  Constraints = attr.Constraints,
+                  EventClassName = eventInfo.ClassName,
+                  EventClassNamespace = eventInfo.Namespace
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return entries;
+    }
+
+    private static Dictionary<string, string> GenerateSchemaFields(
+      List<CatalogEntry> catalogEntries,
+      Compilation compilation,
+      TypeDeclarationSyntax[] allClasses,
+      StringBuilder builder)
+    {
+      var schemaFields = new Dictionary<string, string>();
+
+      foreach (var entry in catalogEntries)
+      {
+        string typeKey = $"{entry.EventClassNamespace}.{entry.EventClassName}";
+        if (schemaFields.ContainsKey(typeKey))
+        {
+          continue;
+        }
+
+        string fieldName = $"_schema_{typeKey.Replace(".", "_")}";
+        schemaFields[typeKey] = fieldName;
+
+        var typeDecl = allClasses.FirstOrDefault(c =>
+          c.Identifier.ValueText == entry.EventClassName &&
+          FindNamespace(c) == entry.EventClassNamespace);
+
+        string schemaJson = "{}";
+        if (typeDecl != null)
+        {
+          schemaJson = GenerateJsonSchema(compilation, typeDecl);
+        }
+
+        string verbatimLiteral = ToVerbatimStringLiteral(schemaJson);
+        builder.AppendLine($"  private static readonly System.Lazy<string> {fieldName} = new System.Lazy<string>(() => {verbatimLiteral});");
+      }
+
+      return schemaFields;
+    }
+
+    private static void GenerateCatalogMethod(
+      StringBuilder builder,
+      List<CatalogEntry> catalogEntries,
+      Dictionary<string, string> schemaFields)
+    {
+      builder
+        .AppendLine("  public static IServiceCollection AddCodeGeneratedEventCatalog(this IServiceCollection services)")
+        .AppendLine("  {")
+        .AppendLine("    var catalog = new Papst.EventStore.EventCatalog.EventCatalogRegistration();")
+        ;
+
+      foreach (var entry in catalogEntries)
+      {
+        string typeKey = $"{entry.EventClassNamespace}.{entry.EventClassName}";
+        string fieldName = schemaFields[typeKey];
+
+        string descArg = entry.Description != null
+          ? $"\"{EscapeString(entry.Description)}\""
+          : "null";
+
+        string constraintsArg;
+        if (entry.Constraints != null && entry.Constraints.Count > 0)
+        {
+          constraintsArg = $"new string[] {{ {string.Join(", ", entry.Constraints.Select(c => $"\"{EscapeString(c)}\""))} }}";
+        }
+        else
+        {
+          constraintsArg = "null";
+        }
+
+        builder.AppendLine($"    catalog.RegisterEvent<{entry.EntityNamespace}.{entry.EntityName}>(\"{EscapeString(entry.EventName)}\", {descArg}, {constraintsArg}, {fieldName});");
+      }
+
+      builder
+        .AppendLine("    services.AddSingleton<Papst.EventStore.EventCatalog.IEventCatalogRegistration>(catalog);")
+        .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.EventCatalog.IEventCatalog)))")
+        .AppendLine("    {")
+        .AppendLine("      services.AddSingleton<Papst.EventStore.EventCatalog.IEventCatalog, Papst.EventStore.EventCatalog.EventCatalogProvider>();")
+        .AppendLine("    }")
+        .AppendLine("    return services;")
+        .AppendLine("  }")
+        ;
+    }
+
+    #endregion
+
+    #region JSON Schema Generation
+
+    private static string GenerateJsonSchema(Compilation compilation, TypeDeclarationSyntax typeDeclaration)
+    {
+      var semanticModel = compilation.GetSemanticModel(typeDeclaration.SyntaxTree);
+      var typeSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
+      if (typeSymbol == null)
+      {
+        return "{}";
+      }
+      return GenerateSchemaForType(typeSymbol, new HashSet<string>());
+    }
+
+    private static string GenerateSchemaForType(ITypeSymbol type, HashSet<string> visited)
+    {
+      // Unwrap Nullable<T>
+      if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && type is INamedTypeSymbol nullable)
+      {
+        return GenerateSchemaForType(nullable.TypeArguments[0], visited);
+      }
+
+      // Handle special/primitive types
+      switch (type.SpecialType)
+      {
+        case SpecialType.System_String:
+          return "{\"type\":\"string\"}";
+        case SpecialType.System_Int16:
+        case SpecialType.System_Int32:
+        case SpecialType.System_Int64:
+        case SpecialType.System_Byte:
+        case SpecialType.System_UInt16:
+        case SpecialType.System_UInt32:
+        case SpecialType.System_UInt64:
+        case SpecialType.System_SByte:
+          return "{\"type\":\"integer\"}";
+        case SpecialType.System_Single:
+        case SpecialType.System_Double:
+        case SpecialType.System_Decimal:
+          return "{\"type\":\"number\"}";
+        case SpecialType.System_Boolean:
+          return "{\"type\":\"boolean\"}";
+        case SpecialType.System_DateTime:
+          return "{\"type\":\"string\",\"format\":\"date-time\"}";
+        case SpecialType.System_Object:
+          return "{}";
+      }
+
+      // Handle well-known types by display name
+      string fullName = type.ToDisplayString();
+      if (fullName == "System.DateTimeOffset")
+        return "{\"type\":\"string\",\"format\":\"date-time\"}";
+      if (fullName == "System.Guid")
+        return "{\"type\":\"string\",\"format\":\"uuid\"}";
+      if (fullName == "System.TimeSpan")
+        return "{\"type\":\"string\",\"format\":\"duration\"}";
+      if (fullName == "System.Uri")
+        return "{\"type\":\"string\",\"format\":\"uri\"}";
+
+      // Handle enums
+      if (type.TypeKind == TypeKind.Enum && type is INamedTypeSymbol enumType)
+      {
+        var members = enumType.GetMembers().OfType<IFieldSymbol>().Where(f => f.HasConstantValue).ToList();
+        var values = string.Join(",", members.Select(m => $"\"{m.Name}\""));
+        return $"{{\"type\":\"string\",\"enum\":[{values}]}}";
+      }
+
+      // Handle arrays
+      if (type is IArrayTypeSymbol arrayType)
+      {
+        string itemSchema = GenerateSchemaForType(arrayType.ElementType, visited);
+        return $"{{\"type\":\"array\",\"items\":{itemSchema}}}";
+      }
+
+      // Handle generic collections
+      if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
+      {
+        // Check for IEnumerable<T>
+        var enumerableInterface = namedType.AllInterfaces
+          .FirstOrDefault(i => i.IsGenericType &&
+            i.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>");
+
+        string origDisplay = namedType.OriginalDefinition.ToDisplayString();
+        if (enumerableInterface != null || origDisplay == "System.Collections.Generic.IEnumerable<T>")
+        {
+          var elementType = enumerableInterface != null
+            ? enumerableInterface.TypeArguments[0]
+            : namedType.TypeArguments[0];
+          string itemSchema = GenerateSchemaForType(elementType, visited);
+          return $"{{\"type\":\"array\",\"items\":{itemSchema}}}";
+        }
+
+        // Check for Dictionary<K,V>
+        if (origDisplay.StartsWith("System.Collections.Generic.Dictionary") ||
+            origDisplay.StartsWith("System.Collections.Generic.IDictionary"))
+        {
+          string valueSchema = GenerateSchemaForType(namedType.TypeArguments[1], visited);
+          return $"{{\"type\":\"object\",\"additionalProperties\":{valueSchema}}}";
+        }
+      }
+
+      // Handle object types (class/record/struct)
+      if (type is INamedTypeSymbol objectType &&
+          (type.TypeKind == TypeKind.Class || type.TypeKind == TypeKind.Struct))
+      {
+        string typeKey = objectType.ToDisplayString();
+        if (visited.Contains(typeKey))
+        {
+          return "{\"type\":\"object\"}";
+        }
+        visited.Add(typeKey);
+
+        var props = objectType.GetMembers()
+          .OfType<IPropertySymbol>()
+          .Where(p => p.DeclaredAccessibility == Accessibility.Public && !p.IsStatic && p.GetMethod != null)
+          .ToList();
+
+        var sb = new StringBuilder();
+        sb.Append("{\"type\":\"object\",\"properties\":{");
+        bool first = true;
+        foreach (var prop in props)
+        {
+          if (!first) sb.Append(",");
+          first = false;
+          string propName = char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1);
+          string propSchema = GenerateSchemaForType(prop.Type, visited);
+          sb.Append($"\"{propName}\":{propSchema}");
+        }
+        sb.Append("}}");
+
+        visited.Remove(typeKey);
+        return sb.ToString();
+      }
+
+      // Fallback
+      return "{\"type\":\"object\"}";
+    }
+
+    private static string ToVerbatimStringLiteral(string value)
+    {
+      return "@\"" + value.Replace("\"", "\"\"") + "\"";
+    }
+
+    private static string EscapeString(string value)
+    {
+      return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
+
+    #endregion
+
+    #region Attribute Parsing
+
     /// <summary>
     /// Checks if the <see cref="TypeDeclarationSyntax"/> is attributed with an EventNameAttribute
-    /// and parses the values
+    /// (generic or non-generic) and parses the values
     /// </summary>
-    private static (List<(string Name, bool IsWrite)> Attributes, string Name, string NameSpace)? FindEvents(Compilation compilation, TypeDeclarationSyntax typeDeclaration)
+    private static EventInfo FindEvents(Compilation compilation, TypeDeclarationSyntax typeDeclaration, TypeDeclarationSyntax[] allClasses)
     {
       var attributes = typeDeclaration.AttributeLists
         .SelectMany(x => x.Attributes)
-        .Where(attr => attr.Name.ToString() == "EventNameAttribute" || attr.Name.ToString() == "EventName")
+        .Where(attr => IsEventNameAttribute(attr.Name))
         .ToList();
 
       if (attributes.Count == 0)
@@ -187,46 +549,225 @@ namespace Papst.EventStore.CodeGeneration
       var className = typeDeclaration.Identifier.ValueText;
       string nsName = FindNamespace(typeDeclaration);
 
-      List<(string Name, bool IsWrite)> setAttributes = new List<(string Name, bool IsWrite)>();
+      var eventInfo = new EventInfo { ClassName = className, Namespace = nsName };
+
       foreach (var attr in attributes)
       {
-        string name = null;
-        bool isWrite = true;
-        var expr = semanticModel.GetConstantValue(attr.ArgumentList.Arguments[0].Expression).Value;
-
-        if (expr is string name2)
+        var attrInfo = ParseEventNameAttribute(attr, semanticModel, allClasses);
+        if (attrInfo != null)
         {
-          name = name2;
-        }
-        else if (expr is bool isWrite2)
-        {
-          isWrite = isWrite2;
-        }
-
-        if (attr.ArgumentList.Arguments.Count > 1)
-        {
-          expr = semanticModel.GetConstantValue(attr.ArgumentList.Arguments[1].Expression).Value;
-          if (expr is string name3)
-          {
-            name = name3;
-          }
-          else if (expr is bool isWrite2)
-          {
-            isWrite = isWrite2;
-          }
-        }
-        if (name != null)
-        {
-          setAttributes.Add((name, isWrite));
+          eventInfo.Attributes.Add(attrInfo);
         }
       }
 
-      if (setAttributes.Count > 0)
-      {
-        return (setAttributes, className, nsName);
-      }
+      return eventInfo.Attributes.Count > 0 ? eventInfo : null;
+    }
+
+    private static bool IsEventNameAttribute(NameSyntax name)
+    {
+      string simpleName = GetSimpleName(name);
+      return simpleName == "EventName" || simpleName == "EventNameAttribute";
+    }
+
+    private static string GetSimpleName(NameSyntax name)
+    {
+      if (name is IdentifierNameSyntax ins)
+        return ins.Identifier.ValueText;
+      if (name is GenericNameSyntax gns)
+        return gns.Identifier.ValueText;
+      if (name is AliasQualifiedNameSyntax aqns)
+        return GetSimpleName(aqns.Name);
+      if (name is QualifiedNameSyntax qns)
+        return GetSimpleName(qns.Right);
+      return "";
+    }
+
+    private static GenericNameSyntax GetGenericName(NameSyntax name)
+    {
+      if (name is GenericNameSyntax gns)
+        return gns;
+      if (name is AliasQualifiedNameSyntax aqns)
+        return GetGenericName(aqns.Name);
+      if (name is QualifiedNameSyntax qns)
+        return GetGenericName(qns.Right);
       return null;
     }
+
+    private static EventAttributeInfo ParseEventNameAttribute(
+      AttributeSyntax attr,
+      SemanticModel semanticModel,
+      TypeDeclarationSyntax[] allClasses)
+    {
+      string name = null;
+      bool isWrite = true;
+      string description = null;
+      List<string> constraints = null;
+      bool isGeneric = false;
+      string entityTypeName = null;
+      string entityTypeNamespace = null;
+
+      // Check if this is a generic attribute EventName<TEntity>
+      GenericNameSyntax gns = GetGenericName(attr.Name);
+      if (gns != null && gns.TypeArgumentList.Arguments.Count == 1)
+      {
+        isGeneric = true;
+        var entityTypeSyntax = gns.TypeArgumentList.Arguments[0];
+        var typeInfo = semanticModel.GetTypeInfo(entityTypeSyntax);
+        if (typeInfo.Type != null && typeInfo.Type.TypeKind != TypeKind.Error)
+        {
+          entityTypeName = typeInfo.Type.Name;
+          entityTypeNamespace = typeInfo.Type.ContainingNamespace?.ToDisplayString();
+        }
+        else
+        {
+          // Fallback: try to find from syntax
+          string entityName = entityTypeSyntax.ToString();
+          entityTypeName = entityName;
+          try
+          {
+            entityTypeNamespace = FindNamespace(entityName, allClasses);
+          }
+          catch
+          {
+            entityTypeNamespace = entityName;
+          }
+        }
+      }
+
+      if (attr.ArgumentList == null || attr.ArgumentList.Arguments.Count == 0)
+      {
+        return null;
+      }
+
+      // Parse arguments (handles positional, named with =, and named with :)
+      foreach (var arg in attr.ArgumentList.Arguments)
+      {
+        if (arg.NameEquals != null)
+        {
+          string argName = arg.NameEquals.Name.Identifier.ValueText;
+          ParseNamedArgument(argName, arg.Expression, semanticModel, ref name, ref isWrite, ref description, ref constraints);
+        }
+        else if (arg.NameColon != null)
+        {
+          string argName = arg.NameColon.Name.Identifier.ValueText;
+          ParseNamedArgument(argName, arg.Expression, semanticModel, ref name, ref isWrite, ref description, ref constraints);
+        }
+        else
+        {
+          // Positional argument - use type-based heuristic
+          var expr = semanticModel.GetConstantValue(arg.Expression);
+          if (expr.HasValue)
+          {
+            if (expr.Value is string s)
+              name = s;
+            else if (expr.Value is bool b)
+              isWrite = b;
+          }
+        }
+      }
+
+      if (name == null)
+      {
+        return null;
+      }
+
+      return new EventAttributeInfo
+      {
+        Name = name,
+        IsWrite = isWrite,
+        Description = description,
+        Constraints = constraints,
+        IsGeneric = isGeneric,
+        EntityTypeName = entityTypeName,
+        EntityTypeNamespace = entityTypeNamespace
+      };
+    }
+
+    private static void ParseNamedArgument(
+      string argName,
+      ExpressionSyntax expression,
+      SemanticModel semanticModel,
+      ref string name,
+      ref bool isWrite,
+      ref string description,
+      ref List<string> constraints)
+    {
+      // Handle both property names and constructor parameter names (case-insensitive first char)
+      string normalizedName = argName.Length > 0
+        ? char.ToUpperInvariant(argName[0]) + argName.Substring(1)
+        : argName;
+
+      if (normalizedName == "Name")
+      {
+        name = semanticModel.GetConstantValue(expression).Value as string ?? name;
+      }
+      else if (normalizedName == "IsWriteName" || normalizedName == "IsWrite")
+      {
+        var val = semanticModel.GetConstantValue(expression);
+        if (val.HasValue && val.Value is bool b)
+          isWrite = b;
+      }
+      else if (normalizedName == "Description")
+      {
+        description = semanticModel.GetConstantValue(expression).Value as string;
+      }
+      else if (normalizedName == "Constraints")
+      {
+        constraints = ParseStringArray(semanticModel, expression);
+      }
+    }
+
+    private static List<string> ParseStringArray(SemanticModel semanticModel, ExpressionSyntax expression)
+    {
+      var result = new List<string>();
+
+      InitializerExpressionSyntax initializer = null;
+
+      if (expression is ImplicitArrayCreationExpressionSyntax implicitArray)
+      {
+        initializer = implicitArray.Initializer;
+      }
+      else if (expression is ArrayCreationExpressionSyntax arrayCreation)
+      {
+        initializer = arrayCreation.Initializer;
+      }
+
+      if (initializer != null)
+      {
+        foreach (var elem in initializer.Expressions)
+        {
+          var val = semanticModel.GetConstantValue(elem);
+          if (val.HasValue && val.Value is string s)
+          {
+            result.Add(s);
+          }
+        }
+        return result.Count > 0 ? result : null;
+      }
+
+      // Handle collection expression syntax ["a", "b"]
+      if (expression is CollectionExpressionSyntax collExpr)
+      {
+        foreach (var elem in collExpr.Elements)
+        {
+          if (elem is ExpressionElementSyntax exprElem)
+          {
+            var val = semanticModel.GetConstantValue(exprElem.Expression);
+            if (val.HasValue && val.Value is string s)
+            {
+              result.Add(s);
+            }
+          }
+        }
+        return result.Count > 0 ? result : null;
+      }
+
+      return null;
+    }
+
+    #endregion
+
+    #region Namespace Helpers
 
     private static string FindNamespace(TypeDeclarationSyntax typeDeclaration)
     {
@@ -269,5 +810,7 @@ namespace Papst.EventStore.CodeGeneration
 
       return FindNamespace(classDeclaration);
     }
+
+    #endregion
   }
 }

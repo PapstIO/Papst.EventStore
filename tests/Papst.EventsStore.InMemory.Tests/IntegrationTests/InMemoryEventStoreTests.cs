@@ -1,7 +1,7 @@
 using AutoFixture.Xunit2;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore;
+using Shouldly;
 
 namespace Papst.EventsStore.InMemory.Tests.IntegrationTests;
 
@@ -22,8 +22,8 @@ public class InMemoryEventStoreTests : IClassFixture<InMemoryTestFixture>
     
     // assert
     var stream = await eventStore.GetAsync(streamId, CancellationToken.None);
-    stream.StreamId.Should().Be(streamId);
-    stream.Version.Should().Be(0);
+    stream.StreamId.ShouldBe(streamId);
+    stream.Version.ShouldBe(0UL);
   }
   
   
