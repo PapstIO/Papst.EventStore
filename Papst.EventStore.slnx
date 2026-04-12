@@ -14,6 +14,11 @@
     <Project Path="samples/SampleEventCatalog/SampleEventCatalog.csproj" />
     <Project Path="samples/SampleSqlServerEfCoreEventStore/SampleSqlServerEfCoreEventStore.csproj" />
   </Folder>
+  <Folder Name="/Samples/SampleInMemoryAspNetApi/">
+    <Project Path="samples/SampleInMemoryAspNetApi/SampleInMemoryAspNetApi.Api/SampleInMemoryAspNetApi.Api.csproj" />
+    <Project Path="samples/SampleInMemoryAspNetApi/SampleInMemoryAspNetApi.Orders/SampleInMemoryAspNetApi.Orders.csproj" />
+    <Project Path="samples/SampleInMemoryAspNetApi/SampleInMemoryAspNetApi.Users/SampleInMemoryAspNetApi.Users.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />

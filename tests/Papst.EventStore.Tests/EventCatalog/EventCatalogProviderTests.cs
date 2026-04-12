@@ -14,10 +14,15 @@ public class EventCatalogProviderTests
   private class TestEntity { }
   private class OtherEntity { }
 
-  private static EventCatalogProvider CreateCatalog(Action<EventCatalogRegistration>? configure = null)
+  private static EventCatalogProvider CreateCatalog()
+  {
+    return CreateCatalog(_ => { });
+  }
+
+  private static EventCatalogProvider CreateCatalog(Action<EventCatalogRegistration> configure)
   {
     var registration = new EventCatalogRegistration();
-    configure?.Invoke(registration);
+    configure(registration);
     return new EventCatalogProvider(new[] { registration });
   }
 

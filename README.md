@@ -113,6 +113,7 @@ EventCatalogEventDetails? scoped = await catalog.GetEventDetails<User>("UserCrea
 ```
 
 A full working sample is available at [`samples/SampleEventCatalog/`](./samples/SampleEventCatalog/).
+For an end-to-end ASP.NET Core example using the in-memory event store, stream aggregation, and read-model repositories, see [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/).
 
 # Changelog
 
@@ -178,5 +179,4 @@ V4 removes support for authenticating with shared keys against the cosmos DB. Th
 ## v3.x
 
 V3 supports mainly .NET 5.0 and registration of events and event aggregators through reflection
-
 
