@@ -16,18 +16,8 @@ public interface IEventCatalogRegistration
   void RegisterEvent<TEntity>(string eventName, string? description, string[]? constraints, Lazy<string> schemaJson);
 
   /// <summary>
-  /// Get catalog entries for a given entity type, optionally filtered
+  /// Returns all registered catalog entries grouped by their entity type.
   /// </summary>
-  IReadOnlyList<EventCatalogEntry> GetEntries(Type entityType, string? name, string[]? constraints);
-
-  /// <summary>
-  /// Get detailed event information by name.
-  /// Throws when more than one event with the same name is registered.
-  /// </summary>
-  EventCatalogEventDetails? GetDetails(string eventName);
-
-  /// <summary>
-  /// Get detailed event information by name, scoped to a specific entity type
-  /// </summary>
-  EventCatalogEventDetails? GetDetails(Type entityType, string eventName);
+  /// <returns>The registered catalog entries keyed by entity type.</returns>
+  IEnumerable<KeyValuePair<Type, IReadOnlyCollection<EventCatalogEntry>>> GetEntries();
 }
