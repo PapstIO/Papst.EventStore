@@ -1,16 +1,16 @@
 ﻿namespace Papst.EventStore.EventCatalog;
 
 /// <summary>
-/// Provides read access to the Event Catalog, allowing queries for registered events per entity
+/// Provides read access to the materialized Event Catalog entries registered in the application.
 /// </summary>
 public interface IEventCatalog
 {
   /// <summary>
-  /// List events registered for entity <typeparamref name="TEntity"/>, optionally filtered by name and/or constraints
+  /// List catalog entries registered for entity <typeparamref name="TEntity"/>, optionally filtered by name and/or constraints.
   /// </summary>
   /// <typeparam name="TEntity">The Entity to list events for</typeparam>
   /// <param name="name">Optional event name filter (exact match)</param>
-  /// <param name="constraints">Optional constraints filter (events matching any of the given constraints)</param>
+  /// <param name="constraints">Optional constraints filter (entries matching any of the given constraints)</param>
   /// <returns>A list of matching <see cref="EventCatalogEntry"/> instances</returns>
   ValueTask<IReadOnlyList<EventCatalogEntry>> ListEvents<TEntity>(string? name = null, string[]? constraints = null);
 

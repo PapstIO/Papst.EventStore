@@ -14,11 +14,11 @@ public class EventCatalogProviderTests
   private class TestEntity { }
   private class OtherEntity { }
 
-  private static (EventCatalogRegistration registration, EventCatalogProvider provider) CreateCatalog()
+  private static EventCatalogProvider CreateCatalog(Action<EventCatalogRegistration>? configure = null)
   {
     var registration = new EventCatalogRegistration();
-    var provider = new EventCatalogProvider(new[] { registration });
-    return (registration, provider);
+    configure?.Invoke(registration);
+    return new EventCatalogProvider(new[] { registration });
   }
 
   // --- EventCatalogRegistration tests (via provider) ---
@@ -26,9 +26,8 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task RegisterEvent_ShouldStoreEventForEntity()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("TestEvent", "A test event", null, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+      registration.RegisterEvent<TestEntity>("TestEvent", "A test event", null, new Lazy<string>(() => "{}")));
 
     var entries = await provider.ListEvents<TestEntity>();
 
@@ -39,10 +38,11 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEntries_FilterByName_ReturnsMatching()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("EventA", null, null, new Lazy<string>(() => "{}"));
-    registration.RegisterEvent<TestEntity>("EventB", null, null, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+    {
+      registration.RegisterEvent<TestEntity>("EventA", null, null, new Lazy<string>(() => "{}"));
+      registration.RegisterEvent<TestEntity>("EventB", null, null, new Lazy<string>(() => "{}"));
+    });
 
     var entries = await provider.ListEvents<TestEntity>(name: "EventA");
 
@@ -53,10 +53,11 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEntries_FilterByConstraints_ReturnsMatching()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("EventX", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
-    registration.RegisterEvent<TestEntity>("EventY", null, new[] { "user" }, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+    {
+      registration.RegisterEvent<TestEntity>("EventX", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
+      registration.RegisterEvent<TestEntity>("EventY", null, new[] { "user" }, new Lazy<string>(() => "{}"));
+    });
 
     var entries = await provider.ListEvents<TestEntity>(constraints: new[] { "admin" });
 
@@ -67,11 +68,12 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEntries_FilterByNameAndConstraints_ReturnsMatching()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("EventA", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
-    registration.RegisterEvent<TestEntity>("EventA", null, new[] { "user" }, new Lazy<string>(() => "{}"));
-    registration.RegisterEvent<TestEntity>("EventB", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+    {
+      registration.RegisterEvent<TestEntity>("EventA", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
+      registration.RegisterEvent<TestEntity>("EventA", null, new[] { "user" }, new Lazy<string>(() => "{}"));
+      registration.RegisterEvent<TestEntity>("EventB", null, new[] { "admin" }, new Lazy<string>(() => "{}"));
+    });
 
     var entries = await provider.ListEvents<TestEntity>(name: "EventA", constraints: new[] { "admin" });
 
@@ -82,9 +84,8 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEntries_ForUnknownEntity_ReturnsEmpty()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("EventA", null, null, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+      registration.RegisterEvent<TestEntity>("EventA", null, null, new Lazy<string>(() => "{}")));
 
     var entries = await provider.ListEvents<OtherEntity>();
 
@@ -94,10 +95,9 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetDetails_ReturnsSchemaAndDescription()
   {
-    var (registration, provider) = CreateCatalog();
     const string schema = """{"type":"object","properties":{"id":{"type":"string"}}}""";
-
-    registration.RegisterEvent<TestEntity>("DetailedEvent", "Has a schema", new[] { "v1" }, new Lazy<string>(() => schema));
+    var provider = CreateCatalog(registration =>
+      registration.RegisterEvent<TestEntity>("DetailedEvent", "Has a schema", new[] { "v1" }, new Lazy<string>(() => schema)));
 
     var details = await provider.GetEventDetails("DetailedEvent");
 
@@ -111,7 +111,7 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetDetails_UnknownEvent_ReturnsNull()
   {
-    var (_, provider) = CreateCatalog();
+    var provider = CreateCatalog();
 
     var details = await provider.GetEventDetails("NonExistent");
 
@@ -121,15 +121,14 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetDetails_LazySchemaEvaluatedOnAccess()
   {
-    var (registration, provider) = CreateCatalog();
     bool evaluated = false;
     var lazySchema = new Lazy<string>(() =>
     {
       evaluated = true;
       return """{"type":"object"}""";
     });
-
-    registration.RegisterEvent<TestEntity>("LazyEvent", null, null, lazySchema);
+    var provider = CreateCatalog(registration =>
+      registration.RegisterEvent<TestEntity>("LazyEvent", null, null, lazySchema));
 
     evaluated.ShouldBeFalse();
 
@@ -196,10 +195,11 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEventDetails_EntityScoped_ReturnsDetailsForEntity()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("SharedEvent", "Test version", new[] { "test" }, new Lazy<string>(() => """{"entity":"test"}"""));
-    registration.RegisterEvent<OtherEntity>("SharedEvent", "Other version", new[] { "other" }, new Lazy<string>(() => """{"entity":"other"}"""));
+    var provider = CreateCatalog(registration =>
+    {
+      registration.RegisterEvent<TestEntity>("SharedEvent", "Test version", new[] { "test" }, new Lazy<string>(() => """{"entity":"test"}"""));
+      registration.RegisterEvent<OtherEntity>("SharedEvent", "Other version", new[] { "other" }, new Lazy<string>(() => """{"entity":"other"}"""));
+    });
 
     var testDetails = await provider.GetEventDetails<TestEntity>("SharedEvent");
     var otherDetails = await provider.GetEventDetails<OtherEntity>("SharedEvent");
@@ -216,9 +216,8 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEventDetails_EntityScoped_UnknownEntity_ReturnsNull()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("SomeEvent", null, null, new Lazy<string>(() => "{}"));
+    var provider = CreateCatalog(registration =>
+      registration.RegisterEvent<TestEntity>("SomeEvent", null, null, new Lazy<string>(() => "{}")));
 
     var details = await provider.GetEventDetails<OtherEntity>("SomeEvent");
 
@@ -228,10 +227,11 @@ public class EventCatalogProviderTests
   [Fact]
   public async Task GetEventDetails_DuplicateEventNamesAcrossEntities_GlobalThrowsAmbiguousException()
   {
-    var (registration, provider) = CreateCatalog();
-
-    registration.RegisterEvent<TestEntity>("DuplicateName", "First", null, new Lazy<string>(() => """{"first":true}"""));
-    registration.RegisterEvent<OtherEntity>("DuplicateName", "Second", null, new Lazy<string>(() => """{"second":true}"""));
+    var provider = CreateCatalog(registration =>
+    {
+      registration.RegisterEvent<TestEntity>("DuplicateName", "First", null, new Lazy<string>(() => """{"first":true}"""));
+      registration.RegisterEvent<OtherEntity>("DuplicateName", "Second", null, new Lazy<string>(() => """{"second":true}"""));
+    });
 
     Func<Task> act = async () => _ = await provider.GetEventDetails("DuplicateName");
 
