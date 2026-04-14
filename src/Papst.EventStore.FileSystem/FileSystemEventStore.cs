@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Papst.EventStore.Exceptions;
 using Papst.EventStore.FileSystem.Entities;
@@ -40,6 +41,8 @@ internal class FileSystemEventStore : IEventStore
       null,
       cancellationToken).ConfigureAwait(false);
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Serializing known type FileSystemStreamIndexEntity.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Serializing known type FileSystemStreamIndexEntity.")]
   public async Task<IEventStream> CreateAsync(
     Guid streamId,
     string targetTypeName, 
@@ -80,6 +83,8 @@ internal class FileSystemEventStore : IEventStore
     return stream;
   }
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Deserializing known type FileSystemStreamIndexEntity.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Deserializing known type FileSystemStreamIndexEntity.")]
   public async Task<IEventStream> GetAsync(Guid streamId, CancellationToken cancellationToken = default)
   {
     Logging.GetEventStream(_logger, streamId);

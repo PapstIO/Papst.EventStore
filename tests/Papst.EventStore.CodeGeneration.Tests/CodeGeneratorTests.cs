@@ -33,11 +33,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -61,11 +61,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -99,11 +99,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -136,11 +136,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -172,11 +172,11 @@ public class TestEventFoo
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -212,11 +212,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -252,11 +252,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -290,11 +290,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -337,11 +337,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -390,11 +390,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();
@@ -438,11 +438,11 @@ namespace MyCode
     driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
 
     diagnostics.ShouldBeEmpty();
-    outputCompilation.SyntaxTrees.Count().ShouldBe(2);
+    outputCompilation.SyntaxTrees.Count().ShouldBe(3);
 
     var runResult = driver.GetRunResult();
 
-    runResult.GeneratedTrees.Length.ShouldBe(1);
+    runResult.GeneratedTrees.Length.ShouldBe(2);
     runResult.Diagnostics.ShouldBeEmpty();
 
     var source = runResult.Results[0].GeneratedSources[0].SourceText.ToString();

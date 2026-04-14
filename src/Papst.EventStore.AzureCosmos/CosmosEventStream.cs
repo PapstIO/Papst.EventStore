@@ -1,7 +1,9 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
@@ -81,6 +83,8 @@ internal sealed class CosmosEventStream(
     },
   };
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
@@ -138,6 +142,8 @@ internal sealed class CosmosEventStream(
       .ConfigureAwait(false);
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
@@ -202,6 +208,8 @@ internal sealed class CosmosEventStream(
     .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
     .ConfigureAwait(false);
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Called from annotated public methods.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Called from annotated public methods.")]
   private async ValueTask<EventStreamDocumentEntity> CreateEventEntity<TEvent>(
     Guid id,
     TEvent evt,
@@ -214,7 +222,7 @@ internal sealed class CosmosEventStream(
     DocumentId = id,
     StreamId = StreamId,
     Version = _stream.NextVersion,
-    Data = JObject.FromObject(evt),
+    Data = JsonSerializer.SerializeToNode(evt)!,
     DataType = eventName,
     Name = eventName,
     Time = timeProvider.GetLocalNow(),
@@ -404,6 +412,8 @@ internal sealed class CosmosEventStream(
       _targetType = targetType;
     }
 
+    [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
     public IEventStoreTransactionAppender Add<TEvent>(
       Guid id,
       TEvent evt,
@@ -414,7 +424,7 @@ internal sealed class CosmosEventStream(
       string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
       _events.Add(new(
         id,
-        JObject.FromObject(evt),
+        JsonSerializer.SerializeToNode(evt)!,
         eventName,
         eventName,
         _timeProvider.GetLocalNow(),
@@ -439,7 +449,7 @@ internal sealed class CosmosEventStream(
 
   private record EventStreamDocumentTemplate(
     Guid DocumentId,
-    JObject Data,
+    JsonNode Data,
     string DataType,
     string Name,
     DateTimeOffset Time,

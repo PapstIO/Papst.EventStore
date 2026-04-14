@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using System.Text.Json.Serialization;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.AzureCosmos.Database;
@@ -9,7 +8,7 @@ namespace Papst.EventStore.AzureCosmos.Database;
 /// </summary>
 public class EventStreamIndexEntity
 {
-  [JsonProperty("id")]
+  [JsonPropertyName("id")]
   public string Id { get; } = CosmosEventStore.IndexDocumentName;
   
   /// <summary>
@@ -40,7 +39,7 @@ public class EventStreamIndexEntity
   /// <summary>
   /// Type of the Document
   /// </summary>
-  [JsonConverter(typeof(StringEnumConverter))]
+  [JsonConverter(typeof(JsonStringEnumConverter))]
   public EventStreamDocumentType DocumentType { get; init; } = EventStreamDocumentType.Index;
   
   /// <summary>
@@ -61,6 +60,6 @@ public class EventStreamIndexEntity
   /// <summary>
   /// Cosmos Db ETag
   /// </summary>
-  [JsonProperty("_etag")]
+  [JsonPropertyName("_etag")]
   public string ETag { get; set; } = string.Empty;
 }

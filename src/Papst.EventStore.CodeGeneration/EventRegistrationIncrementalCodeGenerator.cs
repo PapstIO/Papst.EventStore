@@ -129,6 +129,7 @@ namespace Papst.EventStore.CodeGeneration
               .AppendLine("///  See https://github.com/PapstIO/Papst.EventStore for more information")
               .AppendLine("/// </auto-generated>")
               .AppendLine("using Microsoft.Extensions.DependencyInjection;")
+              .AppendLine("using Microsoft.Extensions.Options;")
               .AppendLine("using System.Linq;")
               .AppendLine($"namespace {baseNamespace};")
               .AppendLine($"public static class {ClassName}")
@@ -164,6 +165,19 @@ namespace Papst.EventStore.CodeGeneration
                   builder.AppendLine($"    services.AddTransient<Papst.EventStore.Aggregation.IEventAggregator<{implementation.EntityNamespace}.{implementation.Entity}, {implementation.EventNamespace}.{implementation.Event}>, {aggregator.Namespace}.{aggregator.Class}>();");
                 }
               }
+
+              // Register generated aggregator resolvers per entity type
+              var entitiesWithAggregators = aggregators
+                .SelectMany(a => a.TypeArguments.Select(ta => new { ta.Entity, ta.EntityNamespace }))
+                .GroupBy(e => $"{e.EntityNamespace}.{e.Entity}")
+                .Select(g => g.First())
+                .ToList();
+
+              foreach (var entity in entitiesWithAggregators)
+              {
+                string resolverClassName = $"GeneratedEventAggregatorResolver_{entity.Entity}";
+                builder.AppendLine($"    services.AddTransient<Papst.EventStore.Aggregation.IEventAggregatorResolver<{entity.EntityNamespace}.{entity.Entity}>, {resolverClassName}>();");
+              }
             }
 
             builder
@@ -172,6 +186,17 @@ namespace Papst.EventStore.CodeGeneration
               .AppendLine("      services.AddTransient<Papst.EventStore.IEventTypeProvider, Papst.EventStore.EventRegistration.EventRegistrationTypeProvider>();")
               .AppendLine("    }")
               ;
+
+            if (events.Count > 0)
+            {
+              builder
+                .AppendLine("    services.AddSingleton(Microsoft.Extensions.Options.Options.Create(")
+                .AppendLine("      new Papst.EventStore.EventStoreSerializerOptions")
+                .AppendLine("      {")
+                .AppendLine("        JsonSerializerOptions = EventStoreSerializerDefaults.Options")
+                .AppendLine("      }));")
+                ;
+            }
 
             builder.AppendLine("   return services;");
             builder.AppendLine("  }");
@@ -184,7 +209,78 @@ namespace Papst.EventStore.CodeGeneration
 
             builder.AppendLine("}");
 
+            // --- Generate IEventAggregatorResolver<TEntity> implementations ---
+            if (aggregators.Count > 0)
+            {
+              var entityGroups = aggregators
+                .SelectMany(a => a.TypeArguments.Select(ta => new
+                {
+                  ta.Entity,
+                  ta.EntityNamespace,
+                  ta.Event,
+                  ta.EventNamespace
+                }))
+                .GroupBy(e => $"{e.EntityNamespace}.{e.Entity}")
+                .ToList();
+
+              foreach (var group in entityGroups)
+              {
+                var first = group.First();
+                string resolverClassName = $"GeneratedEventAggregatorResolver_{first.Entity}";
+                string fullEntityType = $"{first.EntityNamespace}.{first.Entity}";
+
+                builder
+                  .AppendLine($"internal sealed class {resolverClassName} : Papst.EventStore.Aggregation.IEventAggregatorResolver<{fullEntityType}>")
+                  .AppendLine("{")
+                  .AppendLine("  private readonly System.IServiceProvider _serviceProvider;")
+                  .AppendLine($"  public {resolverClassName}(System.IServiceProvider serviceProvider)")
+                  .AppendLine("  {")
+                  .AppendLine("    _serviceProvider = serviceProvider;")
+                  .AppendLine("  }")
+                  .AppendLine($"  public Papst.EventStore.Aggregation.IEventAggregator<{fullEntityType}> Resolve(System.Type eventType)")
+                  .AppendLine("  {");
+
+                foreach (var pair in group)
+                {
+                  string fullEventType = $"{pair.EventNamespace}.{pair.Event}";
+                  builder.AppendLine($"    if (eventType == typeof({fullEventType})) return (Papst.EventStore.Aggregation.IEventAggregator<{fullEntityType}>)Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Papst.EventStore.Aggregation.IEventAggregator<{fullEntityType}, {fullEventType}>>(_serviceProvider);");
+                }
+
+                builder
+                  .AppendLine($"    throw new System.InvalidOperationException($\"No aggregator registered for event type {{eventType}} on entity {fullEntityType}\");")
+                  .AppendLine("  }")
+                  .AppendLine("}");
+              }
+            }
+
             productionContext.AddSource("EventRegistration.g.cs", builder.ToString());
+
+            // --- Generate EventStoreJsonSerializerContext ---
+            // NOTE: We cannot generate a true JsonSerializerContext because STJ's source generator
+            // runs in parallel with our generator and won't process our output.
+            // Instead, we register default JsonSerializerOptions. For AOT-safe serialization,
+            // users should create their own JsonSerializerContext and configure EventStoreSerializerOptions.
+            if (events.Count > 0)
+            {
+              StringBuilder contextBuilder = new StringBuilder();
+              contextBuilder
+                .AppendLine("// <auto-generated/>")
+                .AppendLine("#nullable enable")
+                .AppendLine()
+                .AppendLine($"namespace {baseNamespace};")
+                .AppendLine()
+                .AppendLine("/// <summary>")
+                .AppendLine("/// Provides default JSON serializer options for the event store.")
+                .AppendLine("/// For AOT-safe serialization, create a JsonSerializerContext with [JsonSerializable]")
+                .AppendLine("/// attributes for your event types and register it via EventStoreSerializerOptions.")
+                .AppendLine("/// </summary>")
+                .AppendLine("internal static class EventStoreSerializerDefaults")
+                .AppendLine("{")
+                .AppendLine("  public static System.Text.Json.JsonSerializerOptions Options { get; } = new System.Text.Json.JsonSerializerOptions();")
+                .AppendLine("}");
+
+              productionContext.AddSource("EventStoreSerializerDefaults.g.cs", contextBuilder.ToString());
+            }
           }
           else
           {

@@ -60,8 +60,8 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       var guidSerializer = new GuidSerializer(BsonType.String);
       BsonSerializer.RegisterSerializer(guidSerializer);
 
-      // Register custom serializer for JObject
-      BsonSerializer.RegisterSerializer(typeof(Newtonsoft.Json.Linq.JObject), new JObjectBsonSerializer());
+      // Register custom serializer for JsonNode
+      BsonSerializer.RegisterSerializer(typeof(System.Text.Json.Nodes.JsonNode), new JsonNodeBsonSerializer());
 
       _conventionsRegistered = true;
     }

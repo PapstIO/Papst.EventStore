@@ -1,13 +1,12 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
+﻿using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.AzureCosmos.Database;
 
 public class EventStreamDocumentEntity
 {
-  [JsonProperty("id")]
+  [JsonPropertyName("id")]
   public string Id { get; init; } = string.Empty;
 
   /// <summary>
@@ -18,13 +17,12 @@ public class EventStreamDocumentEntity
   /// <summary>
   /// The Event Stream Id
   /// </summary>
-  [JsonProperty(nameof(StreamId))]
   public Guid StreamId { get; set; }
 
   /// <summary>
   /// Type of the Document
   /// </summary>
-  [JsonConverter(typeof(StringEnumConverter))]
+  [JsonConverter(typeof(JsonStringEnumConverter))]
   public EventStreamDocumentType DocumentType { get; init; }
 
   /// <summary>
@@ -45,7 +43,7 @@ public class EventStreamDocumentEntity
   /// <summary>
   /// Data of the Event as JSON Object
   /// </summary>
-  public JObject Data { get; init; } = JObject.FromObject(new());
+  public JsonNode Data { get; init; } = new JsonObject();
 
   /// <summary>
   /// Type of the Data

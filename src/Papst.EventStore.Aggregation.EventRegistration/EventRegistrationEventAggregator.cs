@@ -1,7 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Papst.EventStore.Aggregation;
 using Papst.EventStore.Documents;
 using System;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,24 +15,31 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   where TEntity : class, IEntity, new()
 {
   private readonly ILogger<EventRegistrationEventAggregator<TEntity>> _logger;
-  private readonly IServiceProvider _serviceProvider;
+  private readonly IEventAggregatorResolver<TEntity> _aggregatorResolver;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly JsonSerializerOptions? _jsonOptions;
 
   public EventRegistrationEventAggregator(
     ILogger<EventRegistrationEventAggregator<TEntity>> logger,
-    IServiceProvider serviceProvider,
-    IEventTypeProvider eventTypeProvider)
+    IEventAggregatorResolver<TEntity> aggregatorResolver,
+    IEventTypeProvider eventTypeProvider,
+    IOptions<EventStoreSerializerOptions>? serializerOptions = null)
   {
     _logger = logger;
-    _serviceProvider = serviceProvider;
+    _aggregatorResolver = aggregatorResolver;
     _eventTypeProvider = eventTypeProvider;
+    _jsonOptions = serializerOptions?.Value?.JsonSerializerOptions;
   }
 
   /// <inheritdoc/>
+  [RequiresUnreferencedCode("JSON deserialization of event and entity types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event and entity types may require dynamic code generation.")]
   public async Task<TEntity?> AggregateAsync(IEventStream stream, CancellationToken cancellationToken)
     => await AggregateAsync(stream, stream.Version, cancellationToken).ConfigureAwait(false);
 
   /// <inheritdoc/>
+  [RequiresUnreferencedCode("JSON deserialization of event and entity types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event and entity types may require dynamic code generation.")]
   public async Task<TEntity?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken)
   {
     _logger.CreatingNewEntity(typeof(TEntity).Name, stream.StreamId);
@@ -42,16 +53,19 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   }
 
   /// <inheritdoc/>
+  [RequiresUnreferencedCode("JSON deserialization of event and entity types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event and entity types may require dynamic code generation.")]
   public async Task<TEntity?> AggregateAsync(IEventStream stream, TEntity target, CancellationToken cancellationToken)
     => await AggregateAsync(stream, target, stream.Version, cancellationToken).ConfigureAwait(false);
 
   /// <inheritdoc/>
+  [RequiresUnreferencedCode("JSON deserialization of event and entity types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event and entity types may require dynamic code generation.")]
   public async Task<TEntity?> AggregateAsync(IEventStream stream, TEntity originalTarget, ulong targetVersion, CancellationToken cancellationToken)
   {
     TEntity? target = originalTarget;
 
     Type entityType = typeof(TEntity);
-    Type aggregatorType = typeof(IEventAggregator<,>);
 
     bool hasBeenDeleted = false;
     EventRegistrationEventAggregatorStreamContext context = new(
@@ -59,7 +73,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       originalTarget.Version,
       targetVersion,
       stream.Created,
-      stream.Created);
+      stream.Created) { JsonSerializerOptions = _jsonOptions };
 
     await foreach (var evt in stream.ListAsync(originalTarget.Version, cancellationToken))
     {
@@ -92,14 +106,14 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
         if (evt.DocumentType == EventStreamDocumentType.Snapshot)
         {
           // when the event is a snapshot, just use it as target
-          target = evt.Data.ToObject<TEntity>() ?? target ?? new();
+          target = evt.Data.Deserialize<TEntity>() ?? target ?? new();
           // update the targets Version to match the current Snapshot
           target.Version = context.CurrentVersion;
 
           continue;
         }
         Type eventType = _eventTypeProvider.ResolveIdentifier(evt.DataType);
-        IEventAggregator<TEntity> aggregator = (_serviceProvider.GetRequiredService(aggregatorType.MakeGenericType(entityType, eventType)) as IEventAggregator<TEntity>)!;
+        IEventAggregator<TEntity> aggregator = _aggregatorResolver.Resolve(eventType);
 
 
         if (hasBeenDeleted)

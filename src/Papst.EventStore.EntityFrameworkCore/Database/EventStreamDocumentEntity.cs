@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Nodes;
-using Newtonsoft.Json.Linq;
 
 namespace Papst.EventStore.EntityFrameworkCore.Database;
 

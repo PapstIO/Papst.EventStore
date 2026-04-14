@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Papst.EventStore.Aggregation.EventRegistration;
 
@@ -12,6 +13,12 @@ internal record EventRegistrationEventAggregatorStreamContext(
   DateTimeOffset EventTime)
   : IAggregatorStreamContext
 {
+  /// <summary>
+  /// The JSON serializer options to use for event deserialization.
+  /// When configured with a source-generated context, enables AOT-safe deserialization.
+  /// </summary>
+  public JsonSerializerOptions? JsonSerializerOptions { get; init; }
+
   private readonly Dictionary<string, AggregationContextData> _aggregationData = new();
 
   /// <inheritdoc/>

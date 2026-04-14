@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json;
 using AutoFixture.Xunit2;
-using Newtonsoft.Json;
 using Papst.EventStore.Documents;
 using Shouldly;
 using Xunit;
@@ -45,7 +45,7 @@ public class EventStreamMetadataTests
   {
     doc.ShouldNotBeNull();
 
-    string serialized = JsonConvert.SerializeObject(doc);
+    string serialized = JsonSerializer.Serialize(doc);
 
     serialized.ShouldNotBeNullOrEmpty();
     serialized.ShouldStartWith("{");
@@ -56,7 +56,7 @@ public class EventStreamMetadataTests
   {
     doc.ShouldNotBeNull();
 
-    var deserialized = JsonConvert.DeserializeObject<EventStreamMetaData>(JsonConvert.SerializeObject(doc));
+    var deserialized = JsonSerializer.Deserialize<EventStreamMetaData>(JsonSerializer.Serialize(doc));
 
     deserialized.ShouldNotBeNull();
     deserialized.UserId.ShouldBe(doc.UserId);

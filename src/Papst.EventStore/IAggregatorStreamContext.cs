@@ -1,10 +1,18 @@
-﻿namespace Papst.EventStore;
+﻿using System.Text.Json;
+
+namespace Papst.EventStore;
 
 /// <summary>
 /// Event Stream Context passed onto the Aggregator
 /// </summary>
 public interface IAggregatorStreamContext
 {
+  /// <summary>
+  /// The JSON serializer options to use for event deserialization.
+  /// When configured with a source-generated context, enables AOT-safe deserialization.
+  /// </summary>
+  JsonSerializerOptions? JsonSerializerOptions => null;
+
   /// <summary>
   /// Id of the Stream
   /// </summary>

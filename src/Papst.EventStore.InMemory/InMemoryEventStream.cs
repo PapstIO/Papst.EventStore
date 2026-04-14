@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.InMemory;
@@ -45,6 +47,8 @@ internal class InMemoryEventStream : IEventStream
   public Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default) 
     => Task.FromResult(_events.LastOrDefault(e => e.DocumentType == EventStreamDocumentType.Snapshot));
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
@@ -55,7 +59,7 @@ internal class InMemoryEventStream : IEventStream
       Version = Version + 1,
       Time = _tp.GetLocalNow(),
       DataType = name,
-      Data = JObject.FromObject(evt),
+      Data = JsonSerializer.SerializeToNode(evt)!,
       DocumentType = EventStreamDocumentType.Event,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = _targetType,
@@ -66,6 +70,8 @@ internal class InMemoryEventStream : IEventStream
     return Task.CompletedTask;
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public Task AppendSnapshotAsync<TEntity>(Guid id, TEntity entity, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEntity : notnull
   {
@@ -75,7 +81,7 @@ internal class InMemoryEventStream : IEventStream
       Version = Version + 1,
       Time = _tp.GetLocalNow(),
       DataType = _targetType,
-      Data = JObject.FromObject(entity),
+      Data = JsonSerializer.SerializeToNode(entity)!,
       DocumentType = EventStreamDocumentType.Snapshot,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = _targetType,
@@ -137,6 +143,8 @@ internal class InMemoryTransactionalBatch(
 {
   private readonly List<Action> _actions = [];
     
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public IEventStoreTransactionAppender Add<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
@@ -147,7 +155,7 @@ internal class InMemoryTransactionalBatch(
       Version = events.Max(e => e.Version) + 1,
       Time = tp.GetLocalNow(),
       DataType = name,
-      Data = JObject.FromObject(evt),
+      Data = JsonSerializer.SerializeToNode(evt)!,
       DocumentType = EventStreamDocumentType.Event,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = targetType,

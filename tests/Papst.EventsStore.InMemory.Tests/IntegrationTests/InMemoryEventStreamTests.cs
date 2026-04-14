@@ -1,4 +1,5 @@
 using AutoFixture.Xunit2;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventsStore.InMemory.Tests.IntegrationTests.Events;
 using Papst.EventStore;
@@ -44,7 +45,7 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     
     // assert
     result.Count.ShouldBe(events.Count);
-    result.Select(e => e.Data.ToObject<TestEvent>())
+    result.Select(e => e.Data.Deserialize<TestEvent>())
       .Where(e => e is not null)
       .Select(e => e!)
       .ToList()

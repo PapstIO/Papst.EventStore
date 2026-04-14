@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore;
@@ -13,6 +14,8 @@ public interface IEventStoreTransactionAppender
   /// <param name="metaData">The Events Meta Data</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON serialization of TEvent may require unreferenced code. Use a JsonSerializerContext for AOT compatibility.")]
+  [RequiresDynamicCode("JSON serialization of TEvent may require dynamic code generation. Use a JsonSerializerContext for AOT compatibility.")]
   IEventStoreTransactionAppender Add<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
     where TEvent: notnull;
 

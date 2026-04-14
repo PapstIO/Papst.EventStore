@@ -4,6 +4,8 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <IsTrimmable>true</IsTrimmable>
         <Authors>Marco Papst</Authors>
         <Description>MongoDB based EventStore Implementation</Description>
         <Title>Papst.EventStore.MongoDB</Title>

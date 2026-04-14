@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -60,7 +61,7 @@ public static class CosmosEventStoreProvider
   /// <param name="services"></param>
   /// <typeparam name="TStrategy">The Id Strategy implementation</typeparam>
   /// <returns></returns>
-  public static IServiceCollection UseCosmosEventStoreStreamIdStrategy<TStrategy>(this IServiceCollection services)
+  public static IServiceCollection UseCosmosEventStoreStreamIdStrategy<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TStrategy>(this IServiceCollection services)
     where TStrategy : class, ICosmosIdStrategy => services
     .RemoveAll(typeof(ICosmosIdStrategy))
     .AddSingleton<ICosmosIdStrategy, TStrategy>();

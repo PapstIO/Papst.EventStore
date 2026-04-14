@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore;
@@ -46,6 +47,8 @@ public interface IEventStream
   /// <param name="metaData">The Events Meta Data</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON serialization of TEvent may require unreferenced code. Use a JsonSerializerContext for AOT compatibility.")]
+  [RequiresDynamicCode("JSON serialization of TEvent may require dynamic code generation. Use a JsonSerializerContext for AOT compatibility.")]
   Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
@@ -63,6 +66,8 @@ public interface IEventStream
   /// <param name="cancellationToken"></param>
   /// <typeparam name="TEntity">The Entity Type</typeparam>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON serialization of TEntity may require unreferenced code. Use a JsonSerializerContext for AOT compatibility.")]
+  [RequiresDynamicCode("JSON serialization of TEntity may require dynamic code generation. Use a JsonSerializerContext for AOT compatibility.")]
   Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,

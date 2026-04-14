@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Papst.EventStore.Aggregation;
 
@@ -6,8 +8,10 @@ public abstract class EventAggregatorBase<TEntity, TEvent> : IEventAggregator<TE
   where TEntity : class
 {
   /// <inheritdoc cref="IEventAggregator{TEntity,TEvent}"/>
-  public async ValueTask<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx) => await ApplyAsync(
-    evt.ToObject<TEvent>() ?? throw new NotSupportedException($"Could not parse Event {evt}"),
+  [RequiresUnreferencedCode("JSON deserialization of TEvent may require unreferenced code. Use a JsonSerializerContext for AOT compatibility.")]
+  [RequiresDynamicCode("JSON deserialization of TEvent may require dynamic code generation. Use a JsonSerializerContext for AOT compatibility.")]
+  public async ValueTask<TEntity?> ApplyAsync(JsonNode evt, TEntity entity, IAggregatorStreamContext ctx) => await ApplyAsync(
+    evt.Deserialize<TEvent>(ctx.JsonSerializerOptions) ?? throw new NotSupportedException($"Could not parse Event {evt}"),
     entity,
     ctx);
 

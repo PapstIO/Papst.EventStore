@@ -1,4 +1,6 @@
-﻿namespace Papst.EventStore.Aggregation;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace Papst.EventStore.Aggregation;
 
 /// <summary>
 /// IEventStream Aggregator, Applies all Event of a Stream to a Target Entity
@@ -13,6 +15,8 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="stream">The Stream</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON deserialization of event types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event types may require dynamic code generation.")]
   Task<TTargetType?> AggregateAsync(IEventStream stream, CancellationToken cancellationToken);
 
   /// <summary>
@@ -22,6 +26,8 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="targetVersion">The target version</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON deserialization of event types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event types may require dynamic code generation.")]
   Task<TTargetType?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken);
 
   /// <summary>
@@ -31,6 +37,8 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="target">The Target Entity Instance</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON deserialization of event types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event types may require dynamic code generation.")]
   Task<TTargetType?> AggregateAsync(IEventStream stream, TTargetType target, CancellationToken cancellationToken);
 
   /// <summary>
@@ -41,5 +49,7 @@ public interface IEventStreamAggregator<TTargetType>
   /// <param name="targetVersion">The target version</param>
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
+  [RequiresUnreferencedCode("JSON deserialization of event types may require unreferenced code.")]
+  [RequiresDynamicCode("JSON deserialization of event types may require dynamic code generation.")]
   Task<TTargetType?> AggregateAsync(IEventStream stream, TTargetType target, ulong targetVersion, CancellationToken cancellationToken);
 }

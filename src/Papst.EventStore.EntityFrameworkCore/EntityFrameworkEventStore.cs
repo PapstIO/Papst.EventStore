@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.EntityFrameworkCore.Database;
@@ -30,6 +31,8 @@ public sealed class EntityFrameworkEventStore : IEventStore
         cancellationToken)
       .ConfigureAwait(false);
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Dictionary<string,string> serialization is safe for trimming.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Dictionary<string,string> serialization is safe for AOT.")]
   public async Task<IEventStream> CreateAsync(
     Guid streamId,
     string targetTypeName,

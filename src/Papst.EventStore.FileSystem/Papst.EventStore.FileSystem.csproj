@@ -3,6 +3,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsTrimmable>true</IsTrimmable>
     <Authors>Marco Papst</Authors>
     <Description>FileSystem based EventStore Implementation for testing purpose only!</Description>
     <Title>Papst.EventStore.FileSystem</Title>

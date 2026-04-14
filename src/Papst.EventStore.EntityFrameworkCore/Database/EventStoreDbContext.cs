@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Papst.EventStore.EntityFrameworkCore.Database;
@@ -7,9 +8,14 @@ public class EventStoreDbContext : DbContext
 {
   public DbSet<EventStreamEntity> Streams { get; set; } = null!;
   public DbSet<EventStreamDocumentEntity> Documents { get; set; } = null!;
+
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "EF Core requires dynamic code for model building; annotated at registration level.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "EF Core requires dynamic code for model building; annotated at registration level.")]
   public EventStoreDbContext(DbContextOptions options) : base(options)
   { }
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "EF Core requires dynamic code for model building.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "EF Core requires dynamic code for model building.")]
   public EventStoreDbContext()
   { }
 

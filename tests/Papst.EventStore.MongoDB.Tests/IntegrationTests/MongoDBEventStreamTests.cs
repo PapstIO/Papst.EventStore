@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture.Xunit2;
@@ -46,7 +47,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     // assert
     var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
     events.Count.ShouldBe(1);
-    events[0].Data.ToObject<TestEvent>().ShouldBe(testEvent);
+    events[0].Data.Deserialize<TestEvent>().ShouldBe(testEvent);
   }
 
   [Theory, AutoData]
@@ -67,7 +68,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
 
     // assert
     result.Count.ShouldBe(testEvents.Count);
-    result.Select(e => e.Data.ToObject<TestEvent>())
+    result.Select(e => e.Data.Deserialize<TestEvent>())
       .Where(e => e is not null)
       .Select(e => e!)
       .ToList()
@@ -110,7 +111,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     // assert
     var latestSnapshot = await stream.GetLatestSnapshot(CancellationToken.None);
     latestSnapshot.ShouldNotBeNull();
-    latestSnapshot!.Data.ToObject<TestEvent>().ShouldBe(snapshot);
+    latestSnapshot!.Data.Deserialize<TestEvent>().ShouldBe(snapshot);
   }
 
   [Theory, AutoData]

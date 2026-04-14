@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Papst.EventStore.Documents;
 
@@ -22,7 +23,7 @@ public record EventStreamDocument
   /// <summary>
   /// Type of the Document
   /// </summary>
-  [JsonConverter(typeof(StringEnumConverter))]
+  [JsonConverter(typeof(JsonStringEnumConverter))]
   public EventStreamDocumentType DocumentType { get; init; }
 
   /// <summary>
@@ -43,7 +44,7 @@ public record EventStreamDocument
   /// <summary>
   /// Data of the Event as JSON Object
   /// </summary>
-  public JObject Data { get; init; } = JObject.FromObject(new object());
+  public JsonNode Data { get; init; } = new JsonObject();
 
   /// <summary>
   /// Type of the Data
@@ -74,7 +75,9 @@ public record EventStreamDocument
   /// <param name="metaData"></param>
   /// <param name="documentType"></param>
   /// <returns></returns>
-  public static EventStreamDocument Create<TEvent>(Guid streamId, Guid id, ulong version, string name, TEvent data, string dataType, string targetType, EventStreamMetaData? metaData = null, EventStreamDocumentType documentType = EventStreamDocumentType.Event)
+  [RequiresUnreferencedCode("JSON serialization of TEvent may require unreferenced code. Use a JsonSerializerContext for AOT compatibility.")]
+  [RequiresDynamicCode("JSON serialization of TEvent may require dynamic code generation. Use a JsonSerializerContext for AOT compatibility.")]
+  public static EventStreamDocument Create<TEvent>(Guid streamId, Guid id, ulong version, string name, TEvent data, string dataType, string targetType, EventStreamMetaData? metaData = null, EventStreamDocumentType documentType = EventStreamDocumentType.Event, JsonSerializerOptions? jsonOptions = null)
     where TEvent : notnull
     => new EventStreamDocument
     {
@@ -84,7 +87,7 @@ public record EventStreamDocument
       Version = version,
       Name = name,
       Time = DateTimeOffset.Now,
-      Data = JObject.FromObject(data),
+      Data = JsonSerializer.SerializeToNode(data, jsonOptions)!,
       DataType = dataType,
       TargetType = targetType,
     };

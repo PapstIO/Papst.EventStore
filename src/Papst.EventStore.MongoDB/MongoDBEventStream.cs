@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
-using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.MongoDB;
@@ -73,6 +74,8 @@ internal class MongoDBEventStream : IEventStream
     return await _documentsCollection.Find(filter).Sort(sort).FirstOrDefaultAsync(cancellationToken);
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
@@ -91,7 +94,7 @@ internal class MongoDBEventStream : IEventStream
       Version = newVersion,
       Time = _timeProvider.GetLocalNow(),
       DataType = name,
-      Data = JObject.FromObject(evt),
+      Data = JsonSerializer.SerializeToNode(evt)!,
       DocumentType = EventStreamDocumentType.Event,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = _targetType,
@@ -108,6 +111,8 @@ internal class MongoDBEventStream : IEventStream
     Version = newVersion;
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
@@ -125,7 +130,7 @@ internal class MongoDBEventStream : IEventStream
       Version = newVersion,
       Time = _timeProvider.GetLocalNow(),
       DataType = _targetType,
-      Data = JObject.FromObject(entity),
+      Data = JsonSerializer.SerializeToNode(entity)!,
       DocumentType = EventStreamDocumentType.Snapshot,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = _targetType,

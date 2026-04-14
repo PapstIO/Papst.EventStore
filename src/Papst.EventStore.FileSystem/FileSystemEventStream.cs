@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
 using Papst.EventStore.FileSystem.Entities;
@@ -7,9 +8,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 
 namespace Papst.EventStore.FileSystem;
 internal sealed class FileSystemEventStream : IEventStream
@@ -40,6 +41,8 @@ internal sealed class FileSystemEventStream : IEventStream
   }
 
   /// <inheritdoc/>
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
@@ -57,6 +60,8 @@ internal sealed class FileSystemEventStream : IEventStream
     await UpdateIndexAsync().ConfigureAwait(false);
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
@@ -93,6 +98,8 @@ internal sealed class FileSystemEventStream : IEventStream
   private class FileSystemEventStoreTransaction(FileSystemEventStream stream) : IEventStoreTransactionAppender
   {
     private readonly List<EventStreamDocumentTemplate> _events = [];
+    [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
     public IEventStoreTransactionAppender Add<TEvent>(
       Guid id,
       TEvent evt,
@@ -103,7 +110,7 @@ internal sealed class FileSystemEventStream : IEventStream
       string eventName = stream._eventTypeProvider.ResolveType(typeof(TEvent));
       _events.Add(new(
         id,
-        JObject.FromObject(evt),
+        JsonSerializer.SerializeToNode(evt)!,
         eventName,
         eventName,
         DateTimeOffset.Now,
@@ -114,6 +121,8 @@ internal sealed class FileSystemEventStream : IEventStream
       return this;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "EventStreamDocument.Create is called with JsonNode data, a known type.")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "EventStreamDocument.Create is called with JsonNode data, a known type.")]
     public async Task CommitAsync(CancellationToken cancellationToken = default)
     {
       if (_events.Count == 0)
@@ -145,7 +154,7 @@ internal sealed class FileSystemEventStream : IEventStream
 
     private record EventStreamDocumentTemplate(
       Guid DocumentId,
-      JObject Data,
+      JsonNode Data,
       string DataType,
       string Name,
       DateTimeOffset Time,
@@ -155,6 +164,8 @@ internal sealed class FileSystemEventStream : IEventStream
   }
 
   /// <inheritdoc/>
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Deserializing known type EventStreamDocument.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Deserializing known type EventStreamDocument.")]
   public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
   {
     if (!_entity.LatestSnapshotVersion.HasValue)
@@ -183,6 +194,8 @@ internal sealed class FileSystemEventStream : IEventStream
     => ListAsync(startVersion, _entity.Version, cancellationToken);
 
   /// <inheritdoc/>
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Deserializing known type EventStreamDocument.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Deserializing known type EventStreamDocument.")]
   public async IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, [EnumeratorCancellation] CancellationToken cancellationToken = default)
   {
     Logging.ReadingEventStream(_logger, StreamId, startVersion, endVersion);
@@ -209,6 +222,8 @@ internal sealed class FileSystemEventStream : IEventStream
     }
   }
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Deserializing known type EventStreamDocument.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Deserializing known type EventStreamDocument.")]
   public async IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
     [EnumeratorCancellation] CancellationToken cancellationToken = default)
   {
@@ -249,6 +264,8 @@ internal sealed class FileSystemEventStream : IEventStream
   }
 
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Serializing known types EventStreamDocument and FileSystemStreamIndexEntity.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Serializing known types EventStreamDocument and FileSystemStreamIndexEntity.")]
   private async Task AppendInternalAsync(EventStreamDocument document, CancellationToken cancellationToken = default)
   {
     string targetPath = Path.Combine(_path, VersionToPath(document.Version));
@@ -271,6 +288,8 @@ internal sealed class FileSystemEventStream : IEventStream
 
   private static string VersionToPath(ulong version) => (version / 100).ToString("0000000000");
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Serializing known type FileSystemStreamIndexEntity.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Serializing known type FileSystemStreamIndexEntity.")]
   private async Task UpdateIndexAsync()
     => await File.WriteAllTextAsync(
       Path.Combine(_path, FileSystemEventStore.IndexFileName),

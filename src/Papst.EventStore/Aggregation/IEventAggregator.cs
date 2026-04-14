@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
 
 namespace Papst.EventStore.Aggregation;
 
@@ -28,11 +29,13 @@ public interface IEventAggregator<TEntity>
     where TEntity : class
 {
   /// <summary>
-  /// Applies the Event as <see cref="JObject"/> to the Entity <see cref="TEntity"/>
+  /// Applies the Event as <see cref="JsonNode"/> to the Entity <see cref="TEntity"/>
   /// </summary>
   /// <param name="evt"></param>
   /// <param name="entity"></param>
   /// <param name="ctx"></param>
   /// <returns></returns>
-  ValueTask<TEntity?> ApplyAsync(JObject evt, TEntity entity, IAggregatorStreamContext ctx);
+  [RequiresUnreferencedCode("JSON deserialization of event data may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON deserialization of event data may require runtime code generation.")]
+  ValueTask<TEntity?> ApplyAsync(JsonNode evt, TEntity entity, IAggregatorStreamContext ctx);
 }

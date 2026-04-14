@@ -1,8 +1,9 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 using Papst.EventStore.EntityFrameworkCore.Database;
 
@@ -14,6 +15,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   private readonly EventStreamEntity _stream;
   private readonly IEventTypeProvider _eventTypeProvider;
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Dictionary<string,string> deserialization is safe for trimming.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Dictionary<string,string> deserialization is safe for AOT.")]
   public EntityFrameworkEventStream(
     ILogger<EntityFrameworkEventStream> logger,
     EventStoreDbContext dbContext,
@@ -46,6 +49,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   /// <inheritdoc />
   public EventStreamMetaData MetaData { get; }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
@@ -65,6 +70,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
   }
   
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public async Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
@@ -108,9 +115,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
       return null;
     }
 
-    return Map()
-      .Compile()
-      .Invoke(document);
+    return MapEntity(document);
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion = 0u, CancellationToken cancellationToken = default) 
@@ -142,6 +147,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
   public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default)
   => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Serializing known type EventStreamMetaData.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Serializing known type EventStreamMetaData.")]
   public async Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
   {
     _dbContext.Streams.Attach(_stream);
@@ -153,7 +160,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
   }
 
-  private static Expression<Func<EventStreamDocumentEntity, EventStreamDocument>> Map() => doc => new EventStreamDocument()
+  private static EventStreamDocument MapEntity(EventStreamDocumentEntity doc) => new()
   {
     Id = doc.Id,
     StreamId = doc.StreamId,
@@ -161,7 +168,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     Version = doc.Version,
     Time = doc.Time,
     Name = doc.Name,
-    Data = JObject.Parse(doc.Data),
+    Data = JsonNode.Parse(doc.Data)!,
     DataType = doc.DataType,
     TargetType = doc.TargetType,
     MetaData = new()
@@ -174,6 +181,29 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     },
   };
 
+  private static Expression<Func<EventStreamDocumentEntity, EventStreamDocument>> Map() => doc => new EventStreamDocument()
+  {
+    Id = doc.Id,
+    StreamId = doc.StreamId,
+    DocumentType = doc.Type == EventStreamDocumentEntityType.Event ? EventStreamDocumentType.Event : EventStreamDocumentType.Snapshot,
+    Version = doc.Version,
+    Time = doc.Time,
+    Name = doc.Name,
+    Data = JsonNode.Parse(doc.Data)!,
+    DataType = doc.DataType,
+    TargetType = doc.TargetType,
+    MetaData = new()
+    {
+      UserId = doc.MetaData.UserId,
+      UserName = doc.MetaData.UserName,
+      TenantId = doc.MetaData.TenantId,
+      Comment = doc.MetaData.Comment,
+      Additional = doc.MetaData.Additional,
+    },
+  };
+
+  [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Called from annotated public methods.")]
+  [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Called from annotated public methods.")]
   private EventStreamDocumentEntity CreateEventEntity<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName, EventStreamDocumentEntityType documentType = EventStreamDocumentEntityType.Event)
     where TEvent : notnull
   {
@@ -205,6 +235,8 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     : IEventStoreTransactionAppender
   {
     private readonly List<(Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity)> _items = [];
+    [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+    [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
     public IEventStoreTransactionAppender Add<TEvent>(
       Guid id,
       TEvent evt,
@@ -216,7 +248,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream
         id,
         evt,
         metaData,
-        stream._eventTypeProvider.ResolveType(evt.GetType())
+        stream._eventTypeProvider.ResolveType(typeof(TEvent))
       );
       _items.Add((id, evt, metaData, entity));
 

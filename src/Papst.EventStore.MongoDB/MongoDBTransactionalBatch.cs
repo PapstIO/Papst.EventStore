@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
-using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.MongoDB;
@@ -38,6 +39,8 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     _logger = logger;
   }
 
+  [RequiresUnreferencedCode("JSON serialization may require types that are not statically referenced.")]
+  [RequiresDynamicCode("JSON serialization may require runtime code generation.")]
   public IEventStoreTransactionAppender Add<TEvent>(
     Guid id,
     TEvent evt,
@@ -53,7 +56,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
       Version = 0, // Will be set during commit
       Time = _timeProvider.GetLocalNow(),
       DataType = name,
-      Data = JObject.FromObject(evt),
+      Data = JsonSerializer.SerializeToNode(evt)!,
       DocumentType = EventStreamDocumentType.Event,
       MetaData = metaData ?? new EventStreamMetaData(),
       TargetType = _targetType,
