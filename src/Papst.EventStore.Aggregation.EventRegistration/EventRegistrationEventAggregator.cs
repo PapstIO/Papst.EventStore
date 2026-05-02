@@ -32,10 +32,10 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
   public async Task<TEntity?> AggregateAsync(IEventStream stream, ulong targetVersion, CancellationToken cancellationToken)
   {
     _logger.CreatingNewEntity(typeof(TEntity).Name, stream.StreamId);
-    // create the Entity using the StartVersion - 1 because the Aggregator will increment it after applying the first Event
-    return await AggregateAsync(
+    return await AggregateInternalAsync(
       stream,
-      new TEntity() { Version = 0 },
+      new TEntity(),
+      fromVersion: 0,
       targetVersion,
       cancellationToken
     ).ConfigureAwait(false);
@@ -47,6 +47,22 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
 
   /// <inheritdoc/>
   public async Task<TEntity?> AggregateAsync(IEventStream stream, TEntity originalTarget, ulong targetVersion, CancellationToken cancellationToken)
+  {
+    // The caller's target already has events 0..originalTarget.Version applied, so
+    // start from the next version. ListAsync's predicate is inclusive on startVersion;
+    // if we passed originalTarget.Version directly the boundary event would be applied
+    // twice, which is silent for idempotent aggregators but doubles every entry for
+    // ones that mutate collections (e.g. List.Add).
+    return await AggregateInternalAsync(
+      stream,
+      originalTarget,
+      fromVersion: originalTarget.Version + 1,
+      targetVersion,
+      cancellationToken
+    ).ConfigureAwait(false);
+  }
+
+  private async Task<TEntity?> AggregateInternalAsync(IEventStream stream, TEntity originalTarget, ulong fromVersion, ulong targetVersion, CancellationToken cancellationToken)
   {
     TEntity? target = originalTarget;
 
@@ -61,7 +77,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       stream.Created,
       stream.Created);
 
-    await foreach (var evt in stream.ListAsync(originalTarget.Version, cancellationToken))
+    await foreach (var evt in stream.ListAsync(fromVersion, cancellationToken))
     {
       try
       {
