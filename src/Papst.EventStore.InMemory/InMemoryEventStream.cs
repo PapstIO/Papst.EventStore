@@ -11,6 +11,7 @@ namespace Papst.EventStore.InMemory;
 internal class InMemoryEventStream : IEventStream
 {
   private readonly List<EventStreamDocument> _events = new();
+  private readonly ulong _initialVersion;
   private readonly TimeProvider _tp;
   private readonly string _targetType;
   private readonly IEventTypeProvider _typeProvider;
@@ -25,7 +26,7 @@ internal class InMemoryEventStream : IEventStream
     IEventTypeProvider typeProvider)
   {
     StreamId = streamId;
-    Version = version;
+    _initialVersion = version;
     Created = created;
     MetaData = metaData;
     _tp = tp;
@@ -34,7 +35,7 @@ internal class InMemoryEventStream : IEventStream
   }
 
   public Guid StreamId { get; }
-  public ulong Version { get; }
+  public ulong Version => _events.Count == 0 ? _initialVersion : _events.Max(e => e.Version);
   public DateTimeOffset Created { get; }
   public ulong? LatestSnapshotVersion => _events
     .Where(e => e.DocumentType == EventStreamDocumentType.Snapshot)
@@ -136,7 +137,7 @@ internal class InMemoryTransactionalBatch(
   string targetType) : IEventStoreTransactionAppender
 {
   private readonly List<Action> _actions = [];
-    
+
   public IEventStoreTransactionAppender Add<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
@@ -144,7 +145,7 @@ internal class InMemoryTransactionalBatch(
     _actions.Add(() => events.Add(new EventStreamDocument()
     {
       StreamId = streamId,
-      Version = events.Max(e => e.Version) + 1,
+      Version = (events.Count == 0 ? 0UL : events.Max(e => e.Version)) + 1,
       Time = tp.GetLocalNow(),
       DataType = name,
       Data = JObject.FromObject(evt),
