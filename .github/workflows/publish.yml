@@ -5,6 +5,9 @@ on:
     branches: 
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-and-publish-contracts:
     runs-on: ubuntu-latest
@@ -96,3 +99,40 @@ jobs:
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
       run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_APIKEY }}
+
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: build-and-publish-stores
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '10.x'
+
+    - name: Setup Nerdbank.GitVersioning
+      run: dotnet tool install -g nbgv
+
+    - name: Determine release version
+      id: version
+      shell: pwsh
+      run: |
+        $version = nbgv get-version -v NuGetPackageVersion
+        "package_version=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version.outputs.package_version }}
+        name: v${{ steps.version.outputs.package_version }}
+        target_commitish: ${{ github.sha }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
