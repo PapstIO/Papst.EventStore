@@ -59,6 +59,38 @@ Please refer to the documentation in the relevant implementation sources:
 * [Azure Cosmos](./src/Papst.EventStore.AzureCosmos/README.md)
 * [Entity Framework Core](./src/Papst.EventStore.EntityFrameworkCore/README.md)
 
+## Low-level event access
+
+The `ILowLevelEventStream` interface provides a low-level append API that accepts a raw `JObject` together with an explicit event type name:
+
+```csharp
+Task AppendAsync(
+    Guid id,
+    string eventType,
+    JObject evt,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default);
+```
+
+This API is currently only implemented by the Azure Cosmos provider.
+
+`ILowLevelEventStream` is not resolved directly from `IEventStore`. Instead, obtain an `IEventStream` first and then cast it to `ILowLevelEventStream` when the underlying provider supports it:
+
+```csharp
+IEventStream stream = await eventStore.GetAsync(streamId, cancellationToken);
+
+if (stream is ILowLevelEventStream lowLevelStream)
+{
+    await lowLevelStream.AppendAsync(
+        Guid.NewGuid(),
+        "MyExternalEvent",
+        JObject.Parse("""{ \"value\": 42 }"""),
+        cancellationToken: cancellationToken);
+}
+```
+
+This is intended for scenarios where the event payload or event type is not known at compile time. If you work with strongly typed events, prefer `IEventStream.AppendAsync<TEvent>()`.
+
 ## Event Catalog
 
 The **Event Catalog** provides a queryable registry of all events associated with a given entity type, including metadata (description, constraints) and a compile-time generated JSON Schema. This is useful for documentation, API discovery, and runtime introspection.
