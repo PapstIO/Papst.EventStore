@@ -18,7 +18,7 @@ internal sealed class CosmosEventStream(
   ICosmosIdStrategy idStrategy,
   TimeProvider timeProvider
 )
-  : IEventStream
+  : IEventStream, ILowLevelEventStream
 {
   private const int MaxBatchSize = 100;
 
@@ -81,6 +81,26 @@ internal sealed class CosmosEventStream(
     },
   };
 
+  public async Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  {
+    EventStreamDocumentEntity document = new()
+    {
+      Id = await idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, EventStreamDocumentType.Event),
+      DocumentId = id,
+      StreamId = StreamId,
+      Version = _stream.NextVersion,
+      Data = JObject.FromObject(evt),
+      DataType = eventType,
+      Name = eventType,
+      Time = timeProvider.GetLocalNow(),
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new(),
+      TargetType = _stream.TargetType,
+    };
+
+    await AppendDocumentAsync(document, metaData, cancellationToken).ConfigureAwait(false);
+  }
+
   public async Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
@@ -90,25 +110,46 @@ internal sealed class CosmosEventStream(
   {
     string eventName = eventTypeProvider.ResolveType(typeof(TEvent));
     EventStreamDocumentEntity document = await CreateEventEntity(id, evt, metaData, eventName).ConfigureAwait(false);
+    await AppendDocumentAsync(document, metaData, cancellationToken).ConfigureAwait(false);
+  }
+
+  public async Task AppendSnapshotAsync<TEntity>(
+    Guid id,
+    TEntity entity,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  )
+    where TEntity : notnull
+  {
+    string eventName = typeof(TEntity).Name;
+    EventStreamDocumentEntity document =
+      await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
+    await AppendDocumentAsync(
+        document,
+        metaData,
+        cancellationToken,
+        PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion))
+      .ConfigureAwait(false);
+  }
+
+  private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await dbProvider.Container
+    .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
+    .ConfigureAwait(false);
+
+  private async Task AppendDocumentAsync(
+    EventStreamDocumentEntity document,
+    EventStreamMetaData? metaData,
+    CancellationToken cancellationToken,
+    params PatchOperation[] additionalPatches
+  )
+  {
     bool indexUpdateSuccessful = false;
     int retryCount = 0;
     do
     {
       try
       {
-        List<PatchOperation> patches =
-        [
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
-        ];
-        if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
-        {
-          patches.Add(PatchOperation.Set(
-            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
-            metaData.TenantId)
-          );
-        }
+        List<PatchOperation> patches = CreateAppendPatches(metaData, additionalPatches);
 
         ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
           .PatchItemAsync<EventStreamIndexEntity>(
@@ -138,69 +179,29 @@ internal sealed class CosmosEventStream(
       .ConfigureAwait(false);
   }
 
-  public async Task AppendSnapshotAsync<TEntity>(
-    Guid id,
-    TEntity entity,
-    EventStreamMetaData? metaData = null,
-    CancellationToken cancellationToken = default
+  private List<PatchOperation> CreateAppendPatches(
+    EventStreamMetaData? metaData,
+    params PatchOperation[] additionalPatches
   )
-    where TEntity : notnull
   {
-    string eventName = typeof(TEntity).Name;
-    EventStreamDocumentEntity document =
-      await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
-    bool indexUpdateSuccessful = false;
-    int retryCount = 0;
-    do
+    List<PatchOperation> patches =
+    [
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
+    ];
+    if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
     {
-      try
-      {
-        List<PatchOperation> patches =
-        [
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.NextVersion), _stream.NextVersion + 1),
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Version), _stream.NextVersion),
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.Updated), DateTimeOffset.Now),
-          PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion),
-        ];
-        if (metaData is not null && options.UpdateTenantIdOnAppend && metaData.TenantId is not null)
-        {
-          patches.Add(PatchOperation.Set(
-            '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
-            metaData.TenantId)
-          );
-        }
+      patches.Add(PatchOperation.Set(
+        '/' + nameof(EventStreamIndexEntity.MetaData) + '/' + nameof(EventStreamMetaData.TenantId),
+        metaData.TenantId)
+      );
+    }
 
-        ItemResponse<EventStreamIndexEntity> indexPatch = await dbProvider.Container
-          .PatchItemAsync<EventStreamIndexEntity>(
-            _stream.Id,
-            new PartitionKey(StreamId.ToString()),
-            patches,
-            new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
-            cancellationToken).ConfigureAwait(false);
+    patches.AddRange(additionalPatches);
 
-        _stream = indexPatch.Resource;
-        indexUpdateSuccessful = true;
-      }
-      catch (CosmosException e)
-      {
-        logger.IndexPatchConcurrency(e, _stream.StreamId);
-        retryCount++;
-        await Task.Delay(TimeSpan.FromMilliseconds(9), cancellationToken).ConfigureAwait(false);
-        await RefreshIndexAsync(cancellationToken).ConfigureAwait(false);
-      }
-    } while (!indexUpdateSuccessful && retryCount < options.ConcurrencyRetryCount);
-
-    logger.AppendingEvent(document.DataType, document.StreamId, document.Version);
-    _ = await dbProvider.Container.CreateItemAsync(
-        document,
-        new PartitionKey(StreamId.ToString()),
-        cancellationToken: cancellationToken)
-      .ConfigureAwait(false);
+    return patches;
   }
-
-  private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await dbProvider.Container
-    .ReadItemAsync<EventStreamIndexEntity>(_stream.Id, new(StreamId.ToString()), cancellationToken: cancellationToken)
-    .ConfigureAwait(false);
 
   private async ValueTask<EventStreamDocumentEntity> CreateEventEntity<TEvent>(
     Guid id,
@@ -532,7 +533,7 @@ internal sealed class CosmosEventStream(
     {
       var version = currentVersion + (ulong)i + 1;
 
-      currentBatch.CreateItem(new EventStreamDocumentEntity
+      currentBatch = currentBatch.CreateItem(new EventStreamDocumentEntity
       {
         Id = await idStrategy.GenerateIdAsync(StreamId, version, EventStreamDocumentType.Event),
         DocumentId = events[i].DocumentId,
@@ -561,4 +562,5 @@ internal sealed class CosmosEventStream(
       yield return currentBatch;
     }
   }
+
 }

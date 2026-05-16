@@ -14,16 +14,14 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
   public string ContainerName => CosmosContainerId;
 
   private const ushort InternalPort = 8081;
+  //private const string CosmosEmulatorImage = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview-testcontainers";
+  private const string CosmosEmulatorImage = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-EN20260430pre";
 
   private readonly CosmosDbContainer _cosmosDbContainer =
-    //new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
-    new CosmosDbBuilder("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview")
+    new CosmosDbBuilder(CosmosEmulatorImage)
       .WithPortBinding(InternalPort, true)
-      //.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "10")
       .WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTANCE", "false")
-      //.WithCommand("--protocol", "https")
       .WithAutoRemove(true)
-      //.WithWaitStrategy(Wait.ForUnixContainer().AddCustomWaitStrategy(new WaitUntil()))
       .Build();
   private CosmosClient? _cosmosClient;
 

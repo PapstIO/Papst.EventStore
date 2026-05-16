@@ -1,9 +1,11 @@
 ﻿using AutoFixture.Xunit2;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using Papst.EventStore.Aggregation;
 using Papst.EventStore.AzureCosmos.Tests.IntegrationTests.Models;
 using Papst.EventStore.Documents;
 using Shouldly;
+using System.Linq;
 using Xunit;
 
 namespace Papst.EventStore.AzureCosmos.Tests.IntegrationTests;
@@ -63,6 +65,29 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     stream.Version.ShouldBe(1UL);
     var events = await stream.ListAsync().ToListAsync();
     events.ShouldContain(d => d.Id == documentId);
+  }
+
+  [Theory, AutoData]
+  public async Task LowLevelAppendAsync_ShouldAppendEvent(Guid streamId, Guid documentId)
+  {
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId);
+    var lowLevelStream = stream.ShouldBeAssignableTo<ILowLevelEventStream>();
+    JObject payload = new()
+    {
+      ["value"] = "low-level"
+    };
+
+    await lowLevelStream.AppendAsync(documentId, "LowLevelEvent", payload);
+
+    stream.Version.ShouldBe(1UL);
+    var events = await stream.ListAsync().ToListAsync();
+    events.ShouldContain(d => d.Id == documentId);
+    EventStreamDocument appendedEvent = events.Single(d => d.Id == documentId);
+    appendedEvent.DataType.ShouldBe("LowLevelEvent");
+    appendedEvent.Name.ShouldBe("LowLevelEvent");
+    appendedEvent.Data.ShouldBe(payload);
   }
 
   [Theory, AutoData]
