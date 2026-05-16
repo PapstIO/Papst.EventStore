@@ -149,6 +149,25 @@ For an end-to-end ASP.NET Core example using the in-memory event store, stream a
 
 # Changelog
 
+## V 6.1
+
+Maintenance release for the V6 package line.
+
+### Changes
+
+* Updates the EventStore implementation packages to depend on `Papst.EventStore` `>= 6.1.0` and `< 7.0.0`.
+* Adds `ILowLevelEventStream` API
+
+## V 6.0
+
+V6 introduces the Event Catalog and low-level event access APIs.
+
+### Changes
+
+* Adds the `IEventCatalog` abstraction for querying registered events and generated JSON schema metadata.
+* Extends code generation with `AddCodeGeneratedEventCatalog()`.
+* Adds `ILowLevelEventStream` support for appending raw `JObject` payloads together with explicit event type names.
+
 ## V 5.4
 
 Adds a possibility to update a streams MetaData object.
