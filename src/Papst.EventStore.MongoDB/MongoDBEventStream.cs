@@ -11,7 +11,7 @@ using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.MongoDB;
 
-internal class MongoDBEventStream : IEventStream
+internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
 {
   private readonly IMongoCollection<EventStreamDocument> _documentsCollection;
   private readonly IMongoCollection<MongoEventStreamMetadata> _metadataCollection;
@@ -104,6 +104,41 @@ internal class MongoDBEventStream : IEventStream
     var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
     var update = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
     await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
+
+    Version = newVersion;
+  }
+
+  public async Task AppendAsync(
+    Guid id,
+    string eventType,
+    JObject evt,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default)
+  {
+    var newVersion = Version + 1;
+
+    _logger.AppendingEvent(eventType, StreamId, newVersion);
+
+    var document = new EventStreamDocument
+    {
+      Id = id,
+      StreamId = StreamId,
+      Version = newVersion,
+      Time = _timeProvider.GetLocalNow(),
+      DataType = eventType,
+      Data = evt,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new EventStreamMetaData(),
+      TargetType = _targetType,
+      Name = eventType
+    };
+
+    await _documentsCollection.InsertOneAsync(document, new InsertOneOptions(), cancellationToken);
+
+    // Update version in metadata
+    var mongoFilter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
+    var mongoUpdate = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
+    await _metadataCollection.UpdateOneAsync(mongoFilter, mongoUpdate, new UpdateOptions(), cancellationToken);
 
     Version = newVersion;
   }

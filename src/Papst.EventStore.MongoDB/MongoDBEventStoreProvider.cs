@@ -44,6 +44,7 @@ public static class MongoDBEventStoreProvider
     });
     
     services.AddSingleton<IEventStore, MongoDBEventStore>();
+    services.AddSingleton<ILowLevelEventStore, MongoDBLowLevelEventStore>();
     services.TryAddSingleton(TimeProvider.System);
     return services;
   }

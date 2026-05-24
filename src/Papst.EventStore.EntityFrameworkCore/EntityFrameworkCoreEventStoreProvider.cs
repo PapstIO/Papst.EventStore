@@ -12,6 +12,7 @@ public static class EntityFrameworkCoreEventStoreProvider
   )
   {
     services.AddTransient<IEventStore, EntityFrameworkEventStore>();
+    services.AddTransient<ILowLevelEventStore, EntityFrameworkCoreLowLevelEventStore>();
     services.AddDbContext<EventStoreDbContext>(configure);
     return services;
   }

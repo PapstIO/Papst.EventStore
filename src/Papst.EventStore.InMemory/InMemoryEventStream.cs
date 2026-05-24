@@ -8,7 +8,7 @@ using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.InMemory;
 
-internal class InMemoryEventStream : IEventStream
+internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
 {
   private readonly List<EventStreamDocument> _events = new();
   private readonly ulong _initialVersion;
@@ -62,6 +62,26 @@ internal class InMemoryEventStream : IEventStream
       TargetType = _targetType,
       Id = id,
       Name = name
+    });
+
+    return Task.CompletedTask;
+  }
+
+  public Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default)
+  {
+    _events.Add(new EventStreamDocument()
+    {
+      StreamId = StreamId,
+      Version = Version + 1,
+      Time = _tp.GetLocalNow(),
+      DataType = eventType,
+      Data = evt,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new EventStreamMetaData(),
+      TargetType = _targetType,
+      Id = id,
+      Name = eventType
     });
 
     return Task.CompletedTask;

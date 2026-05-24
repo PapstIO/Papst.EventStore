@@ -7,7 +7,7 @@ using Papst.EventStore.Documents;
 using Papst.EventStore.EntityFrameworkCore.Database;
 
 namespace Papst.EventStore.EntityFrameworkCore;
-internal sealed class EntityFrameworkEventStream : IEventStream
+internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventStream
 {
   private readonly ILogger<EntityFrameworkEventStream> _logger;
   private readonly EventStoreDbContext _dbContext;
@@ -59,6 +59,45 @@ internal sealed class EntityFrameworkEventStream : IEventStream
     _stream.NextVersion++;
     _stream.Updated = DateTimeOffset.Now;
     
+    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
+    _dbContext.Streams.Attach(_stream);
+    await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
+    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+  }
+
+  public async Task AppendAsync(
+    Guid id,
+    string eventType,
+    JObject evt,
+    EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default
+  )
+  {
+    EventStreamDocumentEntity document = new()
+    {
+      Id = id,
+      StreamId = StreamId,
+      Type = EventStreamDocumentEntityType.Event,
+      Version = _stream.NextVersion,
+      Time = DateTimeOffset.Now,
+      Name = eventType,
+      DataType = eventType,
+      TargetType = _stream.TargetType,
+      Data = evt.ToString(Newtonsoft.Json.Formatting.None),
+      MetaData = new()
+      {
+        UserId = metaData?.UserId,
+        UserName = metaData?.UserName,
+        TenantId = metaData?.TenantId,
+        Comment = metaData?.Comment,
+        Additional = metaData?.Additional
+      }
+    };
+
+    _stream.Version = _stream.NextVersion;
+    _stream.NextVersion++;
+    _stream.Updated = DateTimeOffset.Now;
+
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     _dbContext.Streams.Attach(_stream);
     await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);

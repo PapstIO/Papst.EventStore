@@ -4,16 +4,35 @@ MongoDB based EventStore Implementation.
 
 ## Usage
 
+### High-Level Event Store (IEventStore)
+
 ```csharp
 services.AddMongoDBEventStore(options => {
     options.ConnectionString = "mongodb://localhost:27017";
     options.DatabaseName = "EventStore";
 });
+
+var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+```
+
+### Low-Level Event Store (ILowLevelEventStore)
+
+For handling events as raw JSON objects without type information:
+
+```csharp
+var lowLevelEventStore = serviceProvider.GetRequiredService<ILowLevelEventStore>();
+var streamId = Guid.NewGuid();
+var stream = await lowLevelEventStore.CreateAsync(streamId, "MyAggregate");
+
+// Append a low-level event (as JObject)
+var evt = JObject.Parse(@"{ ""eventData"": ""value"" }");
+await stream.AppendAsync(Guid.NewGuid(), "MyEvent", evt);
 ```
 
 ## Features
 
-- Full IEventStore and IEventStream interface implementation
+- Full IEventStore, ILowLevelEventStore and IEventStream interface implementation
+- Full ILowLevelEventStream interface implementation for low-level event handling
 - MongoDB native async operations
 - Transaction support for batch operations (with automatic fallback for standalone instances)
 - Efficient querying with MongoDB indexes

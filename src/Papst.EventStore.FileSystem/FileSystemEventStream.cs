@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Papst.EventStore.FileSystem;
-internal sealed class FileSystemEventStream : IEventStream
+internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
 {
   private const string FileNameFormat = "000000000000";
 
@@ -52,6 +52,26 @@ internal sealed class FileSystemEventStream : IEventStream
       eventName,
       _entity.TargetType,
       metaData);
+
+    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
+    await UpdateIndexAsync().ConfigureAwait(false);
+  }
+
+  public async Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  {
+    EventStreamDocument document = new()
+    {
+      StreamId = StreamId,
+      Version = _entity.NextVersion,
+      Time = DateTimeOffset.Now,
+      DataType = eventType,
+      Data = evt,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new EventStreamMetaData(),
+      TargetType = _entity.TargetType,
+      Id = id,
+      Name = eventType
+    };
 
     await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
     await UpdateIndexAsync().ConfigureAwait(false);
