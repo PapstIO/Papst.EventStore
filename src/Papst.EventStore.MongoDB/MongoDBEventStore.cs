@@ -135,6 +135,32 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     );
   }
 
+  public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    _logger.GetEventStream(streamId);
+    
+    var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, streamId);
+    var metadata = await _metadataCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
+
+    if (metadata == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Stream not found in MongoDB");
+    }
+
+    return new MongoDBEventStream(
+      metadata.StreamId,
+      metadata.Version,
+      metadata.Created,
+      metadata.MetaData,
+      metadata.TargetTypeName,
+      _timeProvider,
+      _eventTypeProvider,
+      _documentsCollection,
+      _metadataCollection,
+      _loggerFactory.CreateLogger<MongoDBEventStream>()
+    );
+  }
+
   public Task<IEventStream> CreateAsync(
     Guid streamId,
     string targetTypeName,

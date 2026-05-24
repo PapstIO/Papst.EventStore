@@ -104,4 +104,29 @@ internal class FileSystemEventStore : IEventStore
     return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
       _eventTypeProvider);
   }
+
+  public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    Logging.GetEventStream(_logger, streamId);
+    string streamPath = Path.Combine(_path, streamId.ToString());
+    if (!Directory.Exists(streamPath))
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Directory not found");
+    }
+
+    string indexFile = Path.Combine(streamPath, IndexFileName);
+    if (!File.Exists(indexFile))
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Index File not found");
+    }
+
+    FileSystemStreamIndexEntity? entity = JsonSerializer.Deserialize<FileSystemStreamIndexEntity>(await File.ReadAllTextAsync(indexFile).ConfigureAwait(false));
+    if (entity == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Index File not readable");
+    }
+
+    return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
+      _eventTypeProvider);
+  }
 }

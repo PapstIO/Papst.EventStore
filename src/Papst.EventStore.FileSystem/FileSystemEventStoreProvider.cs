@@ -13,7 +13,6 @@ public static class FileSystemEventStoreProvider
   /// <returns></returns>
   public static IServiceCollection AddFileSystemEventStore(this IServiceCollection services, IConfiguration config) => services
     .AddTransient<IEventStore, FileSystemEventStore>()
-    .AddTransient<ILowLevelEventStore, FileSystemLowLevelEventStore>()
     .Configure<FileSystemEventStoreOptions>(c => config.Bind(c))
 
     ;
