@@ -109,4 +109,23 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     result.Count.ShouldBe(1);
     result[0].Data.ToObject<TestEvent>().ShouldBe(second);
   }
+
+  [Theory, AutoData]
+  public async Task AppendAsync_ShouldRetainAllEventsWithUniqueVersions_WhenAppendedConcurrently(TestEvent @event, Guid streamId)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    var stream = await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+
+    // act
+    await Task.WhenAll(Enumerable.Range(0, 500).Select(_ =>
+      Task.Run(() => stream.AppendAsync(Guid.NewGuid(), @event, cancellationToken: CancellationToken.None))));
+
+    // assert
+    stream.Version.ShouldBe(500UL);
+    var documents = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
+    documents.Count.ShouldBe(500);
+    documents.Select(d => d.Version).ShouldBeUnique();
+  }
 }
