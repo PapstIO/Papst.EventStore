@@ -10,6 +10,10 @@ namespace Papst.EventStore.InMemory;
 
 internal class InMemoryEventStream : IEventStream
 {
+  // Guards _events: appends can race stream reads when the store is shared
+  // across threads (e.g. an application host processing events on background
+  // threads while tests seed streams).
+  private readonly Lock _lock = new();
   private readonly List<EventStreamDocument> _events = new();
   private readonly ulong _initialVersion;
   private readonly TimeProvider _tp;
@@ -35,34 +39,66 @@ internal class InMemoryEventStream : IEventStream
   }
 
   public Guid StreamId { get; }
-  public ulong Version => _events.Count == 0 ? _initialVersion : _events.Max(e => e.Version);
+
+  public ulong Version
+  {
+    get
+    {
+      lock (_lock)
+      {
+        return VersionUnlocked;
+      }
+    }
+  }
+
+  private ulong VersionUnlocked => _events.Count == 0 ? _initialVersion : _events.Max(e => e.Version);
+
   public DateTimeOffset Created { get; }
-  public ulong? LatestSnapshotVersion => _events
-    .Where(e => e.DocumentType == EventStreamDocumentType.Snapshot)
-    .MaxBy(e => e.Version)?
-    .Version;
+
+  public ulong? LatestSnapshotVersion
+  {
+    get
+    {
+      lock (_lock)
+      {
+        return _events
+          .Where(e => e.DocumentType == EventStreamDocumentType.Snapshot)
+          .MaxBy(e => e.Version)?
+          .Version;
+      }
+    }
+  }
+
   public EventStreamMetaData MetaData { get; }
 
-  public Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default) 
-    => Task.FromResult(_events.LastOrDefault(e => e.DocumentType == EventStreamDocumentType.Snapshot));
+  public Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
+  {
+    lock (_lock)
+    {
+      return Task.FromResult(_events.LastOrDefault(e => e.DocumentType == EventStreamDocumentType.Snapshot));
+    }
+  }
 
   public Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string name = _typeProvider.ResolveType(typeof(TEvent));
-    _events.Add(new EventStreamDocument()
+    lock (_lock)
     {
-      StreamId = StreamId,
-      Version = Version + 1,
-      Time = _tp.GetLocalNow(),
-      DataType = name,
-      Data = JObject.FromObject(evt),
-      DocumentType = EventStreamDocumentType.Event,
-      MetaData = metaData ?? new EventStreamMetaData(),
-      TargetType = _targetType,
-      Id = id,
-      Name = name
-    });
+      _events.Add(new EventStreamDocument()
+      {
+        StreamId = StreamId,
+        Version = VersionUnlocked + 1,
+        Time = _tp.GetLocalNow(),
+        DataType = name,
+        Data = JObject.FromObject(evt),
+        DocumentType = EventStreamDocumentType.Event,
+        MetaData = metaData ?? new EventStreamMetaData(),
+        TargetType = _targetType,
+        Id = id,
+        Name = name
+      });
+    }
 
     return Task.CompletedTask;
   }
@@ -70,19 +106,22 @@ internal class InMemoryEventStream : IEventStream
   public Task AppendSnapshotAsync<TEntity>(Guid id, TEntity entity, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEntity : notnull
   {
-    _events.Add(new EventStreamDocument()
+    lock (_lock)
     {
-      StreamId = StreamId,
-      Version = Version + 1,
-      Time = _tp.GetLocalNow(),
-      DataType = _targetType,
-      Data = JObject.FromObject(entity),
-      DocumentType = EventStreamDocumentType.Snapshot,
-      MetaData = metaData ?? new EventStreamMetaData(),
-      TargetType = _targetType,
-      Id = id,
-      Name = _targetType
-    });
+      _events.Add(new EventStreamDocument()
+      {
+        StreamId = StreamId,
+        Version = VersionUnlocked + 1,
+        Time = _tp.GetLocalNow(),
+        DataType = _targetType,
+        Data = JObject.FromObject(entity),
+        DocumentType = EventStreamDocumentType.Snapshot,
+        MetaData = metaData ?? new EventStreamMetaData(),
+        TargetType = _targetType,
+        Id = id,
+        Name = _targetType
+      });
+    }
 
     return Task.CompletedTask;
   }
@@ -90,37 +129,52 @@ internal class InMemoryEventStream : IEventStream
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
   {
     return Task.FromResult<IEventStoreTransactionAppender>(
-      new InMemoryTransactionalBatch(_events, _typeProvider, _tp, StreamId, _targetType));
+      new InMemoryTransactionalBatch(_lock, _events, _typeProvider, _tp, StreamId, _targetType));
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion = 0,
     CancellationToken cancellationToken = default)
   {
-    return _events.Where(evt => evt.Version >= startVersion).ToAsyncEnumerable();
+    lock (_lock)
+    {
+      return _events.Where(evt => evt.Version >= startVersion).ToList().ToAsyncEnumerable();
+    }
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion,
     CancellationToken cancellationToken = default)
   {
-    return _events
-      .Where(evt => evt.Version >= startVersion && evt.Version <= endVersion)
-      .ToAsyncEnumerable();
+    lock (_lock)
+    {
+      return _events
+        .Where(evt => evt.Version >= startVersion && evt.Version <= endVersion)
+        .ToList()
+        .ToAsyncEnumerable();
+    }
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion,
     CancellationToken cancellationToken = default)
   {
-    return _events.Where(evt => evt.Version >= startVersion && evt.Version <= endVersion)
-      .OrderByDescending(evt => evt.Version)
-      .ToAsyncEnumerable();
+    lock (_lock)
+    {
+      return _events.Where(evt => evt.Version >= startVersion && evt.Version <= endVersion)
+        .OrderByDescending(evt => evt.Version)
+        .ToList()
+        .ToAsyncEnumerable();
+    }
   }
 
   public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion,
     CancellationToken cancellationToken = default)
   {
-    return _events.Where(evt => evt.Version <= endVersion)
-      .OrderByDescending(evt => evt.Version)
-      .ToAsyncEnumerable();
+    lock (_lock)
+    {
+      return _events.Where(evt => evt.Version <= endVersion)
+        .OrderByDescending(evt => evt.Version)
+        .ToList()
+        .ToAsyncEnumerable();
+    }
   }
 
   public Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
@@ -130,6 +184,7 @@ internal class InMemoryEventStream : IEventStream
 }
 
 internal class InMemoryTransactionalBatch(
+  Lock syncRoot,
   List<EventStreamDocument> events,
   IEventTypeProvider typeProvider,
   TimeProvider tp,
@@ -161,10 +216,14 @@ internal class InMemoryTransactionalBatch(
 
   public Task CommitAsync(CancellationToken cancellationToken = default)
   {
-    foreach (var action in _actions)
+    lock (syncRoot)
     {
-      action();
+      foreach (var action in _actions)
+      {
+        action();
+      }
     }
+
     return Task.CompletedTask;
   }
 }
