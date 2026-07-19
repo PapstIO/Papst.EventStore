@@ -12,9 +12,14 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace Papst.EventStore.FileSystem;
-internal sealed class FileSystemEventStream : IEventStream
+internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
 {
   private const string FileNameFormat = "000000000000";
+
+  private static readonly JsonSerializerOptions _jsonOptions = new()
+  {
+    Converters = { new JObjectJsonConverter() }
+  };
 
   private readonly ILogger<FileSystemEventStream> _logger;
   private readonly string _path;
@@ -52,6 +57,26 @@ internal sealed class FileSystemEventStream : IEventStream
       eventName,
       _entity.TargetType,
       metaData);
+
+    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
+    await UpdateIndexAsync().ConfigureAwait(false);
+  }
+
+  public async Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  {
+    EventStreamDocument document = new()
+    {
+      StreamId = StreamId,
+      Version = _entity.NextVersion,
+      Time = DateTimeOffset.Now,
+      DataType = eventType,
+      Data = evt,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new EventStreamMetaData(),
+      TargetType = _entity.TargetType,
+      Id = id,
+      Name = eventType
+    };
 
     await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
     await UpdateIndexAsync().ConfigureAwait(false);
@@ -169,7 +194,7 @@ internal sealed class FileSystemEventStream : IEventStream
     }
 
     await using var stream = File.OpenRead(Path.Combine(_path, fileName));
-    EventStreamDocument? entity = await JsonSerializer.DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+    EventStreamDocument? entity = await JsonSerializer.DeserializeAsync<EventStreamDocument>(stream, _jsonOptions, cancellationToken: cancellationToken).ConfigureAwait(false);
     if (entity is null)
     {
       throw new EventStreamVersionNotFoundException(StreamId, _entity.LatestSnapshotVersion.Value, "The Version is not readable!");
@@ -198,7 +223,7 @@ internal sealed class FileSystemEventStream : IEventStream
       Logging.ReadingEvent(_logger, StreamId, currentVersion);
       await using FileStream stream = File.OpenRead(Path.Combine(versionPath, fileName));
       EventStreamDocument? entity = await JsonSerializer.
-        DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken)
+        DeserializeAsync<EventStreamDocument>(stream, _jsonOptions, cancellationToken: cancellationToken)
         .ConfigureAwait(false);
       if (entity == null)
       {
@@ -225,7 +250,7 @@ internal sealed class FileSystemEventStream : IEventStream
       Logging.ReadingEvent(_logger, StreamId, currentVersion);
       await using FileStream stream = File.OpenRead(Path.Combine(versionPath, fileName));
       EventStreamDocument? entity = await JsonSerializer.
-        DeserializeAsync<EventStreamDocument>(stream, cancellationToken: cancellationToken)
+        DeserializeAsync<EventStreamDocument>(stream, _jsonOptions, cancellationToken: cancellationToken)
         .ConfigureAwait(false);
       if (entity == null)
       {
@@ -265,7 +290,7 @@ internal sealed class FileSystemEventStream : IEventStream
       NextVersion = document.Version + 1,
     };
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document), cancellationToken);
+    await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document, _jsonOptions), cancellationToken);
     await UpdateIndexAsync().ConfigureAwait(false);
   }
 

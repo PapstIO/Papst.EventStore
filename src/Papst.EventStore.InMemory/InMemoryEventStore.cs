@@ -30,6 +30,17 @@ public class InMemoryEventStore : IEventStore
     return Task.FromResult<IEventStream>(stream);
   }
 
+  public Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    if (!_streams.TryGetValue(streamId, out InMemoryEventStream? stream))
+    {
+      throw new EventStreamNotFoundException(streamId,
+        "InMemory Event Streams are not persisted, if you expect this stream here, you should create it first.");
+    }
+
+    return Task.FromResult<ILowLevelEventStream>(stream);
+  }
+
   public Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName,
     CancellationToken cancellationToken = default) =>
     CreateAsync(

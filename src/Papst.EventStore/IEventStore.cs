@@ -15,6 +15,18 @@ public interface IEventStore
     CancellationToken cancellationToken = default);
 
   /// <summary>
+  /// Reads an existing <see cref="ILowLevelEventStream"/> Async.
+  /// The low-level stream allows appending events as raw <see cref="Newtonsoft.Json.Linq.JObject"/> without compile-time type information.
+  /// </summary>
+  /// <param name="streamId">Id of the Stream</param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
+  /// <exception cref="Exceptions.EventStreamNotFoundException"></exception>
+  Task<ILowLevelEventStream> GetLowLevelAsync(
+    Guid streamId,
+    CancellationToken cancellationToken = default);
+
+  /// <summary>
   /// Creates a new empty <see cref="IEventStream"/> Async
   /// </summary>
   /// <param name="streamId">The StreamId</param>

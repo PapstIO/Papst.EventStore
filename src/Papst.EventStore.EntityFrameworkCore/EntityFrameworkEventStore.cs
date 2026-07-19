@@ -82,4 +82,22 @@ public sealed class EntityFrameworkEventStore : IEventStore
       stream,
       _eventTypeProvider);
   }
+
+  public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    Logging.GetEventStream(_logger, streamId);
+
+    EventStreamEntity? stream = await _dbContext.Streams.FirstOrDefaultAsync(s => s.StreamId == streamId, cancellationToken)
+      .ConfigureAwait(false);
+    if (stream == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Index not found!");
+    }
+
+    return new EntityFrameworkEventStream(
+      _loggerFactory.CreateLogger<EntityFrameworkEventStream>(),
+      _dbContext,
+      stream,
+      _eventTypeProvider);
+  }
 }

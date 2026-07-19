@@ -41,6 +41,8 @@
     <Project Path="tests/Papst.EventsStore.InMemory.Tests/Papst.EventsStore.InMemory.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.AzureCosmos.Tests/Papst.EventStore.AzureCosmos.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.CodeGeneration.Tests/Papst.EventStore.CodeGeneration.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.EntityFrameworkCore.Tests/Papst.EventStore.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.FileSystem.Tests/Papst.EventStore.FileSystem.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.MongoDB.Tests/Papst.EventStore.MongoDB.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.Tests/Papst.EventStore.Tests.csproj" />
   </Folder>

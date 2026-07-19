@@ -8,7 +8,7 @@ using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.InMemory;
 
-internal class InMemoryEventStream : IEventStream
+internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
 {
   // Guards _events: appends can race stream reads when the store is shared
   // across threads (e.g. an application host processing events on background
@@ -99,6 +99,26 @@ internal class InMemoryEventStream : IEventStream
         Name = name
       });
     }
+
+    return Task.CompletedTask;
+  }
+
+  public Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null,
+    CancellationToken cancellationToken = default)
+  {
+    _events.Add(new EventStreamDocument()
+    {
+      StreamId = StreamId,
+      Version = Version + 1,
+      Time = _tp.GetLocalNow(),
+      DataType = eventType,
+      Data = evt,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = metaData ?? new EventStreamMetaData(),
+      TargetType = _targetType,
+      Id = id,
+      Name = eventType
+    });
 
     return Task.CompletedTask;
   }

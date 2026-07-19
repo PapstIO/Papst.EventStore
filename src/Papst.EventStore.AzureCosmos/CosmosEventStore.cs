@@ -55,6 +55,40 @@ internal sealed class CosmosEventStore(
       timeProvider);
   }
 
+  public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    logger.GetEventStream(streamId);
+    ItemResponse<EventStreamIndexEntity>? stream;
+    try
+    {
+      stream = await dbProvider.Container
+        .ReadItemAsync<EventStreamIndexEntity>(
+          IndexDocumentName,
+          new(streamId.ToString()),
+          cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+    catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound)
+    {
+      if (options.Value.BuildIndexOnNotFound)
+      {
+        stream = await ReadStreamAndBuildIndex(streamId, cancellationToken).ConfigureAwait(false);
+      }
+      else
+      {
+        throw new EventStreamNotFoundException(streamId, "Event Stream has not been found!", e);
+      }
+    }
+
+    return new CosmosEventStream(
+      loggerFactory.CreateLogger<CosmosEventStream>(),
+      options.Value,
+      stream.Resource,
+      dbProvider,
+      eventTypeProvider,
+      idStrategy,
+      timeProvider);
+  }
+
   private async Task<ItemResponse<EventStreamIndexEntity>> ReadStreamAndBuildIndex(
     Guid streamId,
     CancellationToken cancellationToken
