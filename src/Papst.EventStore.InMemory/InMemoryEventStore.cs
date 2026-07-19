@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace Papst.EventStore.InMemory;
 
 public class InMemoryEventStore : IEventStore
 {
-  private readonly Dictionary<Guid, InMemoryEventStream> _streams = new();
+  private readonly ConcurrentDictionary<Guid, InMemoryEventStream> _streams = new();
   private readonly TimeProvider _timeProvider;
   private readonly IEventTypeProvider _eventTypeProvider;
 
@@ -45,11 +46,6 @@ public class InMemoryEventStore : IEventStore
     string? username,
     string? comment, Dictionary<string, string>? additionalMetaData, CancellationToken cancellationToken = default)
   {
-    if (_streams.ContainsKey(streamId))
-    {
-      throw new EventStreamAlreadyExistsException(streamId, "Stream already exists");
-    }
-
     var stream = new InMemoryEventStream(
       streamId,
       0,
@@ -66,7 +62,11 @@ public class InMemoryEventStore : IEventStore
       targetTypeName,
       _eventTypeProvider
     );
-    _streams.Add(streamId, stream);
+    if (!_streams.TryAdd(streamId, stream))
+    {
+      throw new EventStreamAlreadyExistsException(streamId, "Stream already exists");
+    }
+
     return Task.FromResult<IEventStream>(stream);
   }
 }
