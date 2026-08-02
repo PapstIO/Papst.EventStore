@@ -29,6 +29,16 @@ var evt = JObject.Parse(@"{ ""eventData"": ""value"" }");
 await stream.AppendAsync(Guid.NewGuid(), "MyEvent", evt);
 ```
 
+### Deleting an Event Stream
+
+`DeleteAsync` removes the stream from **both** collections — all event documents from the `EventStreams` collection and the corresponding entry from the `StreamMetadata` collection:
+
+```csharp
+await eventStore.DeleteAsync(streamId);
+```
+
+On a replica set the two deletes are executed inside a MongoDB transaction to keep them atomic; on a standalone instance (no transaction support) it falls back to sequential deletes, mirroring the batch append behaviour. If the stream does not exist, an `EventStreamNotFoundException` is thrown. The action is logged at `Information` level.
+
 ## Features
 
 - Full IEventStore, ILowLevelEventStore and IEventStream interface implementation

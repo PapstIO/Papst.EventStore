@@ -66,4 +66,61 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
     stream.ShouldNotBeNull();
     stream.StreamId.ShouldBe(index.StreamId);
   }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_ShouldRemoveStream(Guid streamId, Guid eventId, string eventType)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    await eventStore.CreateAsync(streamId, "TestType", CancellationToken.None);
+    var lowLevelStream = await eventStore.GetLowLevelAsync(streamId, CancellationToken.None);
+    await lowLevelStream.AppendAsync(eventId, eventType, Newtonsoft.Json.Linq.JObject.FromObject(new { Value = "x" }), cancellationToken: CancellationToken.None);
+
+    // act
+    await eventStore.DeleteAsync(streamId, CancellationToken.None);
+
+    // assert
+    await Should.ThrowAsync<EventStreamNotFoundException>(
+      () => eventStore.GetAsync(streamId, CancellationToken.None));
+  }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_WhenStreamDoesNotExist_ShouldThrow(Guid streamId)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+
+    // act & assert
+    await Should.ThrowAsync<EventStreamNotFoundException>(
+      () => eventStore.DeleteAsync(streamId, CancellationToken.None));
+  }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_ShouldRemoveAllDocumentsInPartition(Guid streamId, string eventType)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    CosmosClient client = serviceProvider.GetRequiredService<CosmosClient>();
+    var container = client.GetContainer(CosmosDbIntegrationTestFixture.CosmosDatabaseName, CosmosDbIntegrationTestFixture.CosmosContainerId);
+    await eventStore.CreateAsync(streamId, "TestType", CancellationToken.None);
+    var lowLevelStream = await eventStore.GetLowLevelAsync(streamId, CancellationToken.None);
+    for (var i = 0; i < 3; i++)
+    {
+      await lowLevelStream.AppendAsync(Guid.NewGuid(), eventType, Newtonsoft.Json.Linq.JObject.FromObject(new { Index = i }), cancellationToken: CancellationToken.None);
+    }
+
+    // act
+    await eventStore.DeleteAsync(streamId, CancellationToken.None);
+
+    // assert - no documents remain for the stream's partition
+    var iterator = container
+      .GetItemLinqQueryable<EventStreamDocumentEntity>(requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) })
+      .Where(d => d.StreamId == streamId)
+      .ToFeedIterator();
+    var batch = await iterator.ReadNextAsync();
+    batch.Count.ShouldBe(0);
+  }
 }

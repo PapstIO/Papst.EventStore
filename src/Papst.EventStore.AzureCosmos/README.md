@@ -48,6 +48,16 @@ public class CosmosEventStoreOptions
 }
 ```
 
+## Deleting an Event Stream
+
+`DeleteAsync` removes an entire stream from the Cosmos container. Because every document of a stream (the index document as well as all event and snapshot documents) shares the same `/StreamId` partition key, deletion enumerates all documents in that partition and deletes each of them:
+
+```csharp
+await eventStore.DeleteAsync(streamId);
+```
+
+The stream's existence is verified first by reading its index document; if it is not found, an `EventStreamNotFoundException` is thrown. The action is logged at `Information` level.
+
 ## Migration
 
 With the new V5 based implementation, there is need for an index document in the cosmos database for each stream.

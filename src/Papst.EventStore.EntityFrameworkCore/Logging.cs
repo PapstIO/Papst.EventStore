@@ -17,4 +17,10 @@ internal static partial class Logging
 
   [LoggerMessage(LogLevel.Debug, "Reading Event {Version} for Stream {StreamId}")]
   public static partial void ReadingEvent(ILogger logger, Guid streamId, ulong version);
+
+  [LoggerMessage(LogLevel.Information, "Deleting EventStream with Id {StreamId}")]
+  public static partial void DeletingEventStream(ILogger logger, Guid streamId);
+
+  [LoggerMessage(LogLevel.Information, "Deleted EventStream with Id {StreamId} including {DocumentCount} documents")]
+  public static partial void DeletedEventStream(ILogger logger, Guid streamId, int documentCount);
 }

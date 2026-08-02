@@ -246,4 +246,50 @@ internal sealed class CosmosEventStore(
       idStrategy,
       timeProvider);
   }
+
+  public async Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    logger.DeletingEventStream(streamId);
+
+    PartitionKey partitionKey = new(streamId.ToString());
+
+    // ensure the stream exists before deleting anything
+    try
+    {
+      await dbProvider.Container
+        .ReadItemAsync<EventStreamIndexEntity>(IndexDocumentName, partitionKey, cancellationToken: cancellationToken)
+        .ConfigureAwait(false);
+    }
+    catch (CosmosException e) when (e.StatusCode == HttpStatusCode.NotFound)
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream has not been found!", e);
+    }
+
+    // all documents of a stream share the same partition key, so we can enumerate and delete them all
+    FeedIterator<PartitionDocumentId> iterator = dbProvider.Container.GetItemQueryIterator<PartitionDocumentId>(
+      new QueryDefinition("SELECT c.id FROM c"),
+      requestOptions: new() { PartitionKey = partitionKey });
+
+    while (iterator.HasMoreResults)
+    {
+      foreach (PartitionDocumentId document in await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false))
+      {
+        using ResponseMessage response = await dbProvider.Container
+          .DeleteItemStreamAsync(document.Id, partitionKey, cancellationToken: cancellationToken)
+          .ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.NotFound)
+        {
+          response.EnsureSuccessStatusCode();
+        }
+      }
+    }
+
+    logger.DeletedEventStream(streamId);
+  }
+
+  private sealed class PartitionDocumentId
+  {
+    [Newtonsoft.Json.JsonProperty("id")]
+    public string Id { get; init; } = string.Empty;
+  }
 }

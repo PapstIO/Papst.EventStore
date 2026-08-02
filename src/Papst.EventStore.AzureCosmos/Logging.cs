@@ -26,4 +26,10 @@ internal static partial class Logging
   
   [LoggerMessage(LogLevel.Information, "Successful Appended Transaction to Stream {StreamId} with {Count} events")]
   public static partial void TransactionCompleted(this ILogger logger, Guid streamId, int count);
+
+  [LoggerMessage(LogLevel.Information, "Deleting EventStream with Id {StreamId}")]
+  public static partial void DeletingEventStream(this ILogger logger, Guid streamId);
+
+  [LoggerMessage(LogLevel.Information, "Deleted EventStream with Id {StreamId}")]
+  public static partial void DeletedEventStream(this ILogger logger, Guid streamId);
 }

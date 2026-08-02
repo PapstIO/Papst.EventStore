@@ -32,6 +32,16 @@ var evt = JObject.Parse(@"{ ""fileData"": ""content"" }");
 await stream.AppendAsync(Guid.NewGuid(), "FileCreated", evt);
 ```
 
+### Deleting an Event Stream
+
+`DeleteAsync` recursively deletes the stream's directory (its index file and all event files) from disk:
+
+```csharp
+await eventStore.DeleteAsync(streamId);
+```
+
+This is a **permanent, hard delete** of the on-disk files. If the stream directory does not exist, an `EventStreamNotFoundException` is thrown. The delete action is logged at `Information` level.
+
 ## Configuration
 
 The FileSystem implementation requires a configuration section with the path where events will be stored:
