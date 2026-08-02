@@ -171,7 +171,7 @@ For an end-to-end ASP.NET Core example using the in-memory event store, stream a
 
 # Changelog
 
-## V 6.2
+## V 6.3
 
 Adds the ability to delete an entire event stream.
 
