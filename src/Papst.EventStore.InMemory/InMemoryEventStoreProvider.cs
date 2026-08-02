@@ -18,7 +18,7 @@ public static class InMemoryEventStoreProvider
     services
       .AddSingleton<IEventStore, InMemoryEventStore>()
       ;
-    
+
     services.TryAddSingleton(TimeProvider.System);
     return services;
   }

@@ -61,4 +61,15 @@ public interface IEventStore
     string? comment,
     Dictionary<string, string>? additionalMetaData,
     CancellationToken cancellationToken = default);
+
+  /// <summary>
+  /// Permanently deletes an <see cref="IEventStream"/> and all of its documents from the store.
+  /// </summary>
+  /// <param name="streamId">Id of the Stream to delete</param>
+  /// <param name="cancellationToken"></param>
+  /// <exception cref="Exceptions.EventStreamNotFoundException">Thrown when the Stream does not exist</exception>
+  /// <returns></returns>
+  Task DeleteAsync(
+    Guid streamId,
+    CancellationToken cancellationToken = default);
 }

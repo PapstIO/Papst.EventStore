@@ -34,6 +34,16 @@ var evt = JObject.Parse(@"{ ""productId"": ""ABC123"", ""quantity"": 5 }");
 await stream.AppendAsync(Guid.NewGuid(), "ItemAdded", evt);
 ```
 
+### Deleting an Event Stream
+
+`DeleteAsync` removes the stream index row from the `Streams` table and every related document row from the `Documents` table within a single `SaveChangesAsync` call:
+
+```csharp
+await eventStore.DeleteAsync(streamId);
+```
+
+If the stream does not exist, an `EventStreamNotFoundException` is thrown. The action is logged at `Information` level.
+
 ## Configuration
 
 No further configuration is necessary beyond the event store registration.

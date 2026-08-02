@@ -34,4 +34,10 @@ internal static partial class Logging
 
   [LoggerMessage(LogLevel.Information, "MongoDB indexes created successfully")]
   public static partial void IndexesCreated(this ILogger logger);
+
+  [LoggerMessage(LogLevel.Information, "Deleting EventStream with Id {StreamId}")]
+  public static partial void DeletingEventStream(this ILogger logger, Guid streamId);
+
+  [LoggerMessage(LogLevel.Information, "Deleted EventStream with Id {StreamId} including {DocumentCount} documents")]
+  public static partial void DeletedEventStream(this ILogger logger, Guid streamId, long documentCount);
 }

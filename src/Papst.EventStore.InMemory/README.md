@@ -37,3 +37,13 @@ var stream = await lowLevelEventStore.CreateAsync(streamId, "MyAggregate");
 var evt = JObject.Parse(@"{ ""name"": ""John"", ""age"": 30 }");
 await stream.AppendAsync(Guid.NewGuid(), "UserCreated", evt);
 ```
+
+### Deleting an Event Stream
+
+`DeleteAsync` removes the stream from the in-memory dictionary. Because the InMemory store is not persisted, this simply drops the stream and all of its events from memory:
+
+```csharp
+await eventStore.DeleteAsync(streamId);
+```
+
+If the stream does not exist, an `EventStreamNotFoundException` is thrown. The delete action is logged (`Information` level) via the store's `ILogger`.

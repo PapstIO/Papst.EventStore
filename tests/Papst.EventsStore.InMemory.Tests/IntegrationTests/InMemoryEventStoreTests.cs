@@ -71,4 +71,49 @@ public class InMemoryEventStoreTests : IClassFixture<InMemoryTestFixture>
     results.Count(r => r is null).ShouldBe(1);
     results.Where(r => r is not null).ShouldAllBe(r => r is EventStreamAlreadyExistsException);
   }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_ShouldRemoveStream(Guid streamId)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+
+    // act
+    await eventStore.DeleteAsync(streamId, CancellationToken.None);
+
+    // assert
+    await Should.ThrowAsync<EventStreamNotFoundException>(
+      () => eventStore.GetAsync(streamId, CancellationToken.None));
+  }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_WhenStreamDoesNotExist_ShouldThrow(Guid streamId)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+
+    // act & assert
+    await Should.ThrowAsync<EventStreamNotFoundException>(
+      () => eventStore.DeleteAsync(streamId, CancellationToken.None));
+  }
+
+  [Theory, AutoData]
+  public async Task DeleteAsync_ShouldAllowRecreatingStream(Guid streamId)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+
+    // act
+    await eventStore.DeleteAsync(streamId, CancellationToken.None);
+    var recreated = await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+
+    // assert
+    recreated.StreamId.ShouldBe(streamId);
+    recreated.Version.ShouldBe(0UL);
+  }
 }

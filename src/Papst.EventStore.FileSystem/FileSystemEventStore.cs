@@ -129,4 +129,19 @@ internal class FileSystemEventStore : IEventStore
     return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
       _eventTypeProvider);
   }
+
+  public Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    Logging.DeletingEventStream(_logger, streamId);
+    string streamPath = Path.Combine(_path, streamId.ToString());
+    if (!Directory.Exists(streamPath))
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Directory not found");
+    }
+
+    Directory.Delete(streamPath, recursive: true);
+
+    Logging.DeletedEventStream(_logger, streamId);
+    return Task.CompletedTask;
+  }
 }

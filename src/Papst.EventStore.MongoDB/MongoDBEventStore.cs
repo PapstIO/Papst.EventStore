@@ -219,6 +219,60 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     );
   }
 
+  public async Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    _logger.DeletingEventStream(streamId);
+
+    var metadataFilter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, streamId);
+    var metadata = await _metadataCollection.Find(metadataFilter).FirstOrDefaultAsync(cancellationToken);
+
+    if (metadata == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Stream not found in MongoDB");
+    }
+
+    var documentsFilter = Builders<EventStreamDocument>.Filter.Eq(d => d.StreamId, streamId);
+
+    // Try to delete documents and metadata atomically using a transaction (replica set).
+    // Fall back to sequential deletes on a standalone MongoDB that does not support transactions.
+    var client = _documentsCollection.Database.Client;
+    long deletedDocuments;
+    try
+    {
+      using var session = await client.StartSessionAsync(cancellationToken: cancellationToken);
+      session.StartTransaction();
+
+      try
+      {
+        var documentsResult = await _documentsCollection.DeleteManyAsync(session, documentsFilter, cancellationToken: cancellationToken);
+        await _metadataCollection.DeleteOneAsync(session, metadataFilter, cancellationToken: cancellationToken);
+
+        await session.CommitTransactionAsync(cancellationToken);
+        deletedDocuments = documentsResult.DeletedCount;
+      }
+      catch (Exception ex)
+      {
+        if (session.IsInTransaction)
+        {
+          await session.AbortTransactionAsync(cancellationToken);
+        }
+        _logger.TransactionException(ex, streamId);
+        throw;
+      }
+    }
+    catch (System.NotSupportedException)
+    {
+      // MongoDB standalone doesn't support transactions, fall back to non-transactional deletes
+      _logger.TransactionNotSupported(streamId);
+
+      var documentsResult = await _documentsCollection.DeleteManyAsync(documentsFilter, cancellationToken);
+      await _metadataCollection.DeleteOneAsync(metadataFilter, cancellationToken);
+      deletedDocuments = documentsResult.DeletedCount;
+    }
+
+    _logger.DeletedEventStream(streamId, deletedDocuments);
+  }
+
   public void Dispose()
   {
     _indexCreationLock?.Dispose();

@@ -72,7 +72,7 @@ Task AppendAsync(
     CancellationToken cancellationToken = default);
 ```
 
-This API is currently only implemented by the Azure Cosmos provider.
+This API is implemented by all EventStore providers (Azure Cosmos, Entity Framework Core, MongoDB, FileSystem and InMemory).
 
 `ILowLevelEventStream` is not resolved directly from `IEventStore`. Instead, obtain an `IEventStream` first and then cast it to `ILowLevelEventStream` when the underlying provider supports it:
 
@@ -90,6 +90,28 @@ if (stream is ILowLevelEventStream lowLevelStream)
 ```
 
 This is intended for scenarios where the event payload or event type is not known at compile time. If you work with strongly typed events, prefer `IEventStream.AppendAsync<TEvent>()`.
+
+## Deleting an Event Stream
+
+The `IEventStore` interface offers a `DeleteAsync` method that permanently removes an event stream together with **all** of its documents (events, snapshots and the stream index):
+
+```csharp
+Task DeleteAsync(
+    Guid streamId,
+    CancellationToken cancellationToken = default);
+```
+
+```csharp
+await eventStore.DeleteAsync(streamId, cancellationToken);
+```
+
+Semantics:
+
+* Deletion is **store-level** — it removes the entire stream identified by `streamId`.
+* If the stream does not exist, an `EventStreamNotFoundException` is thrown.
+* The deletion is **permanent and irreversible**. Every provider hard-deletes the underlying data (dictionary entry, database rows/documents or files) — there is no soft-delete or tombstone.
+
+The action is implemented and logged by every provider (Azure Cosmos, Entity Framework Core, MongoDB, FileSystem and InMemory). See the provider READMEs for provider-specific details.
 
 ## Event Catalog
 
@@ -148,6 +170,16 @@ A full working sample is available at [`samples/SampleEventCatalog/`](./samples/
 For an end-to-end ASP.NET Core example using the in-memory event store, stream aggregation, and read-model repositories, see [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/).
 
 # Changelog
+
+## V 6.3
+
+Adds the ability to delete an entire event stream.
+
+### Changes
+
+* Adds `IEventStore.DeleteAsync(Guid streamId, CancellationToken)` which permanently removes a stream and all of its documents.
+* Implemented and logged across all providers (Azure Cosmos, Entity Framework Core, MongoDB, FileSystem and InMemory).
+* Deleting a non-existent stream throws `EventStreamNotFoundException`.
 
 ## V 6.1
 

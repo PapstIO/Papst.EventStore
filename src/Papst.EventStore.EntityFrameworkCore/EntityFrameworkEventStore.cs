@@ -100,4 +100,27 @@ public sealed class EntityFrameworkEventStore : IEventStore
       stream,
       _eventTypeProvider);
   }
+
+  public async Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)
+  {
+    Logging.DeletingEventStream(_logger, streamId);
+
+    EventStreamEntity? stream = await _dbContext.Streams.FirstOrDefaultAsync(s => s.StreamId == streamId, cancellationToken)
+      .ConfigureAwait(false);
+    if (stream == null)
+    {
+      throw new EventStreamNotFoundException(streamId, "Event Stream Index not found!");
+    }
+
+    List<EventStreamDocumentEntity> documents = await _dbContext.Documents
+      .Where(doc => doc.StreamId == streamId)
+      .ToListAsync(cancellationToken)
+      .ConfigureAwait(false);
+
+    _dbContext.Documents.RemoveRange(documents);
+    _dbContext.Streams.Remove(stream);
+    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+    Logging.DeletedEventStream(_logger, streamId, documents.Count);
+  }
 }
