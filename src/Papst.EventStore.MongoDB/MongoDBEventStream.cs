@@ -23,6 +23,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
   public MongoDBEventStream(
     Guid streamId,
     ulong version,
+    ulong nextVersion,
     DateTimeOffset created,
     EventStreamMetaData metaData,
     string targetType,
@@ -34,6 +35,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
   {
     StreamId = streamId;
     Version = version;
+    NextVersion = nextVersion;
     Created = created;
     MetaData = metaData;
     _targetType = targetType;
@@ -46,6 +48,11 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
 
   public Guid StreamId { get; }
   public ulong Version { get; private set; }
+
+  // Version to assign to the next appended event. Tracked alongside Version so the first
+  // event of a freshly created stream is version 0 (an empty stream also reports Version 0).
+  private ulong NextVersion { get; set; }
+
   public DateTimeOffset Created { get; }
   public EventStreamMetaData MetaData { get; private set; }
 
@@ -80,7 +87,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string name = _typeProvider.ResolveType(typeof(TEvent));
-    var newVersion = Version + 1;
+    var newVersion = NextVersion;
 
     _logger.AppendingEvent(name, StreamId, newVersion);
 
@@ -102,10 +109,13 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
 
     // Update version in metadata
     var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
-    var update = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
+    var update = Builders<MongoEventStreamMetadata>.Update
+      .Set(m => m.Version, newVersion)
+      .Set(m => m.NextVersion, newVersion + 1);
     await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
 
     Version = newVersion;
+    NextVersion = newVersion + 1;
   }
 
   public async Task AppendAsync(
@@ -115,7 +125,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default)
   {
-    var newVersion = Version + 1;
+    var newVersion = NextVersion;
 
     _logger.AppendingEvent(eventType, StreamId, newVersion);
 
@@ -137,10 +147,13 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
 
     // Update version in metadata
     var mongoFilter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
-    var mongoUpdate = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
+    var mongoUpdate = Builders<MongoEventStreamMetadata>.Update
+      .Set(m => m.Version, newVersion)
+      .Set(m => m.NextVersion, newVersion + 1);
     await _metadataCollection.UpdateOneAsync(mongoFilter, mongoUpdate, new UpdateOptions(), cancellationToken);
 
     Version = newVersion;
+    NextVersion = newVersion + 1;
   }
 
   public async Task AppendSnapshotAsync<TEntity>(
@@ -149,7 +162,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEntity : notnull
   {
-    var newVersion = Version + 1;
+    var newVersion = NextVersion;
 
     _logger.AppendingSnapshot(StreamId, newVersion);
 
@@ -173,10 +186,12 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
     var update = Builders<MongoEventStreamMetadata>.Update
       .Set(m => m.Version, newVersion)
+      .Set(m => m.NextVersion, newVersion + 1)
       .Set(m => m.LatestSnapshotVersion, newVersion);
     await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
 
     Version = newVersion;
+    NextVersion = newVersion + 1;
   }
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()

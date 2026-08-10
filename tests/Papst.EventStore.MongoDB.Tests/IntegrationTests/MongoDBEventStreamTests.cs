@@ -50,6 +50,23 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
   }
 
   [Theory, AutoData]
+  public async Task AppendAsync_ShouldNumberFirstEventZero(Guid streamId, TestEvent testEvent)
+  {
+    // arrange
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    var stream = await eventStore.CreateAsync(streamId, "TestType", CancellationToken.None);
+
+    // act
+    await stream.AppendAsync(Guid.NewGuid(), testEvent, cancellationToken: CancellationToken.None);
+
+    // assert
+    var events = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
+    events.Single().Version.ShouldBe(0UL);
+    stream.Version.ShouldBe(0UL);
+  }
+
+  [Theory, AutoData]
   public async Task ListAsync_ShouldReturnEntries(List<TestEvent> testEvents, Guid streamId)
   {
     // arrange

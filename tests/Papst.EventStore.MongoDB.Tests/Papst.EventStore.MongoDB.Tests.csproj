@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\TestcontainersRuntime.cs" Link="TestcontainersRuntime.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Papst.EventStore.Aggregation.EventRegistration\Papst.EventStore.Aggregation.EventRegistration.csproj" />
     <ProjectReference Include="..\..\src\Papst.EventStore.MongoDB\Papst.EventStore.MongoDB.csproj" />
     <ProjectReference Include="..\..\src\Papst.EventStore\Papst.EventStore.csproj" />

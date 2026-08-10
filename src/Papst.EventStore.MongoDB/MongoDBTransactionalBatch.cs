@@ -80,12 +80,14 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
       throw new InvalidOperationException($"Stream {_streamId} not found");
     }
 
-    ulong currentVersion = metadata.Version;
+    // NextVersion is the version to assign to the first pending document (0 on a freshly
+    // created stream), so events are numbered 0-based like the other stores.
+    ulong baseVersion = metadata.NextVersion;
 
     // Assign versions to pending documents
     for (int i = 0; i < _pendingDocuments.Count; i++)
     {
-      _pendingDocuments[i] = _pendingDocuments[i] with { Version = currentVersion + (ulong)(i + 1) };
+      _pendingDocuments[i] = _pendingDocuments[i] with { Version = baseVersion + (ulong)i };
     }
 
     // Try to use a transaction if MongoDB supports it (replica set)
@@ -102,8 +104,10 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
         await _documentsCollection.InsertManyAsync(session, _pendingDocuments, new InsertManyOptions(), cancellationToken);
 
         // Update version in metadata
-        var newVersion = currentVersion + (ulong)_pendingDocuments.Count;
-        var update = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
+        var newVersion = baseVersion + (ulong)_pendingDocuments.Count - 1;
+        var update = Builders<MongoEventStreamMetadata>.Update
+          .Set(m => m.Version, newVersion)
+          .Set(m => m.NextVersion, newVersion + 1);
         await _metadataCollection.UpdateOneAsync(session, filter, update, new UpdateOptions(), cancellationToken);
 
         await session.CommitTransactionAsync(cancellationToken);
@@ -126,8 +130,10 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
       
       await _documentsCollection.InsertManyAsync(_pendingDocuments, new InsertManyOptions(), cancellationToken);
 
-      var newVersion = currentVersion + (ulong)_pendingDocuments.Count;
-      var update = Builders<MongoEventStreamMetadata>.Update.Set(m => m.Version, newVersion);
+      var newVersion = baseVersion + (ulong)_pendingDocuments.Count - 1;
+      var update = Builders<MongoEventStreamMetadata>.Update
+        .Set(m => m.Version, newVersion)
+        .Set(m => m.NextVersion, newVersion + 1);
       await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
     }
   }

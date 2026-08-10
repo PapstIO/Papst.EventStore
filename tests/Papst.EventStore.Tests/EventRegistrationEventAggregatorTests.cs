@@ -61,6 +61,39 @@ public class EventRegistrationEventAggregatorTests
     entity.Tags.ShouldBe(["a", "b"]);
   }
 
+  [Fact]
+  public async Task AggregateAsync_StopsAtTargetVersionZero_AppliesOnlyCreationEvent()
+  {
+    // On 0-based stores version 0 is the creation event - a real, restorable state that
+    // must be reachable as a stop point.
+    var aggregator = BuildAggregator();
+    var stream = new FakeEventStream();
+    stream.Append(new IncrementEvent("a")); // version 0
+    stream.Append(new IncrementEvent("b")); // version 1
+
+    var entity = await aggregator.AggregateAsync(stream, 0UL, CancellationToken.None);
+
+    entity.ShouldNotBeNull();
+    entity.Version.ShouldBe(0UL);
+    entity.Tags.ShouldBe(["a"]);
+  }
+
+  [Fact]
+  public async Task AggregateAsync_StopsAtTargetVersion_IncludingTheTargetEvent()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeEventStream();
+    stream.Append(new IncrementEvent("a")); // version 0
+    stream.Append(new IncrementEvent("b")); // version 1
+    stream.Append(new IncrementEvent("c")); // version 2
+
+    var entity = await aggregator.AggregateAsync(stream, 1UL, CancellationToken.None);
+
+    entity.ShouldNotBeNull();
+    entity.Version.ShouldBe(1UL);
+    entity.Tags.ShouldBe(["a", "b"]);
+  }
+
   private static IEventStreamAggregator<CountingEntity> BuildAggregator()
   {
     var registration = new EventDescriptionEventRegistration();

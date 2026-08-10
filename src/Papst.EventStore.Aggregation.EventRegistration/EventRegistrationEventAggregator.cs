@@ -95,10 +95,13 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           EventTime = evt.Time
         };
 
-        if (targetVersion > 0 && target.Version == targetVersion)
+        if (evt.Version > targetVersion)
         {
-          // if the current version is already the target version, stop the aggregation,
-          // but only if the target version is greater than 0 it should apply the creation event
+          // Stop before applying an event beyond the requested target version.
+          // Comparing the event's own version (rather than the already-applied
+          // aggregate version) lets callers target version 0 - the creation event on
+          // 0-based stores - which the previous `targetVersion > 0` guard made
+          // unreachable.
           break;
         }
 

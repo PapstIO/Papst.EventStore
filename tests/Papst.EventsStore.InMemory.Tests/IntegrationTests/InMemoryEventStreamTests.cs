@@ -52,6 +52,20 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
   }
 
   [Theory, AutoData]
+  public async Task AppendAsync_ShouldNumberFirstEventZero(TestEvent first, Guid streamId)
+  {
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    var stream = await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+
+    await stream.AppendAsync(Guid.NewGuid(), first, cancellationToken: CancellationToken.None);
+
+    var result = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
+    result.Single().Version.ShouldBe(0UL);
+    stream.Version.ShouldBe(0UL);
+  }
+
+  [Theory, AutoData]
   public async Task AppendAsync_ShouldAssignSequentialEventVersions(List<TestEvent> events, Guid streamId)
   {
     var serviceProvider = _fixture.BuildServiceProvider();
@@ -64,7 +78,7 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
 
     var result = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
 
-    result.Select(e => e.Version).ShouldBe(Enumerable.Range(1, events.Count).Select(i => (ulong)i));
+    result.Select(e => e.Version).ShouldBe(Enumerable.Range(0, events.Count).Select(i => (ulong)i));
   }
 
   [Theory, AutoData]
@@ -78,7 +92,8 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
       await stream.AppendAsync(Guid.NewGuid(), @event, cancellationToken: CancellationToken.None);
     }
 
-    stream.Version.ShouldBe((ulong)events.Count);
+    // 0-based versions: after N events the latest version is N - 1.
+    stream.Version.ShouldBe((ulong)events.Count - 1);
   }
 
   [Theory, AutoData]
@@ -91,12 +106,12 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     await stream.AppendSnapshotAsync(Guid.NewGuid(), snapshot, cancellationToken: CancellationToken.None);
 
     var documents = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
-    documents.Select(d => d.Version).ShouldBe([1UL, 2UL]);
-    stream.Version.ShouldBe(2UL);
+    documents.Select(d => d.Version).ShouldBe([0UL, 1UL]);
+    stream.Version.ShouldBe(1UL);
   }
 
   [Theory, AutoData]
-  public async Task ListAsync_FromVersionGreaterThanOne_ShouldReturnEventsAppendedAfterFirst(TestEvent first, TestEvent second, Guid streamId)
+  public async Task ListAsync_FromVersionGreaterThanZero_ShouldReturnEventsAppendedAfterFirst(TestEvent first, TestEvent second, Guid streamId)
   {
     var serviceProvider = _fixture.BuildServiceProvider();
     var eventStore = serviceProvider.GetRequiredService<IEventStore>();
@@ -104,7 +119,7 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     await stream.AppendAsync(Guid.NewGuid(), first, cancellationToken: CancellationToken.None);
     await stream.AppendAsync(Guid.NewGuid(), second, cancellationToken: CancellationToken.None);
 
-    var result = await stream.ListAsync(2, CancellationToken.None).ToListAsync(CancellationToken.None);
+    var result = await stream.ListAsync(1, CancellationToken.None).ToListAsync(CancellationToken.None);
 
     result.Count.ShouldBe(1);
     result[0].Data.ToObject<TestEvent>().ShouldBe(second);
@@ -123,7 +138,7 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
       Task.Run(() => stream.AppendAsync(Guid.NewGuid(), @event, cancellationToken: CancellationToken.None))));
 
     // assert
-    stream.Version.ShouldBe(500UL);
+    stream.Version.ShouldBe(499UL);
     var documents = await stream.ListAsync(0, CancellationToken.None).ToListAsync(CancellationToken.None);
     documents.Count.ShouldBe(500);
     documents.Select(d => d.Version).ShouldBeUnique();

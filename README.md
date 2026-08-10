@@ -171,6 +171,24 @@ For an end-to-end ASP.NET Core example using the in-memory event store, stream a
 
 # Changelog
 
+## V 6.4
+
+Aligns the event version numbering across all stores and lets the aggregator target the creation event.
+
+### Changes
+
+* The `InMemory` and `MongoDB` stores now number the **first event of a stream `0`**, matching the
+  Azure Cosmos, Entity Framework Core and FileSystem stores. Previously they were 1-based, which made
+  `InMemory` an unreliable stand-in for Cosmos in tests (see
+  [#282](https://github.com/PapstIO/Papst.EventStore/issues/282)).
+* `EventRegistrationEventAggregator` can now aggregate up to and including version `0` (the creation
+  event on 0-based stores). The stop condition compares the event version instead of the aggregate
+  version, so `AggregateAsync(stream, 0, ct)` stops after the creation event instead of replaying the
+  whole stream.
+* **Breaking (MongoDB):** existing persisted MongoDB streams created with an earlier version are 1-based;
+  their metadata gains a `NextVersion` field that defaults to `0`. Streams created before upgrading need
+  to be migrated (or recreated) before appending further events.
+
 ## V 6.3
 
 Adds the ability to delete an entire event stream.
