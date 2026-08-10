@@ -124,6 +124,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     return new MongoDBEventStream(
       metadata.StreamId,
       metadata.Version,
+      metadata.NextVersion,
       metadata.Created,
       metadata.MetaData,
       metadata.TargetTypeName,
@@ -150,6 +151,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     return new MongoDBEventStream(
       metadata.StreamId,
       metadata.Version,
+      metadata.NextVersion,
       metadata.Created,
       metadata.MetaData,
       metadata.TargetTypeName,
@@ -183,6 +185,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     {
       StreamId = streamId,
       Version = 0,
+      NextVersion = 0,
       Created = _timeProvider.GetLocalNow(),
       TargetTypeName = targetTypeName,
       MetaData = new EventStreamMetaData
@@ -208,6 +211,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     return new MongoDBEventStream(
       metadata.StreamId,
       metadata.Version,
+      metadata.NextVersion,
       metadata.Created,
       metadata.MetaData,
       metadata.TargetTypeName,

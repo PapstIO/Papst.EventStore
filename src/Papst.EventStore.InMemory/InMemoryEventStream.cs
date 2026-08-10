@@ -53,6 +53,11 @@ internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
 
   private ulong VersionUnlocked => _events.Count == 0 ? _initialVersion : _events.Max(e => e.Version);
 
+  // Version to assign to the next appended event. An empty stream starts at 0 so the
+  // first event is version 0, matching the persisted stores (Cosmos, EF Core, FileSystem)
+  // and making this in-memory store a faithful test double for them.
+  private ulong NextVersionUnlocked => _events.Count == 0 ? _initialVersion : _events.Max(e => e.Version) + 1;
+
   public DateTimeOffset Created { get; }
 
   public ulong? LatestSnapshotVersion
@@ -88,7 +93,7 @@ internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
       _events.Add(new EventStreamDocument()
       {
         StreamId = StreamId,
-        Version = VersionUnlocked + 1,
+        Version = NextVersionUnlocked,
         Time = _tp.GetLocalNow(),
         DataType = name,
         Data = JObject.FromObject(evt),
@@ -106,19 +111,22 @@ internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
   public Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default)
   {
-    _events.Add(new EventStreamDocument()
+    lock (_lock)
     {
-      StreamId = StreamId,
-      Version = Version + 1,
-      Time = _tp.GetLocalNow(),
-      DataType = eventType,
-      Data = evt,
-      DocumentType = EventStreamDocumentType.Event,
-      MetaData = metaData ?? new EventStreamMetaData(),
-      TargetType = _targetType,
-      Id = id,
-      Name = eventType
-    });
+      _events.Add(new EventStreamDocument()
+      {
+        StreamId = StreamId,
+        Version = NextVersionUnlocked,
+        Time = _tp.GetLocalNow(),
+        DataType = eventType,
+        Data = evt,
+        DocumentType = EventStreamDocumentType.Event,
+        MetaData = metaData ?? new EventStreamMetaData(),
+        TargetType = _targetType,
+        Id = id,
+        Name = eventType
+      });
+    }
 
     return Task.CompletedTask;
   }
@@ -131,7 +139,7 @@ internal class InMemoryEventStream : IEventStream, ILowLevelEventStream
       _events.Add(new EventStreamDocument()
       {
         StreamId = StreamId,
-        Version = VersionUnlocked + 1,
+        Version = NextVersionUnlocked,
         Time = _tp.GetLocalNow(),
         DataType = _targetType,
         Data = JObject.FromObject(entity),
@@ -220,7 +228,7 @@ internal class InMemoryTransactionalBatch(
     _actions.Add(() => events.Add(new EventStreamDocument()
     {
       StreamId = streamId,
-      Version = (events.Count == 0 ? 0UL : events.Max(e => e.Version)) + 1,
+      Version = events.Count == 0 ? 0UL : events.Max(e => e.Version) + 1,
       Time = tp.GetLocalNow(),
       DataType = name,
       Data = JObject.FromObject(evt),
