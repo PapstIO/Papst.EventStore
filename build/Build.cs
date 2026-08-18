@@ -135,8 +135,8 @@ class Build : FalloutBuild
     bool? _skipCiRequested;
 
     /// <summary>
-    /// True when the merged PR title contains "skip ci" (case-insensitive). Mirrors the old
-    /// <c>check-skip</c> job: publishing is suppressed, build and test still run.
+    /// True when the merged PR title contains "skip ci" or "skip-ci" (case-insensitive). Mirrors
+    /// the old <c>check-skip</c> job: publishing is suppressed, build and test still run.
     /// </summary>
     bool SkipCiRequested => _skipCiRequested ??= ComputeSkipCiRequested();
 
@@ -170,7 +170,7 @@ class Build : FalloutBuild
                 .Select(pr => pr.TryGetProperty("title", out JsonElement t) ? t.GetString() ?? string.Empty : string.Empty)
                 .ToList();
 
-            bool skip = titles.Any(t => t.Contains("skip ci", StringComparison.OrdinalIgnoreCase));
+            bool skip = titles.Any(t => t.Replace('-', ' ').Contains("skip ci", StringComparison.OrdinalIgnoreCase));
             Log.Information("Associated PR titles: [{Titles}] -> SkipCI={Skip}", string.Join(", ", titles), skip);
             return skip;
         }
@@ -339,6 +339,7 @@ class Build : FalloutBuild
         }
 
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Papst.EventStore-Build", "1.0"));
 
         // 1. Ask GitHub for an OIDC token scoped to nuget.org.
         using var oidcRequest = new HttpRequestMessage(
@@ -373,6 +374,7 @@ class Build : FalloutBuild
         TimeSpan timeout = TimeSpan.FromMinutes(15);
         TimeSpan interval = TimeSpan.FromSeconds(15);
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Papst.EventStore-Build", "1.0"));
 
         foreach (string packageId in packageIds)
         {
