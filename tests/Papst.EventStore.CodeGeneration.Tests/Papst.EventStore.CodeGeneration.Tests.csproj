@@ -31,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Papst.EventStore.CodeGeneration\Papst.EventStore.CodeGeneration.csproj" />
+    <ProjectReference Include="..\..\src\Papst.EventStore.Aggregation.EventRegistration\Papst.EventStore.Aggregation.EventRegistration.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="Nerdbank.GitVersioning">

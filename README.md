@@ -52,6 +52,85 @@ Writing `MyEventsourcingEvent` to the Event Stream, will serialize them and name
 
 Note: `IsWriteName` is true by default!
 
+## Attribute-based Event Aggregation
+
+In addition to hand-written aggregators (deriving from `EventAggregatorBase<TEntity, TEvent>`), the code
+generator can **generate the aggregator for you** from a single attribute on the event. This is **opt-in** and
+works **in parallel** with the classic API — you can mix generated and hand-written aggregators freely, and an
+event only gets a generated aggregator when it is annotated.
+
+Annotate an event with `[EventAggregation<TEntity>]`. The generator emits an `IEventAggregator<TEntity, TEvent>`
+that copies the event's properties onto the target entity by **matching property name**:
+
+```csharp
+[EventName<Order>("OrderShipped")]
+[EventAggregation<Order>]
+public sealed record OrderShippedEvent(
+  OrderStatus Status,
+  string DeliveryTrackingCode,
+  DateTimeOffset PickupDate,
+  DateTimeOffset EstimatedArrivalDate);
+```
+
+Every event property that has a settable, equally named property on the entity is assigned. As with any
+generated event, the event still needs an `EventName` for type resolution, and the generated aggregator is
+registered by the existing `AddCodeGeneratedEvents()` extension.
+
+### Ignoring and renaming properties
+
+Use `[AggregationIgnore]` to exclude a property from aggregation, and `[AggregationProperty("TargetName")]` to
+map a property onto a differently named property on the entity:
+
+```csharp
+[EventAggregation<Order>]
+public sealed record OrderRenamed(
+  [property: AggregationProperty(nameof(Order.CustomerName))] string DisplayName, // written to Order.CustomerName
+  [property: AggregationIgnore] string CorrelationId                             // never mapped
+);
+```
+
+### Null handling
+
+By default `null` event values are **skipped** (the existing entity value is kept). Set
+`SkipNullValues = false` on the attribute to always write the value (including `null`), or override the
+behaviour for a single property with `[SkipWhenNull(bool)]`:
+
+```csharp
+[EventAggregation<Order>(SkipNullValues = false)]
+public sealed record OrderContactChanged(
+  string? Email,                              // written even when null
+  [property: SkipWhenNull(true)] string? Note // kept when null
+);
+```
+
+### Nested targets via `PropertyPath`
+
+`PropertyPath` selects a nested object on the entity as the aggregation target (dot-separated). Intermediate
+`null` links are instantiated automatically:
+
+```csharp
+[EventAggregation<Order>(PropertyPath = nameof(Order.ShippingAddress))]
+public sealed record ShippingAddressSet(string? City, string? Zip);
+```
+
+### Dictionaries and collections
+
+When `PropertyPath` points at a dictionary or collection, mark the event property that identifies the entry.
+Missing entries are created and added (**upsert**):
+
+```csharp
+// Dictionary<string, OrderLine> Lines — upsert the entry under the given key
+[EventAggregation<Order>(PropertyPath = nameof(Order.Lines))]
+public sealed record LineUpserted([property: AggregationDictionaryKey] string Sku, int Quantity);
+
+// List<OrderTag> Tags — upsert the item whose Id equals the event value
+[EventAggregation<Order>(PropertyPath = nameof(Order.Tags))]
+public sealed record TagUpserted([property: AggregationCollectionKey("Id")] string TagId, string? Label);
+```
+
+A working example lives in the Orders module of
+[`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/) (`OrderShippedEvent`).
+
 ## Configuring an Implementation for use
 
 Please refer to the documentation in the relevant implementation sources:
@@ -170,6 +249,28 @@ A full working sample is available at [`samples/SampleEventCatalog/`](./samples/
 For an end-to-end ASP.NET Core example using the in-memory event store, stream aggregation, and read-model repositories, see [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/).
 
 # Changelog
+
+## V 7.0
+
+Adds an opt-in, attribute-based way to generate event aggregators, usable in parallel with the existing
+hand-written aggregator API.
+
+### Changes
+
+* New `[EventAggregation<TEntity>]` attribute on an event class/record makes the
+  `Papst.EventStore.CodeGeneration` source generator emit the aggregator and register it via
+  `AddCodeGeneratedEvents()`. Event properties are mapped onto the entity by name.
+* `PropertyPath` targets a nested object (intermediate `null` links are instantiated), a `Dictionary<,>`
+  (mark the key with `[AggregationDictionaryKey]`) or a collection (mark the search key with
+  `[AggregationCollectionKey("Id")]`); missing dictionary/collection items are upserted.
+* Null handling is controlled globally by `SkipNullValues` (default `true`) and per property by
+  `[SkipWhenNull(bool)]`.
+* Individual event properties can be excluded with `[AggregationIgnore]` or mapped onto a differently named
+  entity property with `[AggregationProperty("TargetName")]`.
+* If a hand-written aggregator already exists for the same `(entity, event)` pair, generation is skipped and
+  an `EVTSRC0003` diagnostic is reported, so the two approaches never double-register.
+* The code generator no longer fails when a project contains nested event/aggregator types; such types are
+  skipped by the (name-based) discovery instead.
 
 ## V 6.4
 

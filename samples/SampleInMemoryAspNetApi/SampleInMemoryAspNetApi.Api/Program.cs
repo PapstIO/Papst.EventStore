@@ -37,6 +37,7 @@ app.MapGet("/", () => Results.Ok(new
     "GET /users/{userId}",
     "POST /orders",
     "POST /orders/{orderId}/status",
+    "POST /orders/{orderId}/ship",
     "POST /orders/{orderId}/cancel",
     "GET /orders/{orderId}",
     "GET /catalog/{entity}/events",
@@ -54,6 +55,7 @@ users.MapGet("/{userId:guid}", GetUserAsync);
 RouteGroupBuilder orders = app.MapGroup("/orders");
 orders.MapPost("/", CreateOrderAsync);
 orders.MapPost("/{orderId:guid}/status", ChangeOrderStatusAsync);
+orders.MapPost("/{orderId:guid}/ship", ShipOrderAsync);
 orders.MapPost("/{orderId:guid}/cancel", CancelOrderAsync);
 orders.MapGet("/{orderId:guid}", GetOrderAsync);
 
@@ -192,6 +194,32 @@ static async Task<IResult> ChangeOrderStatusAsync(
   }
 
   await stream.AppendAsync(Guid.NewGuid(), new OrderStatusChangedEvent(request.Status), cancellationToken: cancellationToken);
+  Order? order = await AggregateAndStoreAsync(stream, aggregator, repository.UpsertAsync, cancellationToken);
+
+  return order is null
+    ? Results.Problem("Order aggregation returned no entity.")
+    : Results.Ok(order);
+}
+
+static async Task<IResult> ShipOrderAsync(
+  Guid orderId,
+  ShipOrderRequest request,
+  IEventStore eventStore,
+  IEventStreamAggregator<Order> aggregator,
+  IOrderRepository repository,
+  CancellationToken cancellationToken)
+{
+  IEventStream? stream = await TryGetStreamAsync(eventStore, orderId, cancellationToken);
+  if (stream is null)
+  {
+    return Results.NotFound();
+  }
+
+  // OrderShippedEvent is aggregated by the code-generated attribute aggregation (no hand-written aggregator).
+  await stream.AppendAsync(
+    Guid.NewGuid(),
+    new OrderShippedEvent(OrderStatus.Shipped, request.DeliveryTrackingCode, request.PickupDate, request.EstimatedArrivalDate),
+    cancellationToken: cancellationToken);
   Order? order = await AggregateAndStoreAsync(stream, aggregator, repository.UpsertAsync, cancellationToken);
 
   return order is null

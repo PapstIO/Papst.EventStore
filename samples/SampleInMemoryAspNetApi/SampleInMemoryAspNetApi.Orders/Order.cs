@@ -10,6 +10,12 @@ public sealed class Order : IEntity
   public OrderStatus Status { get; set; }
   public string? CancellationReason { get; set; }
   public List<OrderItem> Items { get; set; } = [];
+
+  // Shipping information, populated by the attribute-aggregated OrderShippedEvent.
+  public string? DeliveryTrackingCode { get; set; }
+  public DateTimeOffset? PickupDate { get; set; }
+  public DateTimeOffset? EstimatedArrivalDate { get; set; }
+
   public ulong Version { get; set; }
 }
 

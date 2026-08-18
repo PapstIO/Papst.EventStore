@@ -30,12 +30,14 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\TestcontainersRuntime.cs" Link="TestcontainersRuntime.cs" />
+    <Compile Include="..\Shared\AggregationSample.cs" Link="Aggregation\AggregationSample.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Papst.EventStore.Aggregation.EventRegistration\Papst.EventStore.Aggregation.EventRegistration.csproj" />
     <ProjectReference Include="..\..\src\Papst.EventStore.MongoDB\Papst.EventStore.MongoDB.csproj" />
     <ProjectReference Include="..\..\src\Papst.EventStore\Papst.EventStore.csproj" />
+    <ProjectReference Include="..\..\src\Papst.EventStore.CodeGeneration\Papst.EventStore.CodeGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
