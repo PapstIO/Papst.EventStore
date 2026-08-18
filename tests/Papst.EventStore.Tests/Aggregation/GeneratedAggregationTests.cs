@@ -64,6 +64,20 @@ public class GeneratedAggregationTests
   }
 
   [Fact]
+  public async Task RemapAndIgnore_WriteToRemappedTarget_AndSkipIgnored()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    stream.Append(new OrderCreated("Alice"));
+    // DisplayName -> CustomerName (remap); the ignored CustomerName field must not overwrite it.
+    stream.Append(new CustomerRenamed(DisplayName: "Bob", CustomerName: "IGNORED"));
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order!.CustomerName.ShouldBe("Bob");
+  }
+
+  [Fact]
   public async Task NestedPropertyPath_AggregatesOntoChild()
   {
     var aggregator = BuildAggregator();

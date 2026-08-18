@@ -17,6 +17,8 @@ namespace Papst.EventStore.CodeGeneration
     private const string SkipWhenNullAttributeName = "SkipWhenNullAttribute";
     private const string DictionaryKeyAttributeName = "AggregationDictionaryKeyAttribute";
     private const string CollectionKeyAttributeName = "AggregationCollectionKeyAttribute";
+    private const string IgnoreAttributeName = "AggregationIgnoreAttribute";
+    private const string AggregationPropertyAttributeName = "AggregationPropertyAttribute";
 
     private const string IEnumerableOpen = "System.Collections.Generic.IEnumerable<T>";
     private const string IDictionaryOpen = "System.Collections.Generic.IDictionary<TKey, TValue>";
@@ -204,12 +206,21 @@ namespace Papst.EventStore.CodeGeneration
         {
           continue;
         }
-        if (targetIsRootEntity && evtProp.Name == "Version")
+        if (HasAttribute(evtProp, IgnoreAttributeName))
+        {
+          // explicitly excluded from aggregation
+          continue;
+        }
+
+        // resolve the target property name (may be remapped via [AggregationProperty])
+        string targetName = GetCtorString(evtProp, AggregationPropertyAttributeName) ?? evtProp.Name;
+
+        if (targetIsRootEntity && targetName == "Version")
         {
           // Version is maintained by the stream aggregator
           continue;
         }
-        if (!targetProps.TryGetValue(evtProp.Name, out var targetProp))
+        if (!targetProps.TryGetValue(targetName, out var targetProp))
         {
           continue;
         }
@@ -317,7 +328,8 @@ namespace Papst.EventStore.CodeGeneration
       }
 
       bool skip = EffectiveSkip(evtProp, skipNullValues);
-      string name = evtProp.Name;
+      string src = evtProp.Name;      // Event property (right-hand side)
+      string tgt = targetProp.Name;   // target entity property (left-hand side), possibly remapped
       bool targetIsNullableValue = targetProp.Type.IsValueType
         && targetProp.Type is INamedTypeSymbol tnt
         && tnt.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
@@ -325,29 +337,29 @@ namespace Papst.EventStore.CodeGeneration
       // non-nullable value type on the Event: never null
       if (evtProp.Type.IsValueType && !evtNullableValue)
       {
-        return $"    target.{name} = evt.{name};\n";
+        return $"    target.{tgt} = evt.{src};\n";
       }
 
       // reference type on the Event
       if (evtProp.Type.IsReferenceType)
       {
         return skip
-          ? $"    if (evt.{name} is not null) {{ target.{name} = evt.{name}; }}\n"
-          : $"    target.{name} = evt.{name};\n";
+          ? $"    if (evt.{src} is not null) {{ target.{tgt} = evt.{src}; }}\n"
+          : $"    target.{tgt} = evt.{src};\n";
       }
 
       // nullable value type (T?) on the Event
       if (targetIsNullableValue)
       {
         return skip
-          ? $"    if (evt.{name}.HasValue) {{ target.{name} = evt.{name}; }}\n"
-          : $"    target.{name} = evt.{name};\n";
+          ? $"    if (evt.{src}.HasValue) {{ target.{tgt} = evt.{src}; }}\n"
+          : $"    target.{tgt} = evt.{src};\n";
       }
 
       // nullable value on Event -> non-nullable value on target
       return skip
-        ? $"    if (evt.{name}.HasValue) {{ target.{name} = evt.{name}.Value; }}\n"
-        : $"    target.{name} = evt.{name}.GetValueOrDefault();\n";
+        ? $"    if (evt.{src}.HasValue) {{ target.{tgt} = evt.{src}.Value; }}\n"
+        : $"    target.{tgt} = evt.{src}.GetValueOrDefault();\n";
     }
 
     private static bool EffectiveSkip(IPropertySymbol evtProp, bool globalSkip)

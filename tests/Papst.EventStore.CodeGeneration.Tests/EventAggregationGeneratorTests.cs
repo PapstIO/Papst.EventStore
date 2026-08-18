@@ -118,6 +118,41 @@ namespace TestApp
   }
 
   [Fact]
+  public void AggregationIgnore_ExcludesProperty()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>]
+    public record WithIgnored(string? Name, [property: AggregationIgnore] string? Nick);");
+
+    aggregators!.ShouldContain("if (evt.Name is not null) { target.Name = evt.Name; }");
+    aggregators!.ShouldNotContain("target.Nick");
+    aggregators!.ShouldNotContain("evt.Nick");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void AggregationProperty_RemapsTargetName()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>]
+    public record Renamed([property: AggregationProperty(nameof(Entity.Nick))] string? DisplayName);");
+
+    aggregators!.ShouldContain("if (evt.DisplayName is not null) { target.Nick = evt.DisplayName; }");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void AggregationProperty_RemapsValueTypeTarget()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>]
+    public record CountRenamed([property: AggregationProperty(nameof(Entity.Count))] int Amount);");
+
+    aggregators!.ShouldContain("target.Count = evt.Amount;");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
   public void NestedPropertyPath_NavigatesAndInstantiates()
   {
     var (aggregators, _, _, output) = Generate(@"

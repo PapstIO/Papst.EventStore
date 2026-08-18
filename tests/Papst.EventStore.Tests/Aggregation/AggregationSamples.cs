@@ -48,6 +48,14 @@ public record CustomerNameForced(string? CustomerName);
 [EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.ShippingAddress))]
 public record ShippingAddressSet(string? City, string? Zip);
 
+// DisplayName is remapped onto CustomerName; the same-named CustomerName is explicitly ignored (so it must not
+// overwrite the remapped value).
+[EventName(nameof(CustomerRenamed))]
+[EventAggregation<OrderAggregate>]
+public record CustomerRenamed(
+  [property: AggregationProperty(nameof(OrderAggregate.CustomerName))] string? DisplayName,
+  [property: AggregationIgnore] string? CustomerName);
+
 [EventName(nameof(LineUpserted))]
 [EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Lines))]
 public record LineUpserted([property: AggregationDictionaryKey] string Sku, int Quantity, [property: SkipWhenNull(true)] string? Note);

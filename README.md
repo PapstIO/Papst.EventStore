@@ -76,6 +76,19 @@ Every event property that has a settable, equally named property on the entity i
 generated event, the event still needs an `EventName` for type resolution, and the generated aggregator is
 registered by the existing `AddCodeGeneratedEvents()` extension.
 
+### Ignoring and renaming properties
+
+Use `[AggregationIgnore]` to exclude a property from aggregation, and `[AggregationProperty("TargetName")]` to
+map a property onto a differently named property on the entity:
+
+```csharp
+[EventAggregation<Order>]
+public sealed record OrderRenamed(
+  [property: AggregationProperty(nameof(Order.CustomerName))] string DisplayName, // written to Order.CustomerName
+  [property: AggregationIgnore] string CorrelationId                             // never mapped
+);
+```
+
 ### Null handling
 
 By default `null` event values are **skipped** (the existing entity value is kept). Set
@@ -252,6 +265,8 @@ hand-written aggregator API.
   `[AggregationCollectionKey("Id")]`); missing dictionary/collection items are upserted.
 * Null handling is controlled globally by `SkipNullValues` (default `true`) and per property by
   `[SkipWhenNull(bool)]`.
+* Individual event properties can be excluded with `[AggregationIgnore]` or mapped onto a differently named
+  entity property with `[AggregationProperty("TargetName")]`.
 * If a hand-written aggregator already exists for the same `(entity, event)` pair, generation is skipped and
   an `EVTSRC0003` diagnostic is reported, so the two approaches never double-register.
 * The code generator no longer fails when a project contains nested event/aggregator types; such types are
