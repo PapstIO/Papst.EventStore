@@ -7,10 +7,32 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+    steps:
+    - name: Decide skip from PR title
+      id: decide
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+          });
+          const titles = prs.map(pr => pr.title || '');
+          const skip = titles.some(t => t.toLowerCase().includes('skip ci'));
+          core.info(`PR titles: ${JSON.stringify(titles)} -> skip=${skip}`);
+          core.setOutput('skip', skip ? 'true' : 'false');
+
   build-and-publish-contracts:
     runs-on: ubuntu-latest
+    needs: check-skip
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
@@ -38,22 +60,26 @@ jobs:
       run: dotnet test --no-build --verbosity normal --configuration Release Papst.EventStore.Contracts.slnx
 
     - name: Pack Papst.EventStore project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore/Papst.EventStore.csproj --no-build --configuration Release --output ./artifacts.contracts
 
     - name: Pack Papst.EventStore.EventRegistration project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.Aggregation.EventRegistration/Papst.EventStore.Aggregation.EventRegistration.csproj --no-build --configuration Release --output ./artifacts.contracts
 
     - name: Pack Papst.EventStore.CodeGeneration project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.CodeGeneration/Papst.EventStore.CodeGeneration.csproj --no-build --configuration Release --output ./artifacts.contracts
 
     - name: Publish Contracts to NuGet
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
       run: dotnet nuget push ./artifacts.contracts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_APIKEY }}
 
   build-and-publish-stores:
     runs-on: ubuntu-latest
-    needs: build-and-publish-contracts
+    needs: [check-skip, build-and-publish-contracts]
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
@@ -81,28 +107,35 @@ jobs:
       run: dotnet test --no-build --verbosity normal --configuration Release Papst.EventStore.Stores.slnx
       
     - name: Pack Papst.EventStore.AzureCosmos project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.AzureCosmos/Papst.EventStore.AzureCosmos.csproj --no-build --configuration Release --output ./artifacts
 
     - name: Pack Papst.EventStore.EntityFrameworkCore project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.EntityFrameworkCore/Papst.EventStore.EntityFrameworkCore.csproj --no-build --configuration Release --output ./artifacts
 
     - name: Pack Papst.EventStore.FileSystem project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj --no-build --configuration Release --output ./artifacts
-      
+
     - name: Pack Papst.EventStore.InMemory project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj --no-build --configuration Release --output ./artifacts
 
     - name: Pack Papst.EventStore.InMemory project
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       run: dotnet pack src/Papst.EventStore.MongoDB/Papst.EventStore.MongoDB.csproj --no-build --configuration Release --output ./artifacts
-      
+
     - name: Publish Stores to NuGet
+      if: ${{ needs.check-skip.outputs.skip != 'true' }}
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_APIKEY }}
       run: dotnet nuget push ./artifacts/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_APIKEY }}
 
   create-github-release:
     runs-on: ubuntu-latest
-    needs: build-and-publish-stores
+    needs: [check-skip, build-and-publish-stores]
+    if: ${{ needs.check-skip.outputs.skip != 'true' }}
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
