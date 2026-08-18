@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- The Fallout build project pins its own package versions; opt out of the
+         repository's central package management. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

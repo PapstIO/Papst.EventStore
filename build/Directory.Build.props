@@ -1,0 +1,4 @@
+<Project>
+  <!-- Isolate the Fallout build project from the repository's build customization
+       (root Directory.Build.props/.targets and central package management). -->
+</Project>

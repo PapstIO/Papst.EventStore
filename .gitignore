@@ -361,3 +361,6 @@ MigrationBackup/
 
 # MAC
 .DS_Store
+# Fallout build
+.fallout/temp/
+artifacts.contracts/
