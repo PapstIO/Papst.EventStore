@@ -79,7 +79,7 @@ registered by the existing `AddCodeGeneratedEvents()` extension.
 ### Ignoring and renaming properties
 
 Use `[AggregationIgnore]` to exclude a property from aggregation, and `[AggregationProperty("TargetName")]` to
-map a property onto a differently named property on the entity:
+map a property onto a differently named property on the entity (Note: an `EventName` attribute is always necessary):
 
 ```csharp
 [EventAggregation<Order>]
