@@ -27,6 +27,9 @@ public sealed class InMemoryOrderRepository : IOrderRepository
       Total = order.Total,
       Status = order.Status,
       CancellationReason = order.CancellationReason,
+      DeliveryTrackingCode = order.DeliveryTrackingCode,
+      PickupDate = order.PickupDate,
+      EstimatedArrivalDate = order.EstimatedArrivalDate,
       Version = order.Version,
       Items = [.. order.Items]
     };

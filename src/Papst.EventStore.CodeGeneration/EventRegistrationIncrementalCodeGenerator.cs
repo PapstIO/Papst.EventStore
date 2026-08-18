@@ -12,7 +12,7 @@ namespace Papst.EventStore.CodeGeneration
   /// Incremental Source Generator equivalent to EventRegistrationCodeGenerator.
   /// </summary>
   [Generator]
-  public class EventRegistrationIncrementalCodeGenerator : IIncrementalGenerator
+  public partial class EventRegistrationIncrementalCodeGenerator : IIncrementalGenerator
   {
     private const string EventAggregatorBaseClassName = "EventAggregatorBase";
     private const string EventAggregatorInterfaceName = "IEventAggregator";
@@ -88,7 +88,11 @@ namespace Papst.EventStore.CodeGeneration
 
           var aggregators = allClasses
             .OfType<ClassDeclarationSyntax>()
-            .Where(c => c.DescendantNodes().OfType<SimpleBaseTypeSyntax>().Any(bt =>
+            // Only consider top-level classes and their OWN base list. DescendantNodes() is recursive and
+            // would otherwise pick up base types of nested aggregators (whose namespace/full name cannot be
+            // reconstructed from syntax), matching the wrong container.
+            .Where(c => !(c.Parent is TypeDeclarationSyntax))
+            .Where(c => OwnBaseTypes(c).Any(bt =>
               bt.Type is GenericNameSyntax &&
               (
                 ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName ||
@@ -99,10 +103,8 @@ namespace Papst.EventStore.CodeGeneration
             {
               Class = c.Identifier.ValueText,
               Namespace = FindNamespace(c),
-              TypeArguments = c
-                .DescendantNodes()
-                .OfType<SimpleBaseTypeSyntax>()
-                .Where(bt => ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName)
+              TypeArguments = OwnBaseTypes(c)
+                .Where(bt => bt.Type is GenericNameSyntax && (((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorBaseClassName || ((GenericNameSyntax)bt.Type).Identifier.ValueText == EventAggregatorInterfaceName))
                 .Select(bt => new
                 {
                   BT = bt,
@@ -120,7 +122,13 @@ namespace Papst.EventStore.CodeGeneration
             })
             .ToList();
 
-          if (events.Count > 0 || aggregators.Count > 0)
+          // --- Attribute based aggregation: discover [EventAggregation<TEntity>] events ---
+          var manualPairs = new HashSet<string>(
+            aggregators.SelectMany(a => a.TypeArguments)
+              .Select(impl => $"{impl.EntityNamespace}.{impl.Entity}|{impl.EventNamespace}.{impl.Event}"));
+          var generatedAggregators = BuildGeneratedAggregators(compilation, allClasses, manualPairs, productionContext);
+
+          if (events.Count > 0 || aggregators.Count > 0 || generatedAggregators.Count > 0)
           {
             StringBuilder builder = new StringBuilder();
             builder
@@ -166,6 +174,14 @@ namespace Papst.EventStore.CodeGeneration
               }
             }
 
+            if (generatedAggregators.Count > 0)
+            {
+              foreach (var generated in generatedAggregators)
+              {
+                builder.AppendLine($"    services.AddTransient<global::Papst.EventStore.Aggregation.IEventAggregator<{generated.EntityFullName}, {generated.EventFullName}>, global::{baseNamespace}.{generated.GeneratedClassName}>();");
+              }
+            }
+
             builder
               .AppendLine("    if (!services.Any(descriptor => descriptor.ServiceType == typeof(Papst.EventStore.IEventTypeProvider)))")
               .AppendLine("    {")
@@ -185,6 +201,11 @@ namespace Papst.EventStore.CodeGeneration
             builder.AppendLine("}");
 
             productionContext.AddSource("EventRegistration.g.cs", builder.ToString());
+
+            if (generatedAggregators.Count > 0)
+            {
+              productionContext.AddSource("EventAggregators.g.cs", BuildGeneratedAggregatorsFile(baseNamespace, generatedAggregators));
+            }
           }
           else
           {
@@ -535,6 +556,13 @@ namespace Papst.EventStore.CodeGeneration
     /// </summary>
     private static EventInfo FindEvents(Compilation compilation, TypeDeclarationSyntax typeDeclaration, TypeDeclarationSyntax[] allClasses)
     {
+      // Nested types are not supported by the syntax-based name discovery (their namespace/full name
+      // cannot be reconstructed from the declaration alone); skip them rather than failing generation.
+      if (typeDeclaration.Parent is TypeDeclarationSyntax)
+      {
+        return null;
+      }
+
       var attributes = typeDeclaration.AttributeLists
         .SelectMany(x => x.Attributes)
         .Where(attr => IsEventNameAttribute(attr.Name))
@@ -768,6 +796,15 @@ namespace Papst.EventStore.CodeGeneration
     #endregion
 
     #region Namespace Helpers
+
+    /// <summary>
+    /// Returns the type's own base list entries (not descendants), so nested types' base lists are not
+    /// mistakenly attributed to their containing type.
+    /// </summary>
+    private static IEnumerable<SimpleBaseTypeSyntax> OwnBaseTypes(TypeDeclarationSyntax type)
+      => type.BaseList == null
+        ? Enumerable.Empty<SimpleBaseTypeSyntax>()
+        : type.BaseList.Types.OfType<SimpleBaseTypeSyntax>();
 
     private static string FindNamespace(TypeDeclarationSyntax typeDeclaration)
     {

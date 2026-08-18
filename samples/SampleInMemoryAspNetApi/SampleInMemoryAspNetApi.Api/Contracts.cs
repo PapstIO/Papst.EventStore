@@ -9,5 +9,6 @@ public sealed record CreateOrderRequest(Guid UserId, List<CreateOrderItemRequest
 public sealed record CreateOrderItemRequest(string ProductName, int Quantity, decimal UnitPrice);
 public sealed record ChangeOrderStatusRequest(OrderStatus Status);
 public sealed record CancelOrderRequest(string Reason);
+public sealed record ShipOrderRequest(string DeliveryTrackingCode, DateTimeOffset PickupDate, DateTimeOffset EstimatedArrivalDate);
 public sealed record CatalogEventResponse(string EventName, string? Description, string[]? Constraints);
 public sealed record CatalogEventDetailsResponse(string EventName, string? Description, string[]? Constraints, string JsonSchema);
