@@ -7,7 +7,9 @@
   <Folder Name="/Build/">
     <File Path=".github/workflows/publish.yml" />
     <File Path=".github/workflows/test.yml" />
+    <File Path="global.json" />
     <File Path="version.json" />
+    <Project Path="build/_build.csproj" />
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/SampleFileEventStore/SampleFileEventStore.csproj" />
