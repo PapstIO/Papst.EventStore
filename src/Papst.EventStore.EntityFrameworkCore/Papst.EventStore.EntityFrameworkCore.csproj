@@ -4,13 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>Papst.EventStore.EntityFrameworkCore</PackageId>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore/</PackageProjectUrl>
-    <Authors>Marco Papst</Authors>
-    <Description>This library contains a EntityFrameworkCore based implementation for the Package Papst.EventStore</Description>
-    <PackageTags>eventsourcing;eventstore;entityframeworkcore;sqlserver</PackageTags>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Title>Papst EventStore Entity Framework Core</Title>
+    <Description>Entity Framework Core based EventStore implementation for Papst.EventStore, including SQL Server migrations.</Description>
+    <PackageTags>eventsourcing;eventstore;entityframeworkcore;sqlserver;cqrs</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\"/>
@@ -20,13 +16,12 @@
     <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Core" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <!-- Design-time tooling only: must not become a runtime dependency of the package. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- Required at compile time: the shipped migrations call SqlServerModelBuilderExtensions. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>

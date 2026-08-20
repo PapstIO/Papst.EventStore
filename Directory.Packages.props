@@ -3,57 +3,117 @@
         <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
         <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     </PropertyGroup>
+
+    <!-- ======================================================================
+         Papst.EventStore packages.
+         The Store packages consume the Contracts package from nuget.org in
+         Release builds; the range keeps them on the current major line.
+         ====================================================================== -->
     <ItemGroup>
-        <PackageVersion Include="AutoFixture.Xunit2" Version="4.18.1" />
-        <PackageVersion Include="Azure.Core" Version="1.53.0" />
-        <PackageVersion Include="Azure.Identity" Version="[1.17.1, 2.0]" />
-        <PackageVersion Include="coverlet.collector" Version="10.0.1">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageVersion>
-        <PackageVersion Include="JsonSchema.Net" Version="9.1.4" />
-        <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
-        <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageVersion>
-        <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.0.0" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.2" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageVersion>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
+        <PackageVersion Include="Papst.EventStore" Version="[7.0.3,8.0)" />
+    </ItemGroup>
+
+    <!-- ======================================================================
+         Microsoft.Extensions.* — published dependency floors.
+
+         The intent is to declare these as low as the code allows, so consumers
+         are not forced onto one servicing patch and can keep the assemblies the
+         shared framework already supplies.
+
+         In practice most of them cannot go below 10.0.11 in this repository:
+         Microsoft.EntityFrameworkCore 10.0.11 requires Caching.Memory 10.0.11,
+         which requires DependencyInjection.Abstractions / Logging.Abstractions /
+         Options at 10.0.11, and with CentralPackageTransitivePinningEnabled a
+         lower PackageVersion becomes a direct pin -> NU1109 package downgrade.
+         The versions below are the lowest values that restore cleanly; do not
+         lower one without re-running "dotnet restore Papst.EventStore.slnx".
+
+         Lowering the rest would mean turning off transitive pinning, which is
+         also what enforces the security floors further down. Not worth the trade.
+         ====================================================================== -->
+    <ItemGroup>
+        <!-- floor forced to 10.0.11 by the EF Core / Caching.Memory graph -->
         <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-        <PackageVersion Include="MongoDB.Driver" Version="3.8.1" />
-        <PackageVersion Include="Moq" Version="4.20.72" />
+        <!-- unconstrained: kept at the lowest 10.x so consumers are not pinned forward -->
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    </ItemGroup>
+
+    <!-- ======================================================================
+         Storage drivers.
+         Capped below the next major: their major versions are breaking, and an
+         uncapped floor lets a consumer resolve a 4.x driver against a store that
+         was compiled against 3.x, which fails at runtime instead of at restore.
+         ====================================================================== -->
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.Azure.Cosmos" Version="[3.62.1, 4.0.0)" />
+        <PackageVersion Include="MongoDB.Driver" Version="[3.11.0, 4.0.0)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
         <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
-        <PackageVersion Include="Papst.EventStore" Version="[7.0.0,8.0)" />
+    </ItemGroup>
+
+    <!-- ======================================================================
+         Source generator.
+         Microsoft.CodeAnalysis.CSharp is deliberately NOT tracked to the latest
+         release: it defines the minimum Roslyn (and therefore the minimum SDK)
+         a consumer of Papst.EventStore.CodeGeneration must have.
+         ====================================================================== -->
+    <ItemGroup>
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    </ItemGroup>
+
+    <!-- ======================================================================
+         Transitive-only security floors.
+         None of these are referenced by any project. They exist solely because
+         CentralPackageTransitivePinningEnabled turns a PackageVersion into a
+         minimum for the transitive graph. Do not delete them as unused:
+           SharpCompress, Azure.Core            <- MongoDB.Driver / Microsoft.Data.SqlClient
+           Azure.Identity, System.Formats.Asn1  <- Microsoft.Data.SqlClient
+           Microsoft.Extensions.Caching.Memory  <- Microsoft.EntityFrameworkCore
+         ====================================================================== -->
+    <ItemGroup>
+        <PackageVersion Include="Azure.Core" Version="1.61.0" />
+        <PackageVersion Include="Azure.Identity" Version="[1.17.1, 2.0.0)" />
+        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
         <PackageVersion Include="SharpCompress" Version="0.48.1" />
-        <PackageVersion Include="Shouldly" Version="4.3.0" />
-        <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
         <PackageVersion Include="System.Formats.Asn1" Version="10.0.1" />
-        <PackageVersion Include="System.Linq.Async" Version="7.0.0" />
+    </ItemGroup>
+
+    <!-- ====================================== Build / tooling ============== -->
+    <ItemGroup>
+        <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.91" />
+    </ItemGroup>
+
+    <!-- ====================================== Tests ======================== -->
+    <ItemGroup>
+        <PackageVersion Include="AutoFixture.Xunit3" Version="4.19.0" />
+        <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+        <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.0.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+        <PackageVersion Include="Moq" Version="4.20.72" />
+        <PackageVersion Include="Shouldly" Version="4.3.0" />
         <PackageVersion Include="Testcontainers" Version="4.14.0" />
         <PackageVersion Include="Testcontainers.CosmosDb" Version="4.14.0" />
         <PackageVersion Include="Testcontainers.MongoDb" Version="4.14.0" />
-        <PackageVersion Include="xunit" Version="2.9.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageVersion>
+        <PackageVersion Include="xunit.v3" Version="4.0.0" />
     </ItemGroup>
+
+    <!-- ====================================== Samples ====================== -->
+    <ItemGroup>
+        <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    </ItemGroup>
+
 </Project>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.MongoDB.Tests.IntegrationTests.Events;
 using Shouldly;

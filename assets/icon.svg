@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Papst.EventStore">
+  <title>Papst.EventStore</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A3F86"/>
+      <stop offset="1" stop-color="#23264F"/>
+    </linearGradient>
+  </defs>
+
+  <!-- backdrop -->
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!-- queue track, flowing left to right -->
+  <g fill="none" stroke="#7A80EA" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 4 64 H 110"/>
+    <path d="M 110 56 L 118 64 L 110 72"/>
+  </g>
+
+  <!-- four queued messages, each carrying an "e" for event -->
+  <g fill="#F2F4FF">
+    <rect x="6"  y="49" width="22" height="30" rx="6"/>
+    <rect x="33" y="49" width="22" height="30" rx="6"/>
+    <rect x="60" y="49" width="22" height="30" rx="6"/>
+    <rect x="87" y="49" width="22" height="30" rx="6"/>
+  </g>
+  <g fill="none" stroke="#23264F" stroke-width="2.8" stroke-linecap="round">
+    <path d="M 11.5 64 H 22.5  A 5.5 5.5 0 1 0 20.889 67.889"/>
+    <path d="M 38.5 64 H 49.5  A 5.5 5.5 0 1 0 47.889 67.889"/>
+    <path d="M 65.5 64 H 76.5  A 5.5 5.5 0 1 0 74.889 67.889"/>
+    <path d="M 92.5 64 H 103.5 A 5.5 5.5 0 1 0 101.889 67.889"/>
+  </g>
+</svg>

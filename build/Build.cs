@@ -191,10 +191,7 @@ class Build : FalloutBuild
                 .SetProjectFile(FullSolution)
                 .SetConfiguration("Debug"));
 
-            DotNetTest(s => s
-                .SetProjectFile(FullSolution)
-                .SetConfiguration("Debug")
-                .EnableNoBuild());
+            RunSolutionTests(FullSolution, "Debug");
         });
 
     // --- Publish pipeline (mirrors publish.yml): Release, PackageReferences, needs NuGet ---------
@@ -207,10 +204,7 @@ class Build : FalloutBuild
 
     Target TestContracts => _ => _
         .DependsOn(CompileContracts)
-        .Executes(() => DotNetTest(s => s
-            .SetProjectFile(ContractsSolution)
-            .SetConfiguration("Release")
-            .EnableNoBuild()));
+        .Executes(() => RunSolutionTests(ContractsSolution, "Release"));
 
     Target PackContracts => _ => _
         .DependsOn(TestContracts)
@@ -244,7 +238,7 @@ class Build : FalloutBuild
         .DependsOn(WaitForContracts)
         .Executes(() =>
         {
-            // Drop the NuGet HTTP cache so the [6.4.0,7.0) range re-resolves to the new Contracts.
+            // Drop the NuGet HTTP cache so the [7.0.0,8.0) range re-resolves to the new Contracts.
             DotNet("nuget locals http-cache --clear");
             DotNetBuild(s => s
                 .SetProjectFile(StoresSolution)
@@ -253,10 +247,7 @@ class Build : FalloutBuild
 
     Target TestStores => _ => _
         .DependsOn(CompileStores)
-        .Executes(() => DotNetTest(s => s
-            .SetProjectFile(StoresSolution)
-            .SetConfiguration("Release")
-            .EnableNoBuild()));
+        .Executes(() => RunSolutionTests(StoresSolution, "Release"));
 
     Target PackStores => _ => _
         .DependsOn(TestStores)
@@ -293,6 +284,16 @@ class Build : FalloutBuild
         .Executes(() => CreateGitHubReleaseAsync().GetAwaiter().GetResult());
 
     // --- Helpers ---------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Runs the tests of a solution. The projects are xUnit.net v3, which runs on Microsoft.Testing
+    /// Platform (opted into via <c>global.json</c>); on the .NET 10 SDK that runner takes the solution
+    /// through <c>--solution</c> rather than as a positional argument, which DotNetTest cannot express.
+    /// </summary>
+    void RunSolutionTests(AbsolutePath solution, string configuration) => DotNet(
+        $"test --solution \"{solution}\" --configuration {configuration} --no-build",
+        workingDirectory: RootDirectory);
+
 
     string _resolvedNuGetApiKey;
 

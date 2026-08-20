@@ -1,5 +1,5 @@
 using System;
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Shouldly;
 using Xunit;
 
