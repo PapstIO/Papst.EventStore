@@ -59,11 +59,11 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var stream = await CreateStreamAsync(store, streamId);
 
     // act
-    await stream.AppendAsync(documentId, new TestAppendedEvent());
+    await stream.AppendAsync(documentId, new TestAppendedEvent(), cancellationToken: TestContext.Current.CancellationToken);
 
     // assert
     stream.Version.ShouldBe(1UL);
-    var events = await stream.ListAsync().ToListAsync();
+    var events = await stream.ListAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
     events.ShouldContain(d => d.Id == documentId);
   }
 
@@ -79,10 +79,10 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
       ["value"] = "low-level"
     };
 
-    await lowLevelStream.AppendAsync(documentId, "LowLevelEvent", payload);
+    await lowLevelStream.AppendAsync(documentId, "LowLevelEvent", payload, cancellationToken: TestContext.Current.CancellationToken);
 
     stream.Version.ShouldBe(1UL);
-    var events = await stream.ListAsync().ToListAsync();
+    var events = await stream.ListAsync(cancellationToken: TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
     events.ShouldContain(d => d.Id == documentId);
     EventStreamDocument appendedEvent = events.Single(d => d.Id == documentId);
     appendedEvent.DataType.ShouldBe("LowLevelEvent");
@@ -100,14 +100,14 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
 
     // act
     var batch = await stream.CreateTransactionalBatchAsync();
-    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
-    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
-    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
-    batch.Add(Guid.NewGuid(), new TestAppendedEvent());
-    await batch.CommitAsync();
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent(), cancellationToken: TestContext.Current.CancellationToken);
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent(), cancellationToken: TestContext.Current.CancellationToken);
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent(), cancellationToken: TestContext.Current.CancellationToken);
+    batch.Add(Guid.NewGuid(), new TestAppendedEvent(), cancellationToken: TestContext.Current.CancellationToken);
+    await batch.CommitAsync(TestContext.Current.CancellationToken);
 
     // assert
-    var events = await stream.ListAsync(0).ToListAsync();
+    var events = await stream.ListAsync(0, TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
     events.Count.ShouldBe(5);
 
   }
@@ -145,8 +145,8 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent(), new TestAppendedEvent());
 
     // act
-    var list = stream.ListAsync(0);
-    var events = await list.ToListAsync();
+    var list = stream.ListAsync(0, TestContext.Current.CancellationToken);
+    var events = await list.ToListAsync(TestContext.Current.CancellationToken);
 
     // assert
     events.Count.ShouldBe(4);
@@ -161,7 +161,7 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent());
 
     // act
-    await stream.UpdateStreamMetaData(metaData, default);
+    await stream.UpdateStreamMetaData(metaData, TestContext.Current.CancellationToken);
 
     // assert
     stream.MetaData.ShouldNotBeNull();
@@ -177,9 +177,9 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
     var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent());
 
     // act
-    await stream.UpdateStreamMetaData(metaData, default);
+    await stream.UpdateStreamMetaData(metaData, TestContext.Current.CancellationToken);
     // enforce reload
-    stream = await store.GetAsync(streamId, default);
+    stream = await store.GetAsync(streamId, TestContext.Current.CancellationToken);
 
     // assert
     stream.MetaData.ShouldNotBeNull();

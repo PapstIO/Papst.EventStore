@@ -142,7 +142,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var batch = await stream.CreateTransactionalBatchAsync();
     foreach (var @event in testEvents)
     {
-      batch.Add(Guid.NewGuid(), @event);
+      batch.Add(Guid.NewGuid(), @event, cancellationToken: TestContext.Current.CancellationToken);
     }
     await batch.CommitAsync(CancellationToken.None);
 

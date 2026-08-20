@@ -22,7 +22,7 @@ namespace MyCode
   public record UserCreatedEvent(string Name);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -54,7 +54,7 @@ namespace MyCode
   }
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -81,7 +81,7 @@ namespace MyCode
   public record ComplexEvent(string Name, int Count, bool IsActive, Status Status, string[] Tags);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -112,7 +112,7 @@ namespace MyCode
   }
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -133,7 +133,7 @@ namespace MyCode
   public record OrphanEvent(string Value);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -156,7 +156,7 @@ namespace MyCode
   public record SimpleEvent(string Value);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -178,7 +178,7 @@ namespace MyCode
   public record OrderCreatedEvent(string Number);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
@@ -200,7 +200,7 @@ namespace MyCode
   public record InvoiceIssuedEvent(string Number);
 }
 ");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
     diagnostics.ShouldBeEmpty();
     var runResult = driver.GetRunResult();
     runResult.Diagnostics.ShouldBeEmpty();
