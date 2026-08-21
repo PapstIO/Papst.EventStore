@@ -3,27 +3,26 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>latest</LangVersion>
-        <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <!-- Analyzer-only package: it ships no lib assembly, so there is nothing to put in a symbol
+             package (NU5017) and no runtime dependencies to declare (NU5128). -->
+        <IncludeSymbols>false</IncludeSymbols>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+        <Title>Papst EventStore Code Generation</Title>
+        <Description>Roslyn source generator for Papst.EventStore. Discovers [EventName] and [EventAggregation] types at compile time and emits the DI registration for events, aggregators and the event catalog.</Description>
+        <PackageTags>eventsourcing;eventstore;sourcegenerator;roslyn;codegeneration</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     </ItemGroup>
-    <ItemGroup>
-      <PackageReference Update="Nerdbank.GitVersioning">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-    </ItemGroup>
-
 
 </Project>

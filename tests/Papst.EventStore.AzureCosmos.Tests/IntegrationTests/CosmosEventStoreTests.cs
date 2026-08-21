@@ -1,4 +1,4 @@
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,11 +26,15 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
     // act
     await eventStore.CreateAsync(streamId, "", CancellationToken.None);
 
-    // assert
+    // assert - scoped to this stream's partition; the container is shared with the other tests
+    // in this class, several of which write an index document of their own
     var container = client.GetContainer(CosmosDbIntegrationTestFixture.CosmosDatabaseName,
       CosmosDbIntegrationTestFixture.CosmosContainerId);
-    var iterator = container.GetItemLinqQueryable<EventStreamIndexEntity>().ToFeedIterator();
-    var batch = await iterator.ReadNextAsync();
+    var iterator = container
+      .GetItemLinqQueryable<EventStreamIndexEntity>(requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) })
+      .Where(d => d.StreamId == streamId)
+      .ToFeedIterator();
+    var batch = await iterator.ReadNextAsync(TestContext.Current.CancellationToken);
     batch.Count.ShouldBe(1);
     batch.Resource.First().StreamId.ShouldBe(streamId);
   }
@@ -57,7 +61,7 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
     var eventStore = serviceProvider.GetRequiredService<IEventStore>();
     CosmosClient client = serviceProvider.GetRequiredService<CosmosClient>();
     var container = client.GetContainer(CosmosDbIntegrationTestFixture.CosmosDatabaseName, CosmosDbIntegrationTestFixture.CosmosContainerId);
-    await container.UpsertItemAsync(index);
+    await container.UpsertItemAsync(index, cancellationToken: TestContext.Current.CancellationToken);
 
     // act
     var stream = await eventStore.GetAsync(index.StreamId, CancellationToken.None);
@@ -120,7 +124,7 @@ public class CosmosEventStoreTests : IClassFixture<CosmosDbIntegrationTestFixtur
       .GetItemLinqQueryable<EventStreamDocumentEntity>(requestOptions: new() { PartitionKey = new PartitionKey(streamId.ToString()) })
       .Where(d => d.StreamId == streamId)
       .ToFeedIterator();
-    var batch = await iterator.ReadNextAsync();
+    var batch = await iterator.ReadNextAsync(TestContext.Current.CancellationToken);
     batch.Count.ShouldBe(0);
   }
 }

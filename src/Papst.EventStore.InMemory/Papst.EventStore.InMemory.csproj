@@ -4,35 +4,21 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Authors>Marco Papst</Authors>
-        <Description>InMemory based EventStore Implementation for testing purpose only!</Description>
         <Title>Papst.EventStore.InMemory</Title>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore/</PackageProjectUrl>
-        <Authors>Marco Papst</Authors>
-        <PackageTags>eventsourcing;eventstore;entityframeworkcore;sqlserver</PackageTags>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <Description>InMemory based EventStore Implementation for testing purpose only!</Description>
+        <PackageTags>eventsourcing;eventstore;inmemory;testing</PackageTags>
     </PropertyGroup>
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="System.Linq.Async" Condition="'$(TargetFramework)' == 'net8.0'" />
         <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" Condition="'$(Configuration)' == 'DEBUG'" />
         <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
-    </ItemGroup>
-    <ItemGroup>
-      <PackageReference Update="Nerdbank.GitVersioning">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
     </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ public interface IEventAggregator<TEntity, TEvent> : IEventAggregator<TEntity>
     where TEntity : class
 {
   /// <summary>
-  /// Applies the <see cref="TEvent"/> to the Entity <see cref="TEntity"/>
+  /// Applies the <typeparamref name="TEvent"/> to the Entity <typeparamref name="TEntity"/>
   /// </summary>
   /// <param name="evt"></param>
   /// <param name="entity"></param>
@@ -28,7 +28,7 @@ public interface IEventAggregator<TEntity>
     where TEntity : class
 {
   /// <summary>
-  /// Applies the Event as <see cref="JObject"/> to the Entity <see cref="TEntity"/>
+  /// Applies the Event as <see cref="JObject"/> to the Entity <typeparamref name="TEntity"/>
   /// </summary>
   /// <param name="evt"></param>
   /// <param name="entity"></param>

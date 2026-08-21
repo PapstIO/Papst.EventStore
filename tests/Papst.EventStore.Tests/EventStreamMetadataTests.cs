@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Newtonsoft.Json;
 using Papst.EventStore.Documents;
 using Shouldly;

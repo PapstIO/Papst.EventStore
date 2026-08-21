@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Fallout.Common;
 using Fallout.Common.CI.GitHubActions;
 using Fallout.Common.IO;
-using Fallout.Common.Tooling;
 using Fallout.Common.Tools.DotNet;
 using Serilog;
 using static Fallout.Common.Tools.DotNet.DotNetTasks;
@@ -42,13 +35,7 @@ class Build : FalloutBuild
     public static int Main() => Execute<Build>(x => x.Test);
 
     // --- Parameters ------------------------------------------------------------------------------
-
-    // Optional explicit NuGet API key. Normally left unset: on CI a short-lived key is minted via
-    // NuGet Trusted Publishing (GitHub OIDC JWT -> nuget.org token exchange). See AcquireNuGetApiKeyAsync.
-    [Parameter("Explicit NuGet API key (optional; CI mints a short-lived key via OIDC)")]
-    [Secret]
-    readonly string NuGetApiKey;
-
+    
     // nuget.org username (profile name, NOT email) used in the OIDC token exchange. Provided via the
     // NUGET_USER GitHub secret. Not a publishing credential — the key is minted per run.
     [Parameter("nuget.org username for Trusted Publishing (OIDC)")]
@@ -191,10 +178,7 @@ class Build : FalloutBuild
                 .SetProjectFile(FullSolution)
                 .SetConfiguration("Debug"));
 
-            DotNetTest(s => s
-                .SetProjectFile(FullSolution)
-                .SetConfiguration("Debug")
-                .EnableNoBuild());
+            RunSolutionTests(FullSolution, "Debug");
         });
 
     // --- Publish pipeline (mirrors publish.yml): Release, PackageReferences, needs NuGet ---------
@@ -207,10 +191,7 @@ class Build : FalloutBuild
 
     Target TestContracts => _ => _
         .DependsOn(CompileContracts)
-        .Executes(() => DotNetTest(s => s
-            .SetProjectFile(ContractsSolution)
-            .SetConfiguration("Release")
-            .EnableNoBuild()));
+        .Executes(() => RunSolutionTests(ContractsSolution, "Release"));
 
     Target PackContracts => _ => _
         .DependsOn(TestContracts)
@@ -237,14 +218,14 @@ class Build : FalloutBuild
         .Description("Polls NuGet until the just-published Contracts version is restorable.")
         .DependsOn(PublishContracts)
         .OnlyWhenDynamic(() => ShouldPublish)
-        .Executes(() => WaitForPackagesAsync(ContractPackageIds, PackageVersion).GetAwaiter().GetResult());
+        .Executes(async () => await WaitForPackagesAsync(ContractPackageIds, PackageVersion));
 
     Target CompileStores => _ => _
         .Description("Builds the Stores solution in Release (restores the freshly published Contracts).")
         .DependsOn(WaitForContracts)
         .Executes(() =>
         {
-            // Drop the NuGet HTTP cache so the [6.4.0,7.0) range re-resolves to the new Contracts.
+            // Drop the NuGet HTTP cache so the [7.0.0,8.0) range re-resolves to the new Contracts.
             DotNet("nuget locals http-cache --clear");
             DotNetBuild(s => s
                 .SetProjectFile(StoresSolution)
@@ -253,10 +234,7 @@ class Build : FalloutBuild
 
     Target TestStores => _ => _
         .DependsOn(CompileStores)
-        .Executes(() => DotNetTest(s => s
-            .SetProjectFile(StoresSolution)
-            .SetConfiguration("Release")
-            .EnableNoBuild()));
+        .Executes(() => RunSolutionTests(StoresSolution, "Release"));
 
     Target PackStores => _ => _
         .DependsOn(TestStores)
@@ -283,16 +261,26 @@ class Build : FalloutBuild
         .Description("Polls NuGet until the just-published Store versions are restorable.")
         .DependsOn(PublishStores)
         .OnlyWhenDynamic(() => ShouldPublish)
-        .Executes(() => WaitForPackagesAsync(StorePackageIds, PackageVersion).GetAwaiter().GetResult());
+        .Executes(async () => await WaitForPackagesAsync(StorePackageIds, PackageVersion));
 
     Target Release => _ => _
         .Description("Creates the GitHub release for the published version.")
         .DependsOn(WaitForStores)
         .OnlyWhenDynamic(() => ShouldPublish)
         .Requires(() => GitHubToken)
-        .Executes(() => CreateGitHubReleaseAsync().GetAwaiter().GetResult());
+        .Executes(async () => await CreateGitHubReleaseAsync());
 
     // --- Helpers ---------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Runs the tests of a solution. The projects are xUnit.net v3, which runs on Microsoft.Testing
+    /// Platform (opted into via <c>global.json</c>); on the .NET 10 SDK that runner takes the solution
+    /// through <c>--solution</c> rather than as a positional argument, which DotNetTest cannot express.
+    /// </summary>
+    void RunSolutionTests(AbsolutePath solution, string configuration) => DotNet(
+        $"test --solution \"{solution}\" --configuration {configuration} --no-build",
+        workingDirectory: RootDirectory);
+
 
     string _resolvedNuGetApiKey;
 
@@ -313,24 +301,18 @@ class Build : FalloutBuild
     }
 
     /// <summary>
-    /// Obtains a NuGet API key. If <see cref="NuGetApiKey"/> is set it is used as-is; otherwise a
-    /// short-lived key is minted via NuGet Trusted Publishing: request the GitHub Actions OIDC JWT
-    /// (audience nuget.org) and exchange it at nuget.org's token endpoint for a ~1h API key.
+    /// Mints a short-lived NuGet API key via NuGet Trusted Publishing: request the GitHub Actions
+    /// OIDC JWT (audience nuget.org) and exchange it at nuget.org's token endpoint for a ~1h API key.
     /// </summary>
     async Task<string> AcquireNuGetApiKeyAsync()
     {
-        if (!string.IsNullOrWhiteSpace(NuGetApiKey))
-        {
-            return NuGetApiKey;
-        }
-
         string requestUrl = Environment.GetEnvironmentVariable("ACTIONS_ID_TOKEN_REQUEST_URL");
         string requestToken = Environment.GetEnvironmentVariable("ACTIONS_ID_TOKEN_REQUEST_TOKEN");
         if (string.IsNullOrWhiteSpace(requestUrl) || string.IsNullOrWhiteSpace(requestToken))
         {
             throw new InvalidOperationException(
                 "No NuGet API key available and GitHub OIDC is not enabled. " +
-                "Grant 'id-token: write' to the job (WritePermissions IdToken) or pass --nuget-api-key.");
+                "Grant 'id-token: write' to the job (WritePermissions IdToken).");
         }
 
         if (string.IsNullOrWhiteSpace(NuGetUser))

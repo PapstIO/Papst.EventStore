@@ -29,7 +29,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
 
   public const string CosmosDatabaseName = "EventStore";
 
-  public async Task InitializeAsync()
+  public async ValueTask InitializeAsync()
   {
 
     await _cosmosDbContainer.StartAsync();
@@ -64,7 +64,7 @@ public class CosmosDbIntegrationTestFixture : IAsyncLifetime
     return services.BuildServiceProvider();
   }
 
-  public async Task DisposeAsync()
+  public async ValueTask DisposeAsync()
   {
     _cosmosClient?.Dispose();
 

@@ -1,7 +1,68 @@
+<Project>
 
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- ==========================================================================
+       Shared NuGet package metadata. Applies to every packable project in the
+       repository; per-project files add only Title, Description and PackageTags.
+       ========================================================================== -->
+  <PropertyGroup>
+    <Authors>Marco Papst</Authors>
+    <Company>Marco Papst</Company>
+    <Copyright>Copyright (c) 2020 Marco Papst</Copyright>
+
+    <PackageProjectUrl>https://github.com/PapstIO/Papst.EventStore</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PapstIO/Papst.EventStore</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!-- Source Link / debugging. SourceLink itself ships with the .NET SDK; these
+       switches make the packages fully source-debuggable and add symbol packages.
+       "dotnet nuget push *.nupkg" uploads the adjacent .snupkg automatically. -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)' == 'true' or '$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Ship XML documentation with the packages. CS1591 (missing XML comment on a
+       public member) is suppressed so the existing undocumented members do not
+       flood the build. -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Fail the build on a vulnerable package. The .NET 10 SDK audits direct and
+       transitive dependencies by default; this turns the audit warnings into
+       errors so CI cannot go green on a newly disclosed CVE. -->
+  <PropertyGroup>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- xunit.v3 runs on Microsoft.Testing.Platform; the VSTest bridge "dotnet test" used to take is
+       no longer supported on the .NET 10 SDK, so opt the test projects into the MTP runner. -->
+  <PropertyGroup>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)assets/icon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
+    <!-- PrivateAssets/IncludeAssets must live on the PackageReference: NuGet
+         ignores asset metadata declared on PackageVersion in Directory.Packages.props. -->
     <PackageReference Include="Nerdbank.GitVersioning">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
 </Project>

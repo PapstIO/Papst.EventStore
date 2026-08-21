@@ -1,4 +1,4 @@
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore;
 using Papst.EventStore.Exceptions;

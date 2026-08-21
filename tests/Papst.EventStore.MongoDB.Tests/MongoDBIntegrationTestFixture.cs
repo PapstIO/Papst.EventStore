@@ -19,7 +19,7 @@ public class MongoDBIntegrationTestFixture : IAsyncLifetime
   public string ConnectionString => _mongoDbContainer.GetConnectionString();
   public const string DatabaseName = "EventStoreTest";
 
-  public async Task InitializeAsync()
+  public async ValueTask InitializeAsync()
   {
     await _mongoDbContainer.StartAsync();
   }
@@ -45,7 +45,7 @@ public class MongoDBIntegrationTestFixture : IAsyncLifetime
     return services.BuildServiceProvider();
   }
 
-  public async Task DisposeAsync()
+  public async ValueTask DisposeAsync()
   {
     await _mongoDbContainer.StopAsync();
     await _mongoDbContainer.DisposeAsync();

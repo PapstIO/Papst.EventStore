@@ -78,7 +78,7 @@ public interface IEventStream
   Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync();
 
   /// <summary>
-  /// List all Stream Documents ascending starting with <see cref="startVersion"/>
+  /// List all Stream Documents ascending starting with <paramref name="startVersion"/>
   /// </summary>
   /// <param name="startVersion"></param>
   /// <param name="cancellationToken"></param>
@@ -86,7 +86,7 @@ public interface IEventStream
   IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion = 0u, CancellationToken cancellationToken = default);
 
   /// <summary>
-  /// List the Stream Documents ascending from <see cref="startVersion"/> to <see cref="endVersion"/>
+  /// List the Stream Documents ascending from <paramref name="startVersion"/> to <paramref name="endVersion"/>
   /// </summary>
   /// <param name="startVersion"></param>
   /// <param name="endVersion"></param>
@@ -95,7 +95,7 @@ public interface IEventStream
   IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, CancellationToken cancellationToken = default);
   
   /// <summary>
-  /// List the Stream Documents descending from <see cref="endVersion"/> to <see cref="startVersion"/>
+  /// List the Stream Documents descending from <paramref name="endVersion"/> to <paramref name="startVersion"/>
   /// </summary>
   /// <param name="endVersion"></param>
   /// <param name="startVersion"></param>
@@ -104,7 +104,7 @@ public interface IEventStream
   IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion, CancellationToken cancellationToken = default);
   
   /// <summary>
-  /// List the Stream documents from <see cref="endVersion"/> to 0
+  /// List the Stream documents from <paramref name="endVersion"/> to 0
   /// </summary>
   /// <param name="endVersion"></param>
   /// <param name="cancellationToken"></param>

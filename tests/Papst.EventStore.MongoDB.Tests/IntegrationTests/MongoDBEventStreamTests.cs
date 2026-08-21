@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Microsoft.Extensions.DependencyInjection;
 using Papst.EventStore.MongoDB.Tests.IntegrationTests.Events;
 using Shouldly;
@@ -142,7 +142,7 @@ public class MongoDBEventStreamTests : IClassFixture<MongoDBIntegrationTestFixtu
     var batch = await stream.CreateTransactionalBatchAsync();
     foreach (var @event in testEvents)
     {
-      batch.Add(Guid.NewGuid(), @event);
+      batch.Add(Guid.NewGuid(), @event, cancellationToken: TestContext.Current.CancellationToken);
     }
     await batch.CommitAsync(CancellationToken.None);
 

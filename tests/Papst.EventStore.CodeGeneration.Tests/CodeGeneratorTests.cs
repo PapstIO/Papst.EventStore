@@ -30,7 +30,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -58,7 +58,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -96,7 +96,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -133,7 +133,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -169,7 +169,7 @@ public class TestEventFoo
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -209,7 +209,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -249,7 +249,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -287,7 +287,7 @@ namespace MyCode
 }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -334,7 +334,7 @@ namespace MyCode
   }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -387,7 +387,7 @@ namespace MyCode
   }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -435,7 +435,7 @@ namespace MyCode
   }
 ");
 
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.ShouldBeEmpty();
     outputCompilation.SyntaxTrees.Count().ShouldBe(2);
@@ -465,7 +465,7 @@ namespace MyCode
         }
     }
 }");
-    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics);
+    driver = driver.RunGeneratorsAndUpdateCompilation(inputCompilation, out var outputCompilation, out var diagnostics, TestContext.Current.CancellationToken);
 
     diagnostics.Length.ShouldBe(1);
     diagnostics.First().Id.ShouldBe("EVTSRC0002");

@@ -1,4 +1,4 @@
-﻿using AutoFixture.Xunit2;
+﻿using AutoFixture.Xunit3;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Papst.EventStore.EventRegistration;

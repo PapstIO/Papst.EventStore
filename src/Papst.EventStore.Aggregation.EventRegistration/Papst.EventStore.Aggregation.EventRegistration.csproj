@@ -1,25 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>disable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-    <ItemGroup>
-        <InternalsVisibleTo Include="Papst.EventStore.Tests" />
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj"/>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-        <PackageReference Include="Microsoft.Extensions.Options"/>
-        <PackageReference Include="Newtonsoft.Json"/>
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Update="Nerdbank.GitVersioning">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>Papst EventStore Event Registration Aggregation</Title>
+    <Description>Aggregation for Papst.EventStore driven by code-generated event registration: resolves IEventAggregator handlers from the DI container and applies them to an entity.</Description>
+    <PackageTags>eventsourcing;eventstore;aggregation;cqrs;events</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Papst.EventStore.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj"/>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
 </Project>
