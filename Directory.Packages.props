@@ -39,7 +39,7 @@
         <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
         <!-- unconstrained: kept at the lowest 10.x so consumers are not pinned forward -->
-        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
     </ItemGroup>
