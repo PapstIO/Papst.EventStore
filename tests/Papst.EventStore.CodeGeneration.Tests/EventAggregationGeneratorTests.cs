@@ -29,6 +29,7 @@ namespace TestApp
     public SubEntity Child { get; set; } = new();
     public Dictionary<Guid, Item> Items { get; set; } = new();
     public List<Item> ItemsList { get; set; } = new();
+    public List<string> Labels { get; set; } = new();
   }
 ";
 
@@ -194,6 +195,85 @@ namespace TestApp
     aggregators!.ShouldContain("target.Id = evt.ItemId;");
     aggregators!.ShouldContain("entity.ItemsList.Add(target);");
     aggregators!.ShouldContain("if (evt.Value is not null) { target.Value = evt.Value; }");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void DictionaryRemove_RemovesByKey_AndSkipsAssignment()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.Items))]
+    public record ItemRemoved([property: AggregationDictionaryKey, AggregationRemove] Guid Id, string? Value);");
+
+    aggregators!.ShouldContain("if (entity.Items != null)");
+    aggregators!.ShouldContain("entity.Items.Remove(evt.Id);");
+    // removal is terminal: the remaining Value property must not be applied
+    aggregators!.ShouldNotContain("target.Value = evt.Value;");
+    aggregators!.ShouldNotContain("TryGetValue");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void DictionaryRemove_EnumerableValue_RemovesEachKey()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.Items))]
+    public record ItemsRemoved([property: AggregationDictionaryKey, AggregationRemove] IEnumerable<Guid> Ids);");
+
+    aggregators!.ShouldContain("if (entity.Items != null && evt.Ids != null)");
+    aggregators!.ShouldContain("foreach (var __removeKey in evt.Ids)");
+    aggregators!.ShouldContain("entity.Items.Remove(__removeKey);");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void CollectionRemove_RemovesBySearchKey()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.ItemsList))]
+    public record ListItemRemoved([property: AggregationCollectionKey(""Id""), AggregationRemove] Guid ItemId);");
+
+    aggregators!.ShouldContain("if (entity.ItemsList != null)");
+    aggregators!.ShouldContain("global::System.Linq.Enumerable.Where(entity.ItemsList");
+    aggregators!.ShouldContain("EqualityComparer<global::System.Guid>.Default.Equals(x.Id, evt.ItemId)");
+    aggregators!.ShouldContain("entity.ItemsList.Remove(__removeItem);");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void CollectionRemove_EnumerableValue_MatchesByContains()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.ItemsList))]
+    public record ListItemsRemoved([property: AggregationCollectionKey(""Id""), AggregationRemove] IEnumerable<Guid> ItemIds);");
+
+    aggregators!.ShouldContain("global::System.Linq.Enumerable.ToList(evt.ItemIds");
+    aggregators!.ShouldContain("global::System.Linq.Enumerable.Contains(__removeKeys, x.Id)");
+    aggregators!.ShouldContain("entity.ItemsList.Remove(__removeItem);");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void ScalarCollectionRemove_RemovesByEquality()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.Labels))]
+    public record LabelRemoved([property: AggregationRemove] string Label);");
+
+    aggregators!.ShouldContain("if (entity.Labels != null)");
+    aggregators!.ShouldContain("entity.Labels.Remove(evt.Label);");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void Remove_InvalidTarget_ReportsDiagnostic()
+  {
+    var (aggregators, _, run, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.Name))]
+    public record BadRemove([property: AggregationRemove] string Name);");
+
+    run.Diagnostics.Any(d => d.Id == "EVTSRC0004").ShouldBeTrue();
+    (aggregators is null || !aggregators.Contains("BadRemove_Entity_GeneratedAggregator")).ShouldBeTrue();
     ShouldCompileClean(output);
   }
 

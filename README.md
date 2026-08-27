@@ -128,6 +128,30 @@ public sealed record LineUpserted([property: AggregationDictionaryKey] string Sk
 public sealed record TagUpserted([property: AggregationCollectionKey("Id")] string TagId, string? Label);
 ```
 
+### Removing items with `[AggregationRemove]`
+
+Mark the event property whose **value** identifies the item(s) to remove from the dictionary or collection at
+`PropertyPath` with `[AggregationRemove]`. A removal event only removes — its remaining properties are not
+applied. Removing a key that is not present is a no-op:
+
+```csharp
+// Dictionary<string, OrderLine> Lines — remove the entry stored under the given key
+[EventAggregation<Order>(PropertyPath = nameof(Order.Lines))]
+public sealed record LineRemoved([property: AggregationDictionaryKey, AggregationRemove] string Sku);
+
+// List<OrderTag> Tags — remove the item whose Id equals the event value
+[EventAggregation<Order>(PropertyPath = nameof(Order.Tags))]
+public sealed record TagRemoved([property: AggregationCollectionKey("Id"), AggregationRemove] string TagId);
+```
+
+The value may also be an `IEnumerable<T>` to remove several items in a single event (bulk removal):
+
+```csharp
+// removes every entry whose key is contained in Skus
+[EventAggregation<Order>(PropertyPath = nameof(Order.Lines))]
+public sealed record LinesRemoved([property: AggregationDictionaryKey, AggregationRemove] IEnumerable<string> Skus);
+```
+
 A working example lives in the Orders module of
 [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/) (`OrderShippedEvent`).
 

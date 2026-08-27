@@ -38,6 +38,7 @@ MyEntity? entity = await aggregator.AggregateAsync(stream, cancellationToken);
 | `[EventAggregation]` | Marks a type as taking part in generated aggregation |
 | `[AggregationProperty]` / `[AggregationIgnore]` | Control which properties are aggregated |
 | `[AggregationCollectionKey]` / `[AggregationDictionaryKey]` | Identify items when aggregating collections |
+| `[AggregationRemove]` | Remove the item(s) identified by the property value from the target collection/dictionary (single value or `IEnumerable<T>`) |
 | `[SkipWhenNull]` | Skip applying a property when the event value is null |
 
 See the [project README](https://github.com/PapstIO/Papst.EventStore) for the full documentation.

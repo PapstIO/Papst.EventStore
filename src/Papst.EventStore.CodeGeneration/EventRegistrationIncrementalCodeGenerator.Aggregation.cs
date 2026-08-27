@@ -19,6 +19,7 @@ namespace Papst.EventStore.CodeGeneration
     private const string CollectionKeyAttributeName = "AggregationCollectionKeyAttribute";
     private const string IgnoreAttributeName = "AggregationIgnoreAttribute";
     private const string AggregationPropertyAttributeName = "AggregationPropertyAttribute";
+    private const string AggregationRemoveAttributeName = "AggregationRemoveAttribute";
 
     private const string IEnumerableOpen = "System.Collections.Generic.IEnumerable<T>";
     private const string IDictionaryOpen = "System.Collections.Generic.IDictionary<TKey, TValue>";
@@ -134,6 +135,26 @@ namespace Papst.EventStore.CodeGeneration
       if (!TryResolvePath(ctx, entitySymbol, propertyPath, body, out ITypeSymbol pathType, out string pathExpr, out IPropertySymbol finalProp))
       {
         return false;
+      }
+
+      // --- Removal mode: an event property carries [AggregationRemove]; its value identifies the item(s) to
+      // remove from the collection / dictionary at PropertyPath. Removal is terminal: no properties are applied.
+      IPropertySymbol removeProp = eventProps.FirstOrDefault(p => HasAttribute(p, AggregationRemoveAttributeName));
+      if (removeProp != null)
+      {
+        if (!TryEmitRemoval(ctx, eventSymbol, propertyPath, pathType, pathExpr, removeProp, collectionTargetName, body))
+        {
+          return false;
+        }
+
+        info = new GeneratedAggregatorInfo
+        {
+          EntityFullName = entityFull,
+          EventFullName = eventFull,
+          GeneratedClassName = $"{eventSymbol.Name}_{entitySymbol.Name}_GeneratedAggregator",
+          MethodBody = body.ToString(),
+        };
+        return true;
       }
 
       if (dictKeyProp != null)
@@ -308,6 +329,109 @@ namespace Papst.EventStore.CodeGeneration
       finalExpr = expr;
       finalProp = chain[chain.Count - 1].prop;
       return true;
+    }
+
+    /// <summary>
+    /// Emits the removal body for an Event property marked with <c>[AggregationRemove]</c>. The target selected by
+    /// <paramref name="pathExpr"/> must resolve to <c>IDictionary&lt;,&gt;</c> or <c>ICollection&lt;&gt;</c>; the
+    /// property value (single, or an <c>IEnumerable&lt;T&gt;</c> for bulk removal) identifies the item(s) to remove.
+    /// </summary>
+    private static bool TryEmitRemoval(
+      SourceProductionContext ctx,
+      INamedTypeSymbol eventSymbol,
+      string propertyPath,
+      ITypeSymbol pathType,
+      string pathExpr,
+      IPropertySymbol removeProp,
+      string collectionTargetName,
+      StringBuilder body)
+    {
+      // string is IEnumerable<char> but must be treated as a single value
+      ITypeSymbol enumerableElement = null;
+      if (removeProp.Type.SpecialType != SpecialType.System_String)
+      {
+        var enumerableIface = FindConstructedInterface(removeProp.Type, IEnumerableOpen);
+        if (enumerableIface != null)
+        {
+          enumerableElement = enumerableIface.TypeArguments[0];
+        }
+      }
+      bool isBulk = enumerableElement != null;
+      string valueExpr = $"evt.{removeProp.Name}";
+
+      var dictIface = FindConstructedInterface(pathType, IDictionaryOpen);
+      if (dictIface != null)
+      {
+        if (isBulk)
+        {
+          body.AppendLine($"    if ({pathExpr} != null && {valueExpr} != null)");
+          body.AppendLine("    {");
+          body.AppendLine($"      foreach (var __removeKey in {valueExpr})");
+          body.AppendLine("      {");
+          body.AppendLine($"        {pathExpr}.Remove(__removeKey);");
+          body.AppendLine("      }");
+          body.AppendLine("    }");
+        }
+        else
+        {
+          body.AppendLine($"    if ({pathExpr} != null)");
+          body.AppendLine("    {");
+          body.AppendLine($"      {pathExpr}.Remove({valueExpr});");
+          body.AppendLine("    }");
+        }
+        return true;
+      }
+
+      var collIface = FindConstructedInterface(pathType, ICollectionOpen);
+      if (collIface != null)
+      {
+        if (collectionTargetName == null)
+        {
+          // scalar collection: remove elements equal to the value(s)
+          if (isBulk)
+          {
+            body.AppendLine($"    if ({pathExpr} != null && {valueExpr} != null)");
+            body.AppendLine("    {");
+            body.AppendLine($"      foreach (var __removeItem in {valueExpr})");
+            body.AppendLine("      {");
+            body.AppendLine($"        {pathExpr}.Remove(__removeItem);");
+            body.AppendLine("      }");
+            body.AppendLine("    }");
+          }
+          else
+          {
+            body.AppendLine($"    if ({pathExpr} != null)");
+            body.AppendLine("    {");
+            body.AppendLine($"      {pathExpr}.Remove({valueExpr});");
+            body.AppendLine("    }");
+          }
+          return true;
+        }
+
+        // complex collection: remove items whose key property matches the value(s)
+        string keyTypeFq = eventSafeFq(isBulk ? enumerableElement : removeProp.Type);
+        body.AppendLine($"    if ({pathExpr} != null)");
+        body.AppendLine("    {");
+        if (isBulk)
+        {
+          body.AppendLine($"      var __removeKeys = global::System.Linq.Enumerable.ToList({valueExpr} ?? global::System.Linq.Enumerable.Empty<{keyTypeFq}>());");
+          body.AppendLine($"      var __toRemove = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Where({pathExpr}, x => global::System.Linq.Enumerable.Contains(__removeKeys, x.{collectionTargetName})));");
+        }
+        else
+        {
+          body.AppendLine($"      var __toRemove = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Where({pathExpr}, x => global::System.Collections.Generic.EqualityComparer<{keyTypeFq}>.Default.Equals(x.{collectionTargetName}, {valueExpr})));");
+        }
+        body.AppendLine("      foreach (var __removeItem in __toRemove)");
+        body.AppendLine("      {");
+        body.AppendLine($"        {pathExpr}.Remove(__removeItem);");
+        body.AppendLine("      }");
+        body.AppendLine("    }");
+        return true;
+      }
+
+      ReportWarning(ctx, "EVTSRC0004", "Invalid aggregation target",
+        $"PropertyPath '{propertyPath}' on Event '{eventSymbol.Name}' is marked with [AggregationRemove] but does not resolve to IDictionary<,> or ICollection<T>.");
+      return false;
     }
 
     private static bool CanInstantiate(IPropertySymbol prop)

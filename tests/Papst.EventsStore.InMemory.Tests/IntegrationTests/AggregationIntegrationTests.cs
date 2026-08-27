@@ -44,4 +44,32 @@ public class AggregationIntegrationTests
     order.Lines[0].Sku.ShouldBe("SKU-1");
     order.Lines[0].Quantity.ShouldBe(7);
   }
+
+  [Fact]
+  public async Task GeneratedAggregation_RemovesCollectionItem()
+  {
+    var services = new ServiceCollection();
+    services.AddLogging();
+    services.AddInMemoryEventStore();
+    services.AddRegisteredEventAggregation();
+    EventStoreEventAggregator.AddCodeGeneratedEvents(services);
+    var provider = services.BuildServiceProvider();
+
+    var store = provider.GetRequiredService<IEventStore>();
+    var aggregator = provider.GetRequiredService<IEventStreamAggregator<SampleOrder>>();
+
+    var streamId = Guid.NewGuid();
+    var stream = await store.CreateAsync(streamId, "", CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new SampleOrderCreated("Alice"), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new SampleLineUpserted("SKU-1", 3), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new SampleLineUpserted("SKU-2", 5), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new SampleLineRemoved("SKU-1"), cancellationToken: CancellationToken.None);
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order.ShouldNotBeNull();
+    order!.Lines.Count.ShouldBe(1);
+    order.Lines[0].Sku.ShouldBe("SKU-2");
+    order.Lines[0].Quantity.ShouldBe(5);
+  }
 }

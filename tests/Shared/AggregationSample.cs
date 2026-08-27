@@ -29,3 +29,8 @@ public record SampleOrderCreated(string? Customer);
 [EventName(nameof(SampleLineUpserted))]
 [EventAggregation<SampleOrder>(PropertyPath = nameof(SampleOrder.Lines))]
 public record SampleLineUpserted([property: AggregationCollectionKey("Sku")] string Sku, int Quantity);
+
+// Removes the line whose Sku equals the event value from SampleOrder.Lines.
+[EventName(nameof(SampleLineRemoved))]
+[EventAggregation<SampleOrder>(PropertyPath = nameof(SampleOrder.Lines))]
+public record SampleLineRemoved([property: AggregationCollectionKey("Sku"), AggregationRemove] string Sku);

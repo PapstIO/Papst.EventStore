@@ -123,6 +123,55 @@ public class GeneratedAggregationTests
     order.Tags.ShouldContain(t => t.Id == "t2" && t.Label == "Wholesale");
   }
 
+  [Fact]
+  public async Task DictionaryRemove_RemovesEntryByKey()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    stream.Append(new LineUpserted("SKU-1", 2, "first"));
+    stream.Append(new LineUpserted("SKU-2", 5, null));
+    stream.Append(new LineRemoved("SKU-1"));
+    stream.Append(new LineRemoved("SKU-404"));   // missing key: no-op
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order!.Lines.Count.ShouldBe(1);
+    order.Lines.ContainsKey("SKU-1").ShouldBeFalse();
+    order.Lines["SKU-2"].Quantity.ShouldBe(5);
+  }
+
+  [Fact]
+  public async Task DictionaryRemove_EnumerableValue_RemovesEachKey()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    stream.Append(new LineUpserted("SKU-1", 1, null));
+    stream.Append(new LineUpserted("SKU-2", 2, null));
+    stream.Append(new LineUpserted("SKU-3", 3, null));
+    stream.Append(new LinesRemoved(new[] { "SKU-1", "SKU-3" }));
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order!.Lines.Count.ShouldBe(1);
+    order.Lines.ContainsKey("SKU-2").ShouldBeTrue();
+  }
+
+  [Fact]
+  public async Task CollectionRemove_RemovesItemBySearchKey()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    stream.Append(new TagUpserted("t1", "Urgent"));
+    stream.Append(new TagUpserted("t2", "Wholesale"));
+    stream.Append(new TagRemoved("t1"));
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order!.Tags.Count.ShouldBe(1);
+    order.Tags.ShouldContain(t => t.Id == "t2" && t.Label == "Wholesale");
+    order.Tags.ShouldNotContain(t => t.Id == "t1");
+  }
+
   private sealed class FakeStream : IEventStream
   {
     private readonly List<EventStreamDocument> _events = new();

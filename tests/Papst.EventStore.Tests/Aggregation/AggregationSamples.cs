@@ -63,3 +63,18 @@ public record LineUpserted([property: AggregationDictionaryKey] string Sku, int 
 [EventName(nameof(TagUpserted))]
 [EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Tags))]
 public record TagUpserted([property: AggregationCollectionKey("Id")] string TagId, string? Label);
+
+// Removes the dictionary entry stored under the given Sku from OrderAggregate.Lines.
+[EventName(nameof(LineRemoved))]
+[EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Lines))]
+public record LineRemoved([property: AggregationDictionaryKey, AggregationRemove] string Sku);
+
+// Bulk removal: removes every dictionary entry whose key is contained in Skus.
+[EventName(nameof(LinesRemoved))]
+[EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Lines))]
+public record LinesRemoved([property: AggregationDictionaryKey, AggregationRemove] IEnumerable<string> Skus);
+
+// Removes the collection item whose Id equals the event value from OrderAggregate.Tags.
+[EventName(nameof(TagRemoved))]
+[EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Tags))]
+public record TagRemoved([property: AggregationCollectionKey("Id"), AggregationRemove] string TagId);
