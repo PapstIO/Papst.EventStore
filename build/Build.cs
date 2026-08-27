@@ -71,6 +71,7 @@ class Build : FalloutBuild
         RootDirectory / "src" / "Papst.EventStore.FileSystem" / "Papst.EventStore.FileSystem.csproj",
         RootDirectory / "src" / "Papst.EventStore.InMemory" / "Papst.EventStore.InMemory.csproj",
         RootDirectory / "src" / "Papst.EventStore.MongoDB" / "Papst.EventStore.MongoDB.csproj",
+        RootDirectory / "src" / "Papst.EventStore.Signing" / "Papst.EventStore.Signing.csproj",
     ];
 
     static readonly string[] ContractPackageIds =
@@ -87,6 +88,7 @@ class Build : FalloutBuild
         "Papst.EventStore.FileSystem",
         "Papst.EventStore.InMemory",
         "Papst.EventStore.MongoDB",
+        "Papst.EventStore.Signing",
     ];
 
     string _packageVersion;

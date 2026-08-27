@@ -10,10 +10,12 @@
     <Project Path="src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj" />
     <Project Path="src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj" />
     <Project Path="src/Papst.EventStore.MongoDB/Papst.EventStore.MongoDB.csproj" />
+    <Project Path="src/Papst.EventStore.Signing/Papst.EventStore.Signing.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/Papst.EventsStore.InMemory.Tests/Papst.EventsStore.InMemory.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.AzureCosmos.Tests/Papst.EventStore.AzureCosmos.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.MongoDB.Tests/Papst.EventStore.MongoDB.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.Signing.Tests/Papst.EventStore.Signing.Tests.csproj" />
   </Folder>
 </Solution>

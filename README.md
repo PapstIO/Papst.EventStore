@@ -214,6 +214,23 @@ internal sealed class MyHandler : IEventStorePipelineHandler<EventAppendContext>
 
 Handlers run in registration order (first registered is outermost), and a single append carries one `Entry` while a batch commit carries several. With no handlers registered the pipeline is a zero-overhead pass-through, so existing behaviour is unchanged. Register a handler with `services.AddAppendPipelineHandler<MyHandler>()`. Event signing (below) is the first built-in handler.
 
+## Event Signing
+
+The [`Papst.EventStore.Signing`](https://www.nuget.org/packages/Papst.EventStore.Signing/) package signs every appended event with a configurable X.509 certificate, forming a tamper-evident hash chain (`sig_N = Sign(H(event_N) ‖ sig_{N-1})`). It is a pipeline handler, so it works uniformly across all providers.
+
+```csharp
+services
+    .AddInMemoryEventStore()            // or any other provider
+    .AddEventRegistrationTypeProvider()
+    .AddEventStoreSigning(options =>
+    {
+        options.Certificate = signingCertificate;   // must contain a private key
+        options.Algorithm = "RS256";                // RS/PS/ES + 256/384/512
+    });
+```
+
+Verify a stream with `IEventStreamSignatureVerifier`, and implement `ISignedEntity` to have the aggregator expose the signature of the entity's current version. The private key always comes from the host — never from configuration. See the [package README](./src/Papst.EventStore.Signing/README.md) for details, and note that signing detects tampering within a retained stream; it does not prevent deletion of a whole stream.
+
 ## Event Catalog
 
 The **Event Catalog** provides a queryable registry of all events associated with a given entity type, including metadata (description, constraints) and a compile-time generated JSON Schema. This is useful for documentation, API discovery, and runtime introspection.
@@ -271,6 +288,22 @@ A full working sample is available at [`samples/SampleEventCatalog/`](./samples/
 For an end-to-end ASP.NET Core example using the in-memory event store, stream aggregation, and read-model repositories, see [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/).
 
 # Changelog
+
+## V 7.1
+
+Adds a generic append pipeline and event signing.
+
+### Changes
+
+* New ASP.NET Core–style **append pipeline** (`IEventStorePipeline<TContext>` /
+  `IEventStorePipelineHandler<EventAppendContext>`); every provider routes single, low-level, snapshot
+  and batch appends through it. Empty pipeline is a zero-overhead pass-through.
+* New **`Papst.EventStore.Signing`** package: signs events with a configurable X.509 certificate as a
+  chained, tamper-evident signature, with `IEventStreamSignatureVerifier` and an opt-in verified read.
+* `EventStreamDocument` gains a `Signature` property; new `ISignedEntity : IEntity`; stream indexes store
+  the signing certificate thumbprint, algorithm and chain head (EF Core migration `V7.1_EventSigning`).
+* Fixes: `EventStreamDocument.Create` now keeps `MetaData`; EF Core snapshots persist `Type = Snapshot`;
+  EF Core batch appends number events sequentially.
 
 ## V 7.0
 

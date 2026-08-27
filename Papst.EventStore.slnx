@@ -37,6 +37,7 @@
     <Project Path="src/Papst.EventStore.FileSystem/Papst.EventStore.FileSystem.csproj" />
     <Project Path="src/Papst.EventStore.InMemory/Papst.EventStore.InMemory.csproj" />
     <Project Path="src/Papst.EventStore.MongoDB/Papst.EventStore.MongoDB.csproj" />
+    <Project Path="src/Papst.EventStore.Signing/Papst.EventStore.Signing.csproj" />
     <Project Path="src/Papst.EventStore/Papst.EventStore.csproj" />
   </Folder>
   <Folder Name="/Tests/">
@@ -46,6 +47,7 @@
     <Project Path="tests/Papst.EventStore.EntityFrameworkCore.Tests/Papst.EventStore.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.FileSystem.Tests/Papst.EventStore.FileSystem.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.MongoDB.Tests/Papst.EventStore.MongoDB.Tests.csproj" />
+    <Project Path="tests/Papst.EventStore.Signing.Tests/Papst.EventStore.Signing.Tests.csproj" />
     <Project Path="tests/Papst.EventStore.Tests/Papst.EventStore.Tests.csproj" />
   </Folder>
 </Solution>
