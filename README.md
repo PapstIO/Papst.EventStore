@@ -192,6 +192,28 @@ Semantics:
 
 The action is implemented and logged by every provider (Azure Cosmos, Entity Framework Core, MongoDB, FileSystem and InMemory). See the provider READMEs for provider-specific details.
 
+## Append Pipeline
+
+Every store routes appends through a small, ASP.NET Core–style pipeline, so cross-cutting concerns (signing, encryption, audit, …) can be plugged in once and run for **all** providers. A handler implements `IEventStorePipelineHandler<EventAppendContext>` and calls `await next()`:
+
+```csharp
+internal sealed class MyHandler : IEventStorePipelineHandler<EventAppendContext>
+{
+    public async Task HandleAsync(EventAppendContext context, EventStorePipelineDelegate next, CancellationToken ct)
+    {
+        foreach (var entry in context.Entries)
+        {
+            // inspect or replace the document being appended
+            entry.Document = entry.Document with { /* ... */ };
+        }
+
+        await next(); // continue the pipeline, ending in the store's persistence
+    }
+}
+```
+
+Handlers run in registration order (first registered is outermost), and a single append carries one `Entry` while a batch commit carries several. With no handlers registered the pipeline is a zero-overhead pass-through, so existing behaviour is unchanged. Register a handler with `services.AddAppendPipelineHandler<MyHandler>()`. Event signing (below) is the first built-in handler.
+
 ## Event Catalog
 
 The **Event Catalog** provides a queryable registry of all events associated with a given entity type, including metadata (description, constraints) and a compile-time generated JSON Schema. This is useful for documentation, API discovery, and runtime introspection.

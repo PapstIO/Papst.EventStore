@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.MongoDB;
 
@@ -44,6 +45,7 @@ public static class MongoDBEventStoreProvider
     });
     
     services.AddSingleton<IEventStore, MongoDBEventStore>();
+    services.AddEventStorePipeline();
     services.TryAddSingleton(TimeProvider.System);
     return services;
   }

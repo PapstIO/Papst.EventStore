@@ -61,4 +61,10 @@ public class EventStreamDocumentEntity
   /// Metadata for the Event
   /// </summary>
   public EventStreamMetaData MetaData { get; init; } = new();
+
+  /// <summary>
+  /// Cryptographic signature of the Document, or <see langword="null"/> when the
+  /// stream is not signed.
+  /// </summary>
+  public EventSignature? Signature { get; init; }
 }

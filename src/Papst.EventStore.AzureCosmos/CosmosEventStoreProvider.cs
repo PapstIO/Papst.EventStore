@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.AzureCosmos.Database;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.AzureCosmos;
 
@@ -48,6 +49,7 @@ public static class CosmosEventStoreProvider
           databaseId,
           containerId
         ))
+      .AddEventStorePipeline()
       ;
     services.TryAddTransient<TimeProvider>(_ => TimeProvider.System);
     return services;

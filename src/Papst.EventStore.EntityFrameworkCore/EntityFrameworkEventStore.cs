@@ -11,13 +11,15 @@ public sealed class EntityFrameworkEventStore : IEventStore
   private readonly ILoggerFactory _loggerFactory;
   private readonly IEventTypeProvider _eventTypeProvider;
   private readonly EventStoreDbContext _dbContext;
+  private readonly Pipeline.IEventStorePipeline<Pipeline.EventAppendContext> _pipeline;
 
-  public EntityFrameworkEventStore(ILogger<EntityFrameworkEventStore> logger, ILoggerFactory loggerFactory, IEventTypeProvider eventTypeProvider, EventStoreDbContext dbContext)
+  public EntityFrameworkEventStore(ILogger<EntityFrameworkEventStore> logger, ILoggerFactory loggerFactory, IEventTypeProvider eventTypeProvider, EventStoreDbContext dbContext, Pipeline.IEventStorePipeline<Pipeline.EventAppendContext> pipeline)
   {
     _logger = logger;
     _loggerFactory = loggerFactory;
     _eventTypeProvider = eventTypeProvider;
     _dbContext = dbContext;
+    _pipeline = pipeline;
   }
   public async Task<IEventStream> CreateAsync(Guid streamId, string targetTypeName, CancellationToken cancellationToken = default) =>
     await CreateAsync(streamId,
@@ -61,7 +63,7 @@ public sealed class EntityFrameworkEventStore : IEventStore
     stream = await _dbContext.Streams.FirstAsync(s => s.StreamId == streamId, cancellationToken)
       .ConfigureAwait(false);
 
-    return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStream>(), _dbContext, stream, _eventTypeProvider);
+    return new EntityFrameworkEventStream(_loggerFactory.CreateLogger<EntityFrameworkEventStream>(), _dbContext, stream, _eventTypeProvider, _pipeline);
   }
 
 
@@ -80,7 +82,8 @@ public sealed class EntityFrameworkEventStore : IEventStore
       _loggerFactory.CreateLogger<EntityFrameworkEventStream>(),
       _dbContext,
       stream,
-      _eventTypeProvider);
+      _eventTypeProvider,
+      _pipeline);
   }
 
   public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
@@ -98,7 +101,8 @@ public sealed class EntityFrameworkEventStore : IEventStore
       _loggerFactory.CreateLogger<EntityFrameworkEventStream>(),
       _dbContext,
       stream,
-      _eventTypeProvider);
+      _eventTypeProvider,
+      _pipeline);
   }
 
   public async Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)

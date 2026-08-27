@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Papst.EventStore.Documents;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.FileSystem;
 
@@ -19,13 +20,15 @@ internal class FileSystemEventStore : IEventStore
   private readonly ILogger<FileSystemEventStore> _logger;
   private readonly string _path;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
 
-  public FileSystemEventStore(ILogger<FileSystemEventStore> logger, IOptions<FileSystemEventStoreOptions> options, ILoggerFactory loggerFactory, IEventTypeProvider eventTypeProvider)
+  public FileSystemEventStore(ILogger<FileSystemEventStore> logger, IOptions<FileSystemEventStoreOptions> options, ILoggerFactory loggerFactory, IEventTypeProvider eventTypeProvider, IEventStorePipeline<EventAppendContext> pipeline)
   {
     _loggerFactory = loggerFactory;
     _logger = logger;
     _path = options.Value.Path;
     _eventTypeProvider = eventTypeProvider;
+    _pipeline = pipeline;
 
     Directory.CreateDirectory(_path);
   }
@@ -76,7 +79,7 @@ internal class FileSystemEventStore : IEventStore
       });
     await File.WriteAllTextAsync(Path.Combine(streamPath, IndexFileName), JsonSerializer.Serialize(entity), cancellationToken).ConfigureAwait(false);
 
-    IEventStream stream = new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity, _eventTypeProvider);
+    IEventStream stream = new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity, _eventTypeProvider, _pipeline);
     return stream;
   }
 
@@ -102,7 +105,7 @@ internal class FileSystemEventStore : IEventStore
     }
 
     return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
-      _eventTypeProvider);
+      _eventTypeProvider, _pipeline);
   }
 
   public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
@@ -127,7 +130,7 @@ internal class FileSystemEventStore : IEventStore
     }
 
     return new FileSystemEventStream(_loggerFactory.CreateLogger<FileSystemEventStream>(), streamPath, entity,
-      _eventTypeProvider);
+      _eventTypeProvider, _pipeline);
   }
 
   public Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)

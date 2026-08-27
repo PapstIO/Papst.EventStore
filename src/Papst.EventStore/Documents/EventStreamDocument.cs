@@ -61,6 +61,12 @@ public record EventStreamDocument
   public EventStreamMetaData MetaData { get; init; } = new();
 
   /// <summary>
+  /// Cryptographic signature of the Document, or <see langword="null"/> when the
+  /// stream is not signed. Populated by the signing append pipeline handler.
+  /// </summary>
+  public EventSignature? Signature { get; init; }
+
+  /// <summary>
   /// Create a new <see cref="EventStreamDocument" /> using an Event
   /// </summary>
   /// <typeparam name="TEvent"></typeparam>
@@ -87,5 +93,6 @@ public record EventStreamDocument
       Data = JObject.FromObject(data),
       DataType = dataType,
       TargetType = targetType,
+      MetaData = metaData ?? new(),
     };
 }

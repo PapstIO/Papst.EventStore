@@ -2,9 +2,11 @@
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
 using Papst.EventStore.FileSystem.Entities;
+using Papst.EventStore.Pipeline;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
@@ -25,6 +27,7 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
   private readonly string _path;
   private FileSystemStreamIndexEntity _entity;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
 
   public Guid StreamId => _entity.StreamId;
 
@@ -36,16 +39,17 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
 
   public EventStreamMetaData MetaData => _entity.MetaData;
 
-  public FileSystemEventStream(ILogger<FileSystemEventStream> logger, string path, FileSystemStreamIndexEntity entity, IEventTypeProvider eventTypeProvider)
+  public FileSystemEventStream(ILogger<FileSystemEventStream> logger, string path, FileSystemStreamIndexEntity entity, IEventTypeProvider eventTypeProvider, IEventStorePipeline<EventAppendContext> pipeline)
   {
     _logger = logger;
     _path = path;
     _entity = entity;
     _eventTypeProvider = eventTypeProvider;
+    _pipeline = pipeline;
   }
 
   /// <inheritdoc/>
-  public async Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default) where TEvent : notnull
+  public Task AppendAsync<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
     EventStreamDocument document = EventStreamDocument.Create(
@@ -58,11 +62,10 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
       _entity.TargetType,
       metaData);
 
-    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
-    await UpdateIndexAsync().ConfigureAwait(false);
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  public Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
   {
     EventStreamDocument document = new()
     {
@@ -78,11 +81,10 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
       Name = eventType
     };
 
-    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
-    await UpdateIndexAsync().ConfigureAwait(false);
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendSnapshotAsync<TEntity>(
+  public Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
     EventStreamMetaData? metaData = null,
@@ -101,12 +103,52 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
       metaData,
       EventStreamDocumentType.Snapshot);
 
-    await AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
-    _entity = _entity with
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Snapshot, metaData, cancellationToken);
+  }
+
+  /// <summary>
+  /// Runs the documents through the append pipeline (which may sign them) and then
+  /// persists each and updates the index, mirroring the chain head onto the index.
+  /// </summary>
+  internal async Task AppendThroughPipelineAsync(
+    IReadOnlyList<EventStreamDocument> documents,
+    EventStreamDocumentType documentType,
+    EventStreamMetaData? metaData,
+    CancellationToken cancellationToken)
+  {
+    if (documents.Count == 0)
     {
-      LatestSnapshotVersion = document.Version
+      return;
+    }
+
+    var context = new EventAppendContext
+    {
+      StreamId = StreamId,
+      DocumentType = documentType,
+      MetaData = metaData,
+      PreviousSignature = _entity.LatestSignature,
+      Entries = documents.Select(d => new EventAppendEntry(d)).ToList(),
     };
-    await UpdateIndexAsync().ConfigureAwait(false);
+
+    await _pipeline.ExecuteAsync(context, async () =>
+    {
+      foreach (EventAppendEntry entry in context.Entries)
+      {
+        await AppendInternalAsync(entry.Document, cancellationToken).ConfigureAwait(false);
+      }
+
+      EventStreamDocument last = context.Entries[^1].Document;
+      _entity = _entity with
+      {
+        LatestSnapshotVersion = documentType == EventStreamDocumentType.Snapshot
+          ? last.Version
+          : _entity.LatestSnapshotVersion,
+        LatestSignature = last.Signature?.Value ?? _entity.LatestSignature,
+        SigningAlgorithm = last.Signature?.Algorithm ?? _entity.SigningAlgorithm,
+        SigningCertificateThumbprint = last.Signature?.CertificateThumbprint ?? _entity.SigningCertificateThumbprint,
+      };
+      await UpdateIndexAsync().ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
   }
 
   /// <inheritdoc/>
@@ -145,27 +187,22 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
       {
         return;
       }
-      
-      try
-      {
-        ulong nextVersion = stream._entity.NextVersion;
-        foreach (EventStreamDocumentTemplate evt in _events)
-        {
-          EventStreamDocument document = EventStreamDocument.Create(
-            stream.StreamId,
-            evt.DocumentId,
-            nextVersion++,
-            evt.Name,
-            evt.Data,
-            evt.Name,
-            stream._entity.TargetType,
-            new());
 
-          await stream.AppendInternalAsync(document, cancellationToken).ConfigureAwait(false);
-          await stream.UpdateIndexAsync();
-        }
-      }
-      catch (Exception) { }
+      ulong nextVersion = stream._entity.NextVersion;
+      List<EventStreamDocument> documents = _events
+        .Select(evt => EventStreamDocument.Create(
+          stream.StreamId,
+          evt.DocumentId,
+          nextVersion++,
+          evt.Name,
+          evt.Data,
+          evt.Name,
+          stream._entity.TargetType,
+          evt.MetaData))
+        .ToList();
+
+      await stream.AppendThroughPipelineAsync(documents, EventStreamDocumentType.Event, null, cancellationToken)
+        .ConfigureAwait(false);
     }
 
     private record EventStreamDocumentTemplate(
@@ -291,7 +328,6 @@ internal sealed class FileSystemEventStream : IEventStream, ILowLevelEventStream
     };
     Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
     await File.WriteAllTextAsync(fileName, JsonSerializer.Serialize(document, _jsonOptions), cancellationToken);
-    await UpdateIndexAsync().ConfigureAwait(false);
   }
 
   private static string VersionToPath(ulong version) => (version / 100).ToString("0000000000");

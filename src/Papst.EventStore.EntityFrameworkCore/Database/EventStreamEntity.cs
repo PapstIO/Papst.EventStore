@@ -34,4 +34,19 @@ public class EventStreamEntity
   /// Additional Meta Data encoded as JSON Dictionary for the Stream
   /// </summary>
   public string? MetaDataAdditionJson { get; set; }
+
+  /// <summary>
+  /// Signature algorithm of the latest signed document.
+  /// </summary>
+  public string? SigningAlgorithm { get; set; }
+
+  /// <summary>
+  /// Thumbprint of the certificate that signed the latest document.
+  /// </summary>
+  public string? SigningCertificateThumbprint { get; set; }
+
+  /// <summary>
+  /// The signature chain head: the signature value of the latest signed document.
+  /// </summary>
+  public string? LatestSignature { get; set; }
 }

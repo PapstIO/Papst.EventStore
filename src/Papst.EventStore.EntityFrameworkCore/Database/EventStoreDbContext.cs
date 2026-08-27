@@ -28,7 +28,7 @@ public class EventStoreDbContext : DbContext
     evt.Property(s => s.DataType).HasMaxLength(100);
     evt.Property(s => s.Data).HasMaxLength(10_000);
     evt.OwnsOne(
-      s => s.MetaData, 
+      s => s.MetaData,
       metaData =>
       {
         metaData.ToJson();
@@ -36,10 +36,12 @@ public class EventStoreDbContext : DbContext
         metaData.Property(p => p.UserName).HasMaxLength(50);
         metaData.Property(p => p.TenantId).HasMaxLength(50);
         metaData.Property(p => p.Comment).HasMaxLength(255);
-        metaData.OwnsOne(
-          meta => meta.Additional, 
-          add => add.ToJson()
-        );
+        // Nested owned entities are included in the parent's JSON document; EF 10
+        // requires ToJson() only on the outermost owned type.
+        metaData.OwnsOne(meta => meta.Additional);
       });
+    evt.OwnsOne(
+      s => s.Signature,
+      signature => signature.ToJson());
   }
 }

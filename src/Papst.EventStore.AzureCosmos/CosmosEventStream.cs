@@ -5,6 +5,7 @@ using Newtonsoft.Json.Linq;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
 using Papst.EventStore.Exceptions;
+using Papst.EventStore.Pipeline;
 using System.Runtime.CompilerServices;
 
 namespace Papst.EventStore.AzureCosmos;
@@ -16,7 +17,8 @@ internal sealed class CosmosEventStream(
   CosmosDatabaseProvider dbProvider,
   IEventTypeProvider eventTypeProvider,
   ICosmosIdStrategy idStrategy,
-  TimeProvider timeProvider
+  TimeProvider timeProvider,
+  IEventStorePipeline<EventAppendContext> pipeline
 )
   : IEventStream, ILowLevelEventStream
 {
@@ -71,6 +73,7 @@ internal sealed class CosmosEventStream(
     Data = doc.Data,
     DataType = doc.DataType,
     TargetType = doc.TargetType,
+    Signature = doc.Signature,
     MetaData = new()
     {
       UserId = doc.MetaData.UserId,
@@ -81,27 +84,13 @@ internal sealed class CosmosEventStream(
     },
   };
 
-  public async Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
+  public Task AppendAsync(Guid id, string eventType, JObject evt, EventStreamMetaData? metaData = null, CancellationToken cancellationToken = default)
   {
-    EventStreamDocumentEntity document = new()
-    {
-      Id = await idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, EventStreamDocumentType.Event),
-      DocumentId = id,
-      StreamId = StreamId,
-      Version = _stream.NextVersion,
-      Data = JObject.FromObject(evt),
-      DataType = eventType,
-      Name = eventType,
-      Time = timeProvider.GetLocalNow(),
-      DocumentType = EventStreamDocumentType.Event,
-      MetaData = metaData ?? new(),
-      TargetType = _stream.TargetType,
-    };
-
-    await AppendDocumentAsync(document, metaData, cancellationToken).ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, evt, metaData, eventType, EventStreamDocumentType.Event);
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendAsync<TEvent>(
+  public Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
     EventStreamMetaData? metaData = null,
@@ -109,11 +98,11 @@ internal sealed class CosmosEventStream(
   ) where TEvent : notnull
   {
     string eventName = eventTypeProvider.ResolveType(typeof(TEvent));
-    EventStreamDocumentEntity document = await CreateEventEntity(id, evt, metaData, eventName).ConfigureAwait(false);
-    await AppendDocumentAsync(document, metaData, cancellationToken).ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, JObject.FromObject(evt), metaData, eventName, EventStreamDocumentType.Event);
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendSnapshotAsync<TEntity>(
+  public Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
     EventStreamMetaData? metaData = null,
@@ -122,14 +111,86 @@ internal sealed class CosmosEventStream(
     where TEntity : notnull
   {
     string eventName = typeof(TEntity).Name;
-    EventStreamDocumentEntity document =
-      await CreateEventEntity(id, entity, metaData, eventName, EventStreamDocumentType.Snapshot).ConfigureAwait(false);
-    await AppendDocumentAsync(
-        document,
-        metaData,
-        cancellationToken,
-        PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), _stream.NextVersion))
-      .ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, JObject.FromObject(entity), metaData, eventName, EventStreamDocumentType.Snapshot);
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Snapshot, metaData, cancellationToken);
+  }
+
+  // Builds the storage-agnostic core document the append pipeline operates on.
+  private EventStreamDocument BuildDocument(Guid id, JObject data, EventStreamMetaData? metaData, string eventName, EventStreamDocumentType documentType)
+    => new()
+    {
+      Id = id,
+      StreamId = StreamId,
+      Version = _stream.NextVersion,
+      Data = data,
+      DataType = eventName,
+      Name = eventName,
+      Time = timeProvider.GetLocalNow(),
+      DocumentType = documentType,
+      MetaData = metaData ?? new(),
+      TargetType = _stream.TargetType,
+    };
+
+  private async ValueTask<EventStreamDocumentEntity> MapToEntityAsync(EventStreamDocument doc)
+    => new()
+    {
+      Id = await idStrategy.GenerateIdAsync(StreamId, doc.Version, doc.DocumentType).ConfigureAwait(false),
+      DocumentId = doc.Id,
+      StreamId = StreamId,
+      Version = doc.Version,
+      Data = doc.Data,
+      DataType = doc.DataType,
+      Name = doc.Name,
+      Time = doc.Time,
+      DocumentType = doc.DocumentType,
+      MetaData = doc.MetaData,
+      TargetType = doc.TargetType,
+      Signature = doc.Signature,
+    };
+
+  private async Task AppendThroughPipelineAsync(
+    EventStreamDocument document,
+    EventStreamDocumentType documentType,
+    EventStreamMetaData? metaData,
+    CancellationToken cancellationToken)
+  {
+    var context = new EventAppendContext
+    {
+      StreamId = StreamId,
+      DocumentType = documentType,
+      MetaData = metaData,
+      PreviousSignature = _stream.LatestSignature,
+      Entries = [new EventAppendEntry(document)],
+    };
+
+    await pipeline.ExecuteAsync(context, async () =>
+    {
+      EventStreamDocument signed = context.Entries[0].Document;
+      EventStreamDocumentEntity entity = await MapToEntityAsync(signed).ConfigureAwait(false);
+
+      List<PatchOperation> extraPatches = SignaturePatches(signed.Signature);
+      if (documentType == EventStreamDocumentType.Snapshot)
+      {
+        extraPatches.Add(PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSnapshotVersion), signed.Version));
+      }
+
+      await AppendDocumentAsync(entity, metaData, cancellationToken, extraPatches.ToArray()).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
+  }
+
+  private static List<PatchOperation> SignaturePatches(EventSignature? signature)
+  {
+    if (signature is null)
+    {
+      return [];
+    }
+
+    return
+    [
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.LatestSignature), signature.Value),
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.SigningAlgorithm), signature.Algorithm),
+      PatchOperation.Set('/' + nameof(EventStreamIndexEntity.SigningCertificateThumbprint), signature.CertificateThumbprint),
+    ];
   }
 
   private async Task RefreshIndexAsync(CancellationToken cancellationToken) => _stream = await dbProvider.Container
@@ -202,28 +263,6 @@ internal sealed class CosmosEventStream(
 
     return patches;
   }
-
-  private async ValueTask<EventStreamDocumentEntity> CreateEventEntity<TEvent>(
-    Guid id,
-    TEvent evt,
-    EventStreamMetaData? metaData,
-    string eventName,
-    EventStreamDocumentType documentType = EventStreamDocumentType.Event
-  ) where TEvent : notnull => new()
-  {
-    Id = await idStrategy.GenerateIdAsync(StreamId, _stream.NextVersion, documentType),
-    DocumentId = id,
-    StreamId = StreamId,
-    Version = _stream.NextVersion,
-    Data = JObject.FromObject(evt),
-    DataType = eventName,
-    Name = eventName,
-    Time = timeProvider.GetLocalNow(),
-    DocumentType = documentType,
-    MetaData = metaData ?? new(),
-    TargetType = _stream.TargetType,
-  };
-
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync() =>
     Task.FromResult<IEventStoreTransactionAppender>(
@@ -456,23 +495,31 @@ internal sealed class CosmosEventStream(
       bool indexUpdateSuccessful = false;
       int retryCount = 0;
       var baseVersion = _stream.Version;
+      List<EventStreamDocumentEntity> entities = [];
       // update index
       do
       {
         try
         {
+          // Sign the batch for the current version window and chain head, so the
+          // reserved versions and the new chain head are written in one index patch.
+          entities = await BuildAndSignBatchAsync(events, baseVersion, cancellationToken).ConfigureAwait(false);
+          EventSignature? lastSignature = entities.Count > 0 ? entities[^1].Signature : null;
           ulong targetVersion = baseVersion + (ulong)events.Count;
+
+          List<PatchOperation> patches =
+          [
+            PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), targetVersion + 1),
+            PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
+            PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
+          ];
+          patches.AddRange(SignaturePatches(lastSignature));
 
           ItemResponse<EventStreamIndexEntity>? indexPatch = await dbProvider.Container
             .PatchItemAsync<EventStreamIndexEntity>(
               _stream.Id,
               new(StreamId.ToString()),
-              new List<PatchOperation>()
-              {
-                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.NextVersion), targetVersion + 1),
-                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Version), targetVersion),
-                PatchOperation.Replace('/' + nameof(EventStreamIndexEntity.Updated), timeProvider.GetLocalNow()),
-              },
+              patches,
               new PatchItemRequestOptions() { IfMatchEtag = _stream.ETag },
               cancellationToken).ConfigureAwait(false);
 
@@ -498,7 +545,7 @@ internal sealed class CosmosEventStream(
       var totalOps = 0;
       // Index updated, now commit events in batches MaxBatchSize at a time. Don't respect cancellation here, we want to finish the transaction
       // since we already updated the index
-      await foreach (var batch in CreateBatches(events, MaxBatchSize, baseVersion)
+      await foreach (var batch in CreateBatches(entities, MaxBatchSize)
                        .WithCancellation(CancellationToken.None))
       {
         TransactionalBatchResponse result = await batch.ExecuteAsync(CancellationToken.None).ConfigureAwait(false);
@@ -523,30 +570,62 @@ internal sealed class CosmosEventStream(
     }
   }
 
-  private async IAsyncEnumerable<TransactionalBatch> CreateBatches(IReadOnlyList<EventStreamDocumentTemplate> events,
-    int batchSize,
-    ulong currentVersion = 0)
+  // Builds core documents for the reserved version window, runs them through the
+  // append pipeline (which may sign them, chaining onto the current head), and maps
+  // them to persistable entities. Re-run on each concurrency retry so the versions
+  // and chain head stay correct.
+  private async Task<List<EventStreamDocumentEntity>> BuildAndSignBatchAsync(
+    IReadOnlyList<EventStreamDocumentTemplate> events,
+    ulong baseVersion,
+    CancellationToken cancellationToken)
   {
-    var currentBatch = dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
-
+    var coreDocuments = new List<EventAppendEntry>(events.Count);
     for (int i = 0; i < events.Count; i++)
     {
-      var version = currentVersion + (ulong)i + 1;
-
-      currentBatch = currentBatch.CreateItem(new EventStreamDocumentEntity
+      ulong version = baseVersion + (ulong)i + 1;
+      coreDocuments.Add(new EventAppendEntry(new EventStreamDocument
       {
-        Id = await idStrategy.GenerateIdAsync(StreamId, version, EventStreamDocumentType.Event),
-        DocumentId = events[i].DocumentId,
+        Id = events[i].DocumentId,
         StreamId = StreamId,
         Version = version,
         Data = events[i].Data,
         DataType = events[i].DataType,
         Name = events[i].Name,
-        TargetType = events[i].TargetType,
         Time = events[i].Time,
         DocumentType = EventStreamDocumentType.Event,
-        MetaData = events[i].MetaData
-      });
+        MetaData = events[i].MetaData,
+        TargetType = events[i].TargetType,
+      }));
+    }
+
+    var context = new EventAppendContext
+    {
+      StreamId = StreamId,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = null,
+      PreviousSignature = _stream.LatestSignature,
+      Entries = coreDocuments,
+    };
+
+    await pipeline.ExecuteAsync(context, () => Task.CompletedTask, cancellationToken).ConfigureAwait(false);
+
+    var entities = new List<EventStreamDocumentEntity>(events.Count);
+    foreach (EventAppendEntry entry in context.Entries)
+    {
+      entities.Add(await MapToEntityAsync(entry.Document).ConfigureAwait(false));
+    }
+
+    return entities;
+  }
+
+  private async IAsyncEnumerable<TransactionalBatch> CreateBatches(IReadOnlyList<EventStreamDocumentEntity> entities,
+    int batchSize)
+  {
+    var currentBatch = dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
+
+    for (int i = 0; i < entities.Count; i++)
+    {
+      currentBatch = currentBatch.CreateItem(entities[i]);
 
       if ((i + 1) % batchSize != 0)
       {
@@ -557,10 +636,12 @@ internal sealed class CosmosEventStream(
       currentBatch = dbProvider.Container.CreateTransactionalBatch(new PartitionKey(StreamId.ToString()));
     }
 
-    if (events.Count % batchSize != 0)
+    if (entities.Count % batchSize != 0)
     {
       yield return currentBatch;
     }
+
+    await Task.CompletedTask;
   }
 
 }
