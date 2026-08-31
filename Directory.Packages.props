@@ -93,7 +93,7 @@
 
     <!-- ====================================== Build / tooling ============== -->
     <ItemGroup>
-        <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.91" />
+        <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.94" />
     </ItemGroup>
 
     <!-- ====================================== Tests ======================== -->
