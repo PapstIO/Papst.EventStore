@@ -19,6 +19,7 @@ namespace Papst.EventStore.CodeGeneration
     private const string CollectionKeyAttributeName = "AggregationCollectionKeyAttribute";
     private const string IgnoreAttributeName = "AggregationIgnoreAttribute";
     private const string AggregationPropertyAttributeName = "AggregationPropertyAttribute";
+    private const string ContextStampAttributeName = "AggregationContextStampAttribute";
 
     private const string IEnumerableOpen = "System.Collections.Generic.IEnumerable<T>";
     private const string IDictionaryOpen = "System.Collections.Generic.IDictionary<TKey, TValue>";
@@ -93,8 +94,10 @@ namespace Papst.EventStore.CodeGeneration
 
           string propertyPath = GetNamedString(attr, "PropertyPath") ?? string.Empty;
           bool skipNullValues = GetNamedBool(attr, "SkipNullValues") ?? true;
+          // AggregationMode: 0 = Upsert (default), 1 = RemoveByKey
+          bool removeByKey = (GetNamedInt(attr, "Mode") ?? 0) == 1;
 
-          if (TryBuildAggregator(productionContext, eventSymbol, entitySymbol, propertyPath, skipNullValues, out var info))
+          if (TryBuildAggregator(compilation, productionContext, eventSymbol, entitySymbol, propertyPath, skipNullValues, removeByKey, out var info))
           {
             info.PairKey = pairKey;
             result.Add(info);
@@ -106,11 +109,13 @@ namespace Papst.EventStore.CodeGeneration
     }
 
     private static bool TryBuildAggregator(
+      Compilation compilation,
       SourceProductionContext ctx,
       INamedTypeSymbol eventSymbol,
       INamedTypeSymbol entitySymbol,
       string propertyPath,
       bool skipNullValues,
+      bool removeByKey,
       out GeneratedAggregatorInfo info)
     {
       info = null;
@@ -126,6 +131,13 @@ namespace Papst.EventStore.CodeGeneration
       string collectionTargetName = collectionKeyProp == null
         ? null
         : GetCtorString(collectionKeyProp, CollectionKeyAttributeName);
+
+      if (removeByKey && dictKeyProp == null && collectionKeyProp == null)
+      {
+        ReportWarning(ctx, "EVTSRC0006", "RemoveByKey without a resolvable key",
+          $"Event '{eventSymbol.Name}' sets Mode = RemoveByKey but declares no [AggregationDictionaryKey] or [AggregationCollectionKey] property to locate the element.");
+        return false;
+      }
 
       var body = new StringBuilder();
       ITypeSymbol targetType;
@@ -148,11 +160,18 @@ namespace Papst.EventStore.CodeGeneration
         ITypeSymbol keyType = dictIface.TypeArguments[0];
         targetType = dictIface.TypeArguments[1];
         EmitDictionaryNullInit(body, pathExpr, keyType, targetType);
-        body.AppendLine($"    if (!{pathExpr}.TryGetValue(evt.{dictKeyProp.Name}, out var target))");
-        body.AppendLine("    {");
-        body.AppendLine($"      target = new {eventSafeFq(targetType)}();");
-        body.AppendLine($"      {pathExpr}[evt.{dictKeyProp.Name}] = target;");
-        body.AppendLine("    }");
+        if (removeByKey)
+        {
+          body.AppendLine($"    {pathExpr}.Remove(evt.{dictKeyProp.Name});");
+        }
+        else
+        {
+          body.AppendLine($"    if (!{pathExpr}.TryGetValue(evt.{dictKeyProp.Name}, out var target))");
+          body.AppendLine("    {");
+          body.AppendLine($"      target = new {eventSafeFq(targetType)}();");
+          body.AppendLine($"      {pathExpr}[evt.{dictKeyProp.Name}] = target;");
+          body.AppendLine("    }");
+        }
       }
       else if (collectionKeyProp != null)
       {
@@ -165,18 +184,29 @@ namespace Papst.EventStore.CodeGeneration
         }
         targetType = collIface.TypeArguments[0];
         EmitCollectionNullInit(body, pathExpr, targetType);
-        body.AppendLine($"    var target = global::System.Linq.Enumerable.FirstOrDefault({pathExpr}, x => global::System.Collections.Generic.EqualityComparer<{eventSafeFq(collectionKeyProp.Type)}>.Default.Equals(x.{collectionTargetName}, evt.{collectionKeyProp.Name}));");
-        body.AppendLine("    if (target is null)");
-        body.AppendLine("    {");
-        body.AppendLine($"      target = new {eventSafeFq(targetType)}();");
-        // set the key property on the new item so it is found on subsequent events
-        var keySetter = GetPublicSettableProperties(targetType).FirstOrDefault(p => p.Name == collectionTargetName);
-        if (keySetter != null)
+        if (removeByKey)
         {
-          body.AppendLine($"      target.{collectionTargetName} = evt.{collectionKeyProp.Name};");
+          // ICollection<T>-safe removal (the target may not be a List<T>, so RemoveAll is not available)
+          body.AppendLine($"    foreach (var __r in global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Where({pathExpr}, e => global::System.Collections.Generic.EqualityComparer<{eventSafeFq(collectionKeyProp.Type)}>.Default.Equals(e.{collectionTargetName}, evt.{collectionKeyProp.Name}))))");
+          body.AppendLine("    {");
+          body.AppendLine($"      {pathExpr}.Remove(__r);");
+          body.AppendLine("    }");
         }
-        body.AppendLine($"      {pathExpr}.Add(target);");
-        body.AppendLine("    }");
+        else
+        {
+          body.AppendLine($"    var target = global::System.Linq.Enumerable.FirstOrDefault({pathExpr}, x => global::System.Collections.Generic.EqualityComparer<{eventSafeFq(collectionKeyProp.Type)}>.Default.Equals(x.{collectionTargetName}, evt.{collectionKeyProp.Name}));");
+          body.AppendLine("    if (target is null)");
+          body.AppendLine("    {");
+          body.AppendLine($"      target = new {eventSafeFq(targetType)}();");
+          // set the key property on the new item so it is found on subsequent events
+          var keySetter = GetPublicSettableProperties(targetType).FirstOrDefault(p => p.Name == collectionTargetName);
+          if (keySetter != null)
+          {
+            body.AppendLine($"      target.{collectionTargetName} = evt.{collectionKeyProp.Name};");
+          }
+          body.AppendLine($"      {pathExpr}.Add(target);");
+          body.AppendLine("    }");
+        }
       }
       else
       {
@@ -189,48 +219,54 @@ namespace Papst.EventStore.CodeGeneration
         body.AppendLine($"    var target = {pathExpr};");
       }
 
-      // --- Emit property assignments ---
-      var targetProps = GetPublicSettableProperties(targetType)
-        .GroupBy(p => p.Name)
-        .ToDictionary(g => g.Key, g => g.First());
-
-      var keyPropNames = new HashSet<string>();
-      if (dictKeyProp != null) keyPropNames.Add(dictKeyProp.Name);
-      if (collectionKeyProp != null) keyPropNames.Add(collectionKeyProp.Name);
-
-      bool targetIsRootEntity = SymbolEqualityComparer.Default.Equals(targetType, entitySymbol);
-
-      foreach (var evtProp in eventProps)
+      // --- Emit property assignments (skipped for RemoveByKey, which only removes the keyed element) ---
+      if (!removeByKey)
       {
-        if (keyPropNames.Contains(evtProp.Name))
-        {
-          continue;
-        }
-        if (HasAttribute(evtProp, IgnoreAttributeName))
-        {
-          // explicitly excluded from aggregation
-          continue;
-        }
+        var targetProps = GetPublicSettableProperties(targetType)
+          .GroupBy(p => p.Name)
+          .ToDictionary(g => g.Key, g => g.First());
 
-        // resolve the target property name (may be remapped via [AggregationProperty])
-        string targetName = GetCtorString(evtProp, AggregationPropertyAttributeName) ?? evtProp.Name;
+        var keyPropNames = new HashSet<string>();
+        if (dictKeyProp != null) keyPropNames.Add(dictKeyProp.Name);
+        if (collectionKeyProp != null) keyPropNames.Add(collectionKeyProp.Name);
 
-        if (targetIsRootEntity && targetName == "Version")
-        {
-          // Version is maintained by the stream aggregator
-          continue;
-        }
-        if (!targetProps.TryGetValue(targetName, out var targetProp))
-        {
-          continue;
-        }
+        bool targetIsRootEntity = SymbolEqualityComparer.Default.Equals(targetType, entitySymbol);
 
-        string assignment = BuildAssignment(evtProp, targetProp, skipNullValues);
-        if (assignment != null)
+        foreach (var evtProp in eventProps)
         {
-          body.Append(assignment);
+          if (keyPropNames.Contains(evtProp.Name))
+          {
+            continue;
+          }
+          if (HasAttribute(evtProp, IgnoreAttributeName))
+          {
+            // explicitly excluded from aggregation
+            continue;
+          }
+
+          // resolve the target property name (may be remapped via [AggregationProperty])
+          string targetName = GetCtorString(evtProp, AggregationPropertyAttributeName) ?? evtProp.Name;
+
+          if (targetIsRootEntity && targetName == "Version")
+          {
+            // Version is maintained by the stream aggregator
+            continue;
+          }
+          if (!targetProps.TryGetValue(targetName, out var targetProp))
+          {
+            continue;
+          }
+
+          string assignment = BuildAssignment(evtProp, targetProp, skipNullValues);
+          if (assignment != null)
+          {
+            body.Append(assignment);
+          }
         }
       }
+
+      // --- Emit context stamps onto the Entity (independent of Event properties, all modes) ---
+      EmitContextStamps(compilation, ctx, body, entitySymbol);
 
       info = new GeneratedAggregatorInfo
       {
@@ -468,6 +504,90 @@ namespace Papst.EventStore.CodeGeneration
         return b;
       }
       return null;
+    }
+
+    /// <summary>Reads a named argument whose value is an <c>enum</c> (or integer) as its underlying <see cref="int"/>.</summary>
+    private static int? GetNamedInt(AttributeData attr, string name)
+    {
+      var arg = attr.NamedArguments.FirstOrDefault(a => a.Key == name);
+      if (arg.Key == name && arg.Value.Value is int i)
+      {
+        return i;
+      }
+      return null;
+    }
+
+    /// <summary>
+    /// Emits assignments that stamp <c>[AggregationContextStamp]</c>-marked Entity properties from the stream
+    /// context. Every-event stamps are written unconditionally; create-only stamps are grouped under a single
+    /// <c>if (ctx.CurrentVersion == 0)</c> guard. Targets not implicitly assignable from the context value are
+    /// skipped with <c>EVTSRC0005</c>.
+    /// </summary>
+    private static void EmitContextStamps(
+      Compilation compilation,
+      SourceProductionContext ctx,
+      StringBuilder body,
+      INamedTypeSymbol entitySymbol)
+    {
+      var everyEvent = new List<string>();
+      var createOnly = new List<string>();
+
+      foreach (var prop in GetPublicSettableProperties(entitySymbol))
+      {
+        var attr = prop.GetAttributes().FirstOrDefault(a => a.AttributeClass?.Name == ContextStampAttributeName);
+        if (attr == null || attr.ConstructorArguments.Length != 1 || attr.ConstructorArguments[0].Value is not int enumValue)
+        {
+          continue;
+        }
+
+        var (contextExpr, valueType) = ResolveContextValue(compilation, enumValue);
+        if (contextExpr == null)
+        {
+          continue;
+        }
+
+        if (valueType != null && !compilation.ClassifyCommonConversion(valueType, prop.Type).IsImplicit)
+        {
+          ReportWarning(ctx, "EVTSRC0005", "Context-stamp target type not assignable",
+            $"Property '{entitySymbol.Name}.{prop.Name}' cannot be stamped from '{contextExpr}' because '{valueType.ToDisplayString()}' is not implicitly convertible to '{prop.Type.ToDisplayString()}'.");
+          continue;
+        }
+
+        bool onEveryEvent = GetNamedBool(attr, "OnEveryEvent") ?? true;
+        string line = $"entity.{prop.Name} = {contextExpr};";
+        (onEveryEvent ? everyEvent : createOnly).Add(line);
+      }
+
+      foreach (var line in everyEvent)
+      {
+        body.AppendLine($"    {line}");
+      }
+
+      if (createOnly.Count > 0)
+      {
+        body.AppendLine("    if (ctx.CurrentVersion == 0)");
+        body.AppendLine("    {");
+        foreach (var line in createOnly)
+        {
+          body.AppendLine($"      {line}");
+        }
+        body.AppendLine("    }");
+      }
+    }
+
+    /// <summary>Maps the <c>AggregationContextValue</c> enum ordinal to the <c>ctx</c> member expression and its type.</summary>
+    private static (string expr, ITypeSymbol type) ResolveContextValue(Compilation compilation, int enumValue)
+    {
+      // AggregationContextValue: 0 EventTime, 1 StreamId, 2 StreamCreated, 3 CurrentVersion, 4 TargetVersion
+      switch (enumValue)
+      {
+        case 0: return ("ctx.EventTime", compilation.GetTypeByMetadataName("System.DateTimeOffset"));
+        case 1: return ("ctx.StreamId", compilation.GetTypeByMetadataName("System.Guid"));
+        case 2: return ("ctx.StreamCreated", compilation.GetTypeByMetadataName("System.DateTimeOffset"));
+        case 3: return ("ctx.CurrentVersion", compilation.GetSpecialType(SpecialType.System_UInt64));
+        case 4: return ("ctx.TargetVersion", compilation.GetSpecialType(SpecialType.System_UInt64));
+        default: return (null, null);
+      }
     }
 
     private static (ITypeSymbol underlying, bool nullableValue) Unwrap(ITypeSymbol type)

@@ -3,20 +3,8 @@ using Papst.EventStore;
 
 namespace SampleInMemoryAspNetApi.Orders;
 
-public sealed class OrderPlacedEventAggregator : EventAggregatorBase<Order, OrderPlacedEvent>
-{
-  public override ValueTask<Order?> ApplyAsync(OrderPlacedEvent evt, Order entity, IAggregatorStreamContext ctx)
-  {
-    entity.Id = evt.OrderId;
-    entity.UserId = evt.UserId;
-    entity.Total = evt.Total;
-    entity.Status = OrderStatus.Pending;
-    entity.CancellationReason = null;
-    entity.Items = [.. evt.Items];
-
-    return AsTask(entity);
-  }
-}
+// OrderPlacedEvent is now handled by the code-generated attribute aggregation (see OrderEvents.cs).
+// The status-change and cancellation events remain hand-written to show both mechanisms coexisting.
 
 public sealed class OrderStatusChangedEventAggregator : EventAggregatorBase<Order, OrderStatusChangedEvent>
 {

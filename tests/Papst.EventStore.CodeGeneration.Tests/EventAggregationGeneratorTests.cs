@@ -30,6 +30,20 @@ namespace TestApp
     public Dictionary<Guid, Item> Items { get; set; } = new();
     public List<Item> ItemsList { get; set; } = new();
   }
+  public class StampedEntity : Papst.EventStore.IEntity
+  {
+    public ulong Version { get; set; }
+    [AggregationContextStamp(AggregationContextValue.StreamId, OnEveryEvent = false)] public Guid Id { get; set; }
+    [AggregationContextStamp(AggregationContextValue.StreamCreated, OnEveryEvent = false)] public DateTimeOffset Created { get; set; }
+    [AggregationContextStamp(AggregationContextValue.EventTime)] public DateTimeOffset Updated { get; set; }
+    public string? Name { get; set; }
+  }
+  public class BadStampEntity : Papst.EventStore.IEntity
+  {
+    public ulong Version { get; set; }
+    [AggregationContextStamp(AggregationContextValue.EventTime)] public int Updated { get; set; }
+    public string? Name { get; set; }
+  }
 ";
 
   private static (string? aggregators, string? registration, GeneratorDriverRunResult run, Compilation output) Generate(string body)
@@ -194,6 +208,77 @@ namespace TestApp
     aggregators!.ShouldContain("target.Id = evt.ItemId;");
     aggregators!.ShouldContain("entity.ItemsList.Add(target);");
     aggregators!.ShouldContain("if (evt.Value is not null) { target.Value = evt.Value; }");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void ContextStamp_EmitsEveryEventAndCreateOnlyStamps()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<StampedEntity>]
+    public record ThingRenamed(string? Name);");
+
+    aggregators!.ShouldContain("class ThingRenamed_StampedEntity_GeneratedAggregator");
+    // every-event stamp is unconditional
+    aggregators!.ShouldContain("entity.Updated = ctx.EventTime;");
+    // create-only stamps are guarded by CurrentVersion == 0
+    aggregators!.ShouldContain("if (ctx.CurrentVersion == 0)");
+    aggregators!.ShouldContain("entity.Id = ctx.StreamId;");
+    aggregators!.ShouldContain("entity.Created = ctx.StreamCreated;");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void ContextStamp_NotAssignableTarget_SkipsAndReportsDiagnostic()
+  {
+    var (aggregators, _, run, output) = Generate(@"
+    [EventAggregation<BadStampEntity>]
+    public record BadRenamed(string? Name);");
+
+    run.Diagnostics.Any(d => d.Id == "EVTSRC0005").ShouldBeTrue();
+    aggregators!.ShouldNotContain("entity.Updated = ctx.EventTime;");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void CollectionRemoveByKey_RemovesMatchingItems()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.ItemsList), Mode = AggregationMode.RemoveByKey)]
+    public record ItemRemoved([property: AggregationCollectionKey(""Id"")] Guid ItemId);");
+
+    aggregators!.ShouldContain("entity.ItemsList ??= new global::System.Collections.Generic.List<global::TestApp.Item>();");
+    aggregators!.ShouldContain("global::System.Linq.Enumerable.Where(entity.ItemsList");
+    aggregators!.ShouldContain("entity.ItemsList.Remove(__r);");
+    // upsert path must not be emitted
+    aggregators!.ShouldNotContain("FirstOrDefault");
+    aggregators!.ShouldNotContain("entity.ItemsList.Add(");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void DictionaryRemoveByKey_RemovesEntryAndSkipsMapping()
+  {
+    var (aggregators, _, _, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.Items), Mode = AggregationMode.RemoveByKey)]
+    public record EntryRemoved([property: AggregationDictionaryKey] Guid Id, string? Value);");
+
+    aggregators!.ShouldContain("entity.Items.Remove(evt.Id);");
+    aggregators!.ShouldNotContain("TryGetValue");
+    // element property mapping is skipped for removals
+    aggregators!.ShouldNotContain("target.Value");
+    ShouldCompileClean(output);
+  }
+
+  [Fact]
+  public void RemoveByKey_WithoutKey_ReportsDiagnostic()
+  {
+    var (aggregators, _, run, output) = Generate(@"
+    [EventAggregation<Entity>(PropertyPath = nameof(Entity.ItemsList), Mode = AggregationMode.RemoveByKey)]
+    public record BadRemove(string? Value);");
+
+    run.Diagnostics.Any(d => d.Id == "EVTSRC0006").ShouldBeTrue();
+    (aggregators is null || !aggregators.Contains("BadRemove_Entity_GeneratedAggregator")).ShouldBeTrue();
     ShouldCompileClean(output);
   }
 

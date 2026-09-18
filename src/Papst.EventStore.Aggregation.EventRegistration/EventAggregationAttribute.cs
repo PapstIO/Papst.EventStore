@@ -31,4 +31,12 @@ public sealed class EventAggregationAttribute<TEntity> : Attribute
   /// or written onto the target. Can be overridden per property with <see cref="SkipWhenNullAttribute"/>.
   /// </summary>
   public bool SkipNullValues { get; set; } = true;
+
+  /// <summary>
+  /// For a <see cref="PropertyPath"/> that resolves to a collection or dictionary, selects whether the keyed
+  /// element is upserted (the default) or removed. The element is located via the Event property marked with
+  /// <see cref="AggregationCollectionKeyAttribute"/> or <see cref="AggregationDictionaryKeyAttribute"/>.
+  /// Ignored for single-object targets.
+  /// </summary>
+  public AggregationMode Mode { get; set; } = AggregationMode.Upsert;
 }

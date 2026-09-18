@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using Papst.EventStore.Aggregation.EventRegistration;
 
@@ -16,6 +17,13 @@ public class OrderAggregate : IEntity
   public OrderAddress ShippingAddress { get; set; } = new();
   public Dictionary<string, OrderLine> Lines { get; set; } = new();
   public List<OrderTag> Tags { get; set; } = new();
+
+  // Context stamps: Created is written once (on the first/create event), Updated on every applied event.
+  [AggregationContextStamp(AggregationContextValue.StreamCreated, OnEveryEvent = false)]
+  public DateTimeOffset Created { get; set; }
+
+  [AggregationContextStamp(AggregationContextValue.EventTime)]
+  public DateTimeOffset Updated { get; set; }
 }
 
 public class OrderAddress
@@ -63,3 +71,7 @@ public record LineUpserted([property: AggregationDictionaryKey] string Sku, int 
 [EventName(nameof(TagUpserted))]
 [EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Tags))]
 public record TagUpserted([property: AggregationCollectionKey("Id")] string TagId, string? Label);
+
+[EventName(nameof(TagRemoved))]
+[EventAggregation<OrderAggregate>(PropertyPath = nameof(OrderAggregate.Tags), Mode = AggregationMode.RemoveByKey)]
+public record TagRemoved([property: AggregationCollectionKey("Id")] string TagId);

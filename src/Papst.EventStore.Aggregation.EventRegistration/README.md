@@ -35,10 +35,11 @@ MyEntity? entity = await aggregator.AggregateAsync(stream, cancellationToken);
 | Attribute | Purpose |
 |---|---|
 | `[EventName("...")]` | Names an event for the registry; repeatable for versioning, set `IsWriteName = false` for read-only aliases |
-| `[EventAggregation]` | Marks a type as taking part in generated aggregation |
+| `[EventAggregation]` | Marks a type as taking part in generated aggregation; set `Mode = AggregationMode.RemoveByKey` to remove the keyed entry instead of upserting |
 | `[AggregationProperty]` / `[AggregationIgnore]` | Control which properties are aggregated |
 | `[AggregationCollectionKey]` / `[AggregationDictionaryKey]` | Identify items when aggregating collections |
 | `[SkipWhenNull]` | Skip applying a property when the event value is null |
+| `[AggregationContextStamp]` | Stamp an entity property from the stream context (`EventTime`, `StreamId`, `StreamCreated`, `CurrentVersion`, `TargetVersion`); `OnEveryEvent = false` stamps only on create |
 
 See the [project README](https://github.com/PapstIO/Papst.EventStore) for the full documentation.
 
