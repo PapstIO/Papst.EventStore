@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.InMemory;
 
@@ -17,6 +18,7 @@ public static class InMemoryEventStoreProvider
   {
     services
       .AddSingleton<IEventStore, InMemoryEventStore>()
+      .AddEventStorePipeline()
       ;
 
     services.TryAddSingleton(TimeProvider.System);

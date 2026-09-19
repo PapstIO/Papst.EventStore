@@ -59,6 +59,21 @@ public class EventStreamIndexEntity
   public EventStreamMetaData MetaData { get; init; } = new();
 
   /// <summary>
+  /// Signature algorithm of the latest signed document.
+  /// </summary>
+  public string? SigningAlgorithm { get; set; }
+
+  /// <summary>
+  /// Thumbprint of the certificate that signed the latest document.
+  /// </summary>
+  public string? SigningCertificateThumbprint { get; set; }
+
+  /// <summary>
+  /// The signature chain head: the signature value of the latest signed document.
+  /// </summary>
+  public string? LatestSignature { get; set; }
+
+  /// <summary>
   /// Cosmos Db ETag
   /// </summary>
   [JsonProperty("_etag")]

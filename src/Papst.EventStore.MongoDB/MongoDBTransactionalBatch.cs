@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.MongoDB;
 
@@ -17,6 +19,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
   private readonly TimeProvider _timeProvider;
   private readonly Guid _streamId;
   private readonly string _targetType;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
   private readonly ILogger _logger;
   private readonly List<EventStreamDocument> _pendingDocuments = new();
 
@@ -27,6 +30,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     TimeProvider timeProvider,
     Guid streamId,
     string targetType,
+    IEventStorePipeline<EventAppendContext> pipeline,
     ILogger logger)
   {
     _documentsCollection = documentsCollection;
@@ -35,6 +39,7 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     _timeProvider = timeProvider;
     _streamId = streamId;
     _targetType = targetType;
+    _pipeline = pipeline;
     _logger = logger;
   }
 
@@ -90,6 +95,34 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
       _pendingDocuments[i] = _pendingDocuments[i] with { Version = baseVersion + (ulong)i };
     }
 
+    // Run the pending documents through the append pipeline (which may sign them, chaining
+    // onto the stored chain head), then persist the possibly-signed documents in one write.
+    var context = new EventAppendContext
+    {
+      StreamId = _streamId,
+      DocumentType = EventStreamDocumentType.Event,
+      MetaData = null,
+      PreviousSignature = metadata.LatestSignature,
+      Entries = _pendingDocuments.Select(d => new EventAppendEntry(d)).ToList(),
+    };
+
+    await _pipeline.ExecuteAsync(context, () => PersistAsync(context, filter, baseVersion, cancellationToken), cancellationToken)
+      .ConfigureAwait(false);
+  }
+
+  private async Task PersistAsync(EventAppendContext context, FilterDefinition<MongoEventStreamMetadata> filter, ulong baseVersion, CancellationToken cancellationToken)
+  {
+    List<EventStreamDocument> documents = context.Entries.Select(e => e.Document).ToList();
+    ulong newVersion = baseVersion + (ulong)documents.Count - 1;
+    EventSignature? lastSignature = documents[^1].Signature;
+
+    UpdateDefinition<MongoEventStreamMetadata> BuildUpdate() => Builders<MongoEventStreamMetadata>.Update
+      .Set(m => m.Version, newVersion)
+      .Set(m => m.NextVersion, newVersion + 1)
+      .Set(m => m.LatestSignature, lastSignature != null ? lastSignature.Value : context.PreviousSignature)
+      .Set(m => m.SigningAlgorithm, lastSignature != null ? lastSignature.Algorithm : null)
+      .Set(m => m.SigningCertificateThumbprint, lastSignature != null ? lastSignature.CertificateThumbprint : null);
+
     // Try to use a transaction if MongoDB supports it (replica set)
     // Otherwise fall back to non-transactional operation
     var client = _documentsCollection.Database.Client;
@@ -100,18 +133,11 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
 
       try
       {
-        // Insert all documents
-        await _documentsCollection.InsertManyAsync(session, _pendingDocuments, new InsertManyOptions(), cancellationToken);
-
-        // Update version in metadata
-        var newVersion = baseVersion + (ulong)_pendingDocuments.Count - 1;
-        var update = Builders<MongoEventStreamMetadata>.Update
-          .Set(m => m.Version, newVersion)
-          .Set(m => m.NextVersion, newVersion + 1);
-        await _metadataCollection.UpdateOneAsync(session, filter, update, new UpdateOptions(), cancellationToken);
+        await _documentsCollection.InsertManyAsync(session, documents, new InsertManyOptions(), cancellationToken);
+        await _metadataCollection.UpdateOneAsync(session, filter, BuildUpdate(), new UpdateOptions(), cancellationToken);
 
         await session.CommitTransactionAsync(cancellationToken);
-        _logger.TransactionCompleted(_streamId, _pendingDocuments.Count);
+        _logger.TransactionCompleted(_streamId, documents.Count);
       }
       catch (Exception ex)
       {
@@ -127,14 +153,9 @@ internal class MongoDBTransactionalBatch : IEventStoreTransactionAppender
     {
       // MongoDB standalone doesn't support transactions, fall back to non-transactional
       _logger.TransactionNotSupported(_streamId);
-      
-      await _documentsCollection.InsertManyAsync(_pendingDocuments, new InsertManyOptions(), cancellationToken);
 
-      var newVersion = baseVersion + (ulong)_pendingDocuments.Count - 1;
-      var update = Builders<MongoEventStreamMetadata>.Update
-        .Set(m => m.Version, newVersion)
-        .Set(m => m.NextVersion, newVersion + 1);
-      await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
+      await _documentsCollection.InsertManyAsync(documents, new InsertManyOptions(), cancellationToken);
+      await _metadataCollection.UpdateOneAsync(filter, BuildUpdate(), new UpdateOptions(), cancellationToken);
     }
   }
 }

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Papst.EventStore.Exceptions;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.InMemory;
 
@@ -13,12 +14,18 @@ public class InMemoryEventStore : IEventStore
   private readonly ConcurrentDictionary<Guid, InMemoryEventStream> _streams = new();
   private readonly TimeProvider _timeProvider;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
   private readonly ILogger<InMemoryEventStore> _logger;
 
-  public InMemoryEventStore(TimeProvider timeProvider, IEventTypeProvider eventTypeProvider, ILogger<InMemoryEventStore> logger)
+  public InMemoryEventStore(
+    TimeProvider timeProvider,
+    IEventTypeProvider eventTypeProvider,
+    IEventStorePipeline<EventAppendContext> pipeline,
+    ILogger<InMemoryEventStore> logger)
   {
     _timeProvider = timeProvider;
     _eventTypeProvider = eventTypeProvider;
+    _pipeline = pipeline;
     _logger = logger;
   }
 
@@ -74,7 +81,8 @@ public class InMemoryEventStore : IEventStore
       },
       _timeProvider,
       targetTypeName,
-      _eventTypeProvider
+      _eventTypeProvider,
+      _pipeline
     );
     if (!_streams.TryAdd(streamId, stream))
     {

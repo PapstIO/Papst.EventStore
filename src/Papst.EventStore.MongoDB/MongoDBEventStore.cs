@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Papst.EventStore.Pipeline;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -20,6 +21,7 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
   private readonly IMongoCollection<MongoEventStreamMetadata> _metadataCollection;
   private readonly TimeProvider _timeProvider;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
   private readonly MongoDBEventStoreOptions _options;
   private readonly ILogger<MongoDBEventStore> _logger;
   private readonly ILoggerFactory _loggerFactory;
@@ -33,13 +35,15 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
     ILoggerFactory loggerFactory,
     IOptions<MongoDBEventStoreOptions> options,
     TimeProvider timeProvider,
-    IEventTypeProvider eventTypeProvider)
+    IEventTypeProvider eventTypeProvider,
+    IEventStorePipeline<EventAppendContext> pipeline)
   {
     _logger = logger;
     _loggerFactory = loggerFactory;
     _options = options.Value;
     _timeProvider = timeProvider;
     _eventTypeProvider = eventTypeProvider;
+    _pipeline = pipeline;
 
     // Register BSON conventions for GUID serialization as strings
     RegisterConventions();
@@ -132,7 +136,9 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       _eventTypeProvider,
       _documentsCollection,
       _metadataCollection,
-      _loggerFactory.CreateLogger<MongoDBEventStream>()
+      _pipeline,
+      _loggerFactory.CreateLogger<MongoDBEventStream>(),
+      metadata.LatestSignature
     );
   }
 
@@ -159,7 +165,9 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       _eventTypeProvider,
       _documentsCollection,
       _metadataCollection,
-      _loggerFactory.CreateLogger<MongoDBEventStream>()
+      _pipeline,
+      _loggerFactory.CreateLogger<MongoDBEventStream>(),
+      metadata.LatestSignature
     );
   }
 
@@ -219,7 +227,9 @@ public class MongoDBEventStore : IEventStore, System.IDisposable
       _eventTypeProvider,
       _documentsCollection,
       _metadataCollection,
-      _loggerFactory.CreateLogger<MongoDBEventStream>()
+      _pipeline,
+      _loggerFactory.CreateLogger<MongoDBEventStream>(),
+      metadata.LatestSignature
     );
   }
 

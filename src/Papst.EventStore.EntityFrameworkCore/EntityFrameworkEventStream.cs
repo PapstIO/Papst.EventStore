@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
 using Papst.EventStore.EntityFrameworkCore.Database;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.EntityFrameworkCore;
 internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventStream
@@ -13,18 +14,21 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
   private readonly EventStoreDbContext _dbContext;
   private readonly EventStreamEntity _stream;
   private readonly IEventTypeProvider _eventTypeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
 
   public EntityFrameworkEventStream(
     ILogger<EntityFrameworkEventStream> logger,
     EventStoreDbContext dbContext,
     EventStreamEntity stream,
-    IEventTypeProvider eventTypeProvider
+    IEventTypeProvider eventTypeProvider,
+    IEventStorePipeline<EventAppendContext> pipeline
   )
   {
     _logger = logger;
     _dbContext = dbContext;
     _stream = stream;
     _eventTypeProvider = eventTypeProvider;
+    _pipeline = pipeline;
     MetaData = new EventStreamMetaData
     {
       UserId = _stream.MetaDataUserId,
@@ -46,7 +50,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
   /// <inheritdoc />
   public EventStreamMetaData MetaData { get; }
 
-  public async Task AppendAsync<TEvent>(
+  public Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
     EventStreamMetaData? metaData = null,
@@ -54,18 +58,11 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
   ) where TEvent : notnull
   {
     string eventName = _eventTypeProvider.ResolveType(typeof(TEvent));
-    EventStreamDocumentEntity document = CreateEventEntity(id, evt, metaData, eventName);
-    _stream.Version = _stream.NextVersion;
-    _stream.NextVersion++;
-    _stream.Updated = DateTimeOffset.Now;
-    
-    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    _dbContext.Streams.Attach(_stream);
-    await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
-    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, JObject.FromObject(evt), metaData, eventName, EventStreamDocumentType.Event);
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendAsync(
+  public Task AppendAsync(
     Guid id,
     string eventType,
     JObject evt,
@@ -73,38 +70,11 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
     CancellationToken cancellationToken = default
   )
   {
-    EventStreamDocumentEntity document = new()
-    {
-      Id = id,
-      StreamId = StreamId,
-      Type = EventStreamDocumentEntityType.Event,
-      Version = _stream.NextVersion,
-      Time = DateTimeOffset.Now,
-      Name = eventType,
-      DataType = eventType,
-      TargetType = _stream.TargetType,
-      Data = evt.ToString(Newtonsoft.Json.Formatting.None),
-      MetaData = new()
-      {
-        UserId = metaData?.UserId,
-        UserName = metaData?.UserName,
-        TenantId = metaData?.TenantId,
-        Comment = metaData?.Comment,
-        Additional = metaData?.Additional
-      }
-    };
-
-    _stream.Version = _stream.NextVersion;
-    _stream.NextVersion++;
-    _stream.Updated = DateTimeOffset.Now;
-
-    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    _dbContext.Streams.Attach(_stream);
-    await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
-    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, evt, metaData, eventType, EventStreamDocumentType.Event);
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Event, metaData, cancellationToken);
   }
-  
-  public async Task AppendSnapshotAsync<TEntity>(
+
+  public Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
     EventStreamMetaData? metaData = null,
@@ -112,21 +82,66 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
   ) where TEntity : notnull
   {
     string eventName = typeof(TEntity).Name;
-    EventStreamDocumentEntity document = CreateEventEntity(id, entity, metaData, eventName);
-    _stream.Version = _stream.NextVersion;
-    _stream.NextVersion++;
-    _stream.Updated = DateTimeOffset.Now;
-    _stream.LatestSnapshotVersion = _stream.Version;
-    
-    Logging.AppendingEvent(_logger, document.DataType, document.StreamId, document.Version);
-    _dbContext.Streams.Attach(_stream);
-    await _dbContext.Documents.AddAsync(document, cancellationToken).ConfigureAwait(false);
-    await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    EventStreamDocument document = BuildDocument(id, JObject.FromObject(entity), metaData, eventName, EventStreamDocumentType.Snapshot);
+    return AppendThroughPipelineAsync([document], EventStreamDocumentType.Snapshot, metaData, cancellationToken);
   }
 
+  /// <summary>
+  /// Runs the documents through the append pipeline (which may sign them) and then
+  /// maps and persists them, mirroring the chain head onto the stream index.
+  /// </summary>
+  private async Task AppendThroughPipelineAsync(
+    IReadOnlyList<EventStreamDocument> documents,
+    EventStreamDocumentType documentType,
+    EventStreamMetaData? metaData,
+    CancellationToken cancellationToken)
+  {
+    if (documents.Count == 0)
+    {
+      return;
+    }
+
+    var context = new EventAppendContext
+    {
+      StreamId = StreamId,
+      DocumentType = documentType,
+      MetaData = metaData,
+      PreviousSignature = _stream.LatestSignature,
+      Entries = documents.Select(d => new EventAppendEntry(d)).ToList(),
+    };
+
+    await _pipeline.ExecuteAsync(context, async () =>
+    {
+      foreach (EventAppendEntry entry in context.Entries)
+      {
+        EventStreamDocumentEntity entity = MapToEntity(entry.Document, documentType);
+        Logging.AppendingEvent(_logger, entity.DataType, entity.StreamId, entity.Version);
+        await _dbContext.Documents.AddAsync(entity, cancellationToken).ConfigureAwait(false);
+      }
+
+      EventStreamDocument last = context.Entries[^1].Document;
+      _stream.Version = last.Version;
+      _stream.NextVersion = last.Version + 1;
+      _stream.Updated = DateTimeOffset.Now;
+      if (documentType == EventStreamDocumentType.Snapshot)
+      {
+        _stream.LatestSnapshotVersion = last.Version;
+      }
+
+      if (last.Signature is not null)
+      {
+        _stream.LatestSignature = last.Signature.Value;
+        _stream.SigningAlgorithm = last.Signature.Algorithm;
+        _stream.SigningCertificateThumbprint = last.Signature.CertificateThumbprint;
+      }
+
+      _dbContext.Streams.Attach(_stream);
+      await _dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
+  }
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
-    => Task.FromResult<IEventStoreTransactionAppender>(new EntityFrameworkCoreTransactionalBatchAppender(this, _dbContext));
+    => Task.FromResult<IEventStoreTransactionAppender>(new EntityFrameworkCoreTransactionalBatchAppender(this));
   
 
   public async Task<EventStreamDocument?> GetLatestSnapshot(CancellationToken cancellationToken = default)
@@ -203,6 +218,7 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
     Data = JObject.Parse(doc.Data),
     DataType = doc.DataType,
     TargetType = doc.TargetType,
+    Signature = doc.Signature,
     MetaData = new()
     {
       UserId = doc.MetaData.UserId,
@@ -213,37 +229,53 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
     },
   };
 
-  private EventStreamDocumentEntity CreateEventEntity<TEvent>(Guid id, TEvent evt, EventStreamMetaData? metaData, string eventName, EventStreamDocumentEntityType documentType = EventStreamDocumentEntityType.Event)
-    where TEvent : notnull
-  {
-    EventStreamDocumentEntity document = new()
+  // Builds the storage-agnostic core document that the append pipeline operates on.
+  private EventStreamDocument BuildDocument(Guid id, JObject data, EventStreamMetaData? metaData, string eventName, EventStreamDocumentType documentType)
+    => new()
     {
       Id = id,
       StreamId = StreamId,
-      Type = documentType,
+      DocumentType = documentType,
       Version = _stream.NextVersion,
       Time = DateTimeOffset.Now,
       Name = eventName,
       DataType = eventName,
       TargetType = _stream.TargetType,
-      Data = JsonSerializer.Serialize(evt),
+      Data = data,
+      MetaData = metaData ?? new(),
+    };
+
+  // Maps a (possibly signed) core document onto the EF entity.
+  private static EventStreamDocumentEntity MapToEntity(EventStreamDocument doc, EventStreamDocumentType documentType)
+    => new()
+    {
+      Id = doc.Id,
+      StreamId = doc.StreamId,
+      Type = documentType == EventStreamDocumentType.Snapshot
+        ? EventStreamDocumentEntityType.Snapshot
+        : EventStreamDocumentEntityType.Event,
+      Version = doc.Version,
+      Time = doc.Time,
+      Name = doc.Name,
+      DataType = doc.DataType,
+      TargetType = doc.TargetType,
+      Data = doc.Data.ToString(Newtonsoft.Json.Formatting.None),
+      Signature = doc.Signature,
       MetaData = new()
       {
-        UserId = metaData?.UserId,
-        UserName = metaData?.UserName,
-        TenantId = metaData?.TenantId,
-        Comment = metaData?.Comment,
-        Additional = metaData?.Additional
-      }
+        UserId = doc.MetaData.UserId,
+        UserName = doc.MetaData.UserName,
+        TenantId = doc.MetaData.TenantId,
+        Comment = doc.MetaData.Comment,
+        Additional = doc.MetaData.Additional,
+      },
     };
-    
-    return document;
-  }
 
-  private class EntityFrameworkCoreTransactionalBatchAppender(EntityFrameworkEventStream stream, EventStoreDbContext context) 
+  private class EntityFrameworkCoreTransactionalBatchAppender(EntityFrameworkEventStream stream)
     : IEventStoreTransactionAppender
   {
-    private readonly List<(Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity)> _items = [];
+    private readonly List<(Guid Id, JObject Data, EventStreamMetaData? MetaData, string Name)> _items = [];
+
     public IEventStoreTransactionAppender Add<TEvent>(
       Guid id,
       TEvent evt,
@@ -251,36 +283,24 @@ internal sealed class EntityFrameworkEventStream : IEventStream, ILowLevelEventS
       CancellationToken cancellationToken = default
     ) where TEvent: notnull
     {
-      EventStreamDocumentEntity entity = stream.CreateEventEntity(
-        id,
-        evt,
-        metaData,
-        stream._eventTypeProvider.ResolveType(evt.GetType())
-      );
-      _items.Add((id, evt, metaData, entity));
-
+      _items.Add((id, JObject.FromObject(evt), metaData, stream._eventTypeProvider.ResolveType(evt.GetType())));
       return this;
     }
 
-    public async Task CommitAsync(CancellationToken cancellationToken = default)
+    public Task CommitAsync(CancellationToken cancellationToken = default)
     {
       if (_items.Count == 0)
       {
-        return;
+        return Task.CompletedTask;
       }
-      
-      foreach ((Guid Id, object Evt, EventStreamMetaData? MetaData, EventStreamDocumentEntity Entity) item in _items)
-      {
-        Logging.AppendingEvent(stream._logger, item.Entity.DataType, stream.StreamId, item.Entity.Version);
-        await context.Documents.AddAsync(item.Entity, cancellationToken).ConfigureAwait(false);
-      }
-      
-      stream._stream.Version = _items.Max(i => i.Entity.Version);
-      stream._stream.NextVersion = stream._stream.Version + 1;
-      stream._stream.Updated = DateTimeOffset.Now;
-      context.Streams.Attach(stream._stream);
-      
-      await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+      ulong version = stream._stream.NextVersion;
+      List<EventStreamDocument> documents = _items
+        .Select(item => stream.BuildDocument(item.Id, item.Data, item.MetaData, item.Name, EventStreamDocumentType.Event)
+          with { Version = version++ })
+        .ToList();
+
+      return stream.AppendThroughPipelineAsync(documents, EventStreamDocumentType.Event, null, cancellationToken);
     }
   }
 }

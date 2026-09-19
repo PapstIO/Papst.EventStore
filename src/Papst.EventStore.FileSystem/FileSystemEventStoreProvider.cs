@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.FileSystem;
 public static class FileSystemEventStoreProvider
@@ -14,6 +15,7 @@ public static class FileSystemEventStoreProvider
   public static IServiceCollection AddFileSystemEventStore(this IServiceCollection services, IConfiguration config) => services
     .AddTransient<IEventStore, FileSystemEventStore>()
     .Configure<FileSystemEventStoreOptions>(c => config.Bind(c))
+    .AddEventStorePipeline()
 
     ;
 }

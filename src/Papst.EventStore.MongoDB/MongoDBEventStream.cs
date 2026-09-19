@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Newtonsoft.Json.Linq;
 using Papst.EventStore.Documents;
+using Papst.EventStore.Pipeline;
 
 namespace Papst.EventStore.MongoDB;
 
@@ -18,7 +19,9 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
   private readonly TimeProvider _timeProvider;
   private readonly string _targetType;
   private readonly IEventTypeProvider _typeProvider;
+  private readonly IEventStorePipeline<EventAppendContext> _pipeline;
   private readonly ILogger<MongoDBEventStream> _logger;
+  private string? _latestSignature;
 
   public MongoDBEventStream(
     Guid streamId,
@@ -31,7 +34,9 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     IEventTypeProvider typeProvider,
     IMongoCollection<EventStreamDocument> documentsCollection,
     IMongoCollection<MongoEventStreamMetadata> metadataCollection,
-    ILogger<MongoDBEventStream> logger)
+    IEventStorePipeline<EventAppendContext> pipeline,
+    ILogger<MongoDBEventStream> logger,
+    string? latestSignature = null)
   {
     StreamId = streamId;
     Version = version;
@@ -43,7 +48,9 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     _typeProvider = typeProvider;
     _documentsCollection = documentsCollection;
     _metadataCollection = metadataCollection;
+    _pipeline = pipeline;
     _logger = logger;
+    _latestSignature = latestSignature;
   }
 
   public Guid StreamId { get; }
@@ -80,22 +87,18 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
     return await _documentsCollection.Find(filter).Sort(sort).FirstOrDefaultAsync(cancellationToken);
   }
 
-  public async Task AppendAsync<TEvent>(
+  public Task AppendAsync<TEvent>(
     Guid id,
     TEvent evt,
     EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEvent : notnull
   {
     string name = _typeProvider.ResolveType(typeof(TEvent));
-    var newVersion = NextVersion;
-
-    _logger.AppendingEvent(name, StreamId, newVersion);
-
     var document = new EventStreamDocument
     {
       Id = id,
       StreamId = StreamId,
-      Version = newVersion,
+      Version = NextVersion,
       Time = _timeProvider.GetLocalNow(),
       DataType = name,
       Data = JObject.FromObject(evt),
@@ -105,35 +108,21 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
       Name = name
     };
 
-    await _documentsCollection.InsertOneAsync(document, new InsertOneOptions(), cancellationToken);
-
-    // Update version in metadata
-    var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
-    var update = Builders<MongoEventStreamMetadata>.Update
-      .Set(m => m.Version, newVersion)
-      .Set(m => m.NextVersion, newVersion + 1);
-    await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
-
-    Version = newVersion;
-    NextVersion = newVersion + 1;
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendAsync(
+  public Task AppendAsync(
     Guid id,
     string eventType,
     JObject evt,
     EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default)
   {
-    var newVersion = NextVersion;
-
-    _logger.AppendingEvent(eventType, StreamId, newVersion);
-
     var document = new EventStreamDocument
     {
       Id = id,
       StreamId = StreamId,
-      Version = newVersion,
+      Version = NextVersion,
       Time = _timeProvider.GetLocalNow(),
       DataType = eventType,
       Data = evt,
@@ -143,34 +132,20 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
       Name = eventType
     };
 
-    await _documentsCollection.InsertOneAsync(document, new InsertOneOptions(), cancellationToken);
-
-    // Update version in metadata
-    var mongoFilter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
-    var mongoUpdate = Builders<MongoEventStreamMetadata>.Update
-      .Set(m => m.Version, newVersion)
-      .Set(m => m.NextVersion, newVersion + 1);
-    await _metadataCollection.UpdateOneAsync(mongoFilter, mongoUpdate, new UpdateOptions(), cancellationToken);
-
-    Version = newVersion;
-    NextVersion = newVersion + 1;
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Event, metaData, cancellationToken);
   }
 
-  public async Task AppendSnapshotAsync<TEntity>(
+  public Task AppendSnapshotAsync<TEntity>(
     Guid id,
     TEntity entity,
     EventStreamMetaData? metaData = null,
     CancellationToken cancellationToken = default) where TEntity : notnull
   {
-    var newVersion = NextVersion;
-
-    _logger.AppendingSnapshot(StreamId, newVersion);
-
     var document = new EventStreamDocument
     {
       Id = id,
       StreamId = StreamId,
-      Version = newVersion,
+      Version = NextVersion,
       Time = _timeProvider.GetLocalNow(),
       DataType = _targetType,
       Data = JObject.FromObject(entity),
@@ -180,18 +155,54 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
       Name = _targetType
     };
 
-    await _documentsCollection.InsertOneAsync(document, new InsertOneOptions(), cancellationToken);
+    return AppendThroughPipelineAsync(document, EventStreamDocumentType.Snapshot, metaData, cancellationToken);
+  }
 
-    // Update version and snapshot version in metadata
-    var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
-    var update = Builders<MongoEventStreamMetadata>.Update
-      .Set(m => m.Version, newVersion)
-      .Set(m => m.NextVersion, newVersion + 1)
-      .Set(m => m.LatestSnapshotVersion, newVersion);
-    await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken);
+  private async Task AppendThroughPipelineAsync(
+    EventStreamDocument document,
+    EventStreamDocumentType documentType,
+    EventStreamMetaData? metaData,
+    CancellationToken cancellationToken)
+  {
+    _logger.AppendingEvent(document.DataType, StreamId, document.Version);
 
-    Version = newVersion;
-    NextVersion = newVersion + 1;
+    var context = new EventAppendContext
+    {
+      StreamId = StreamId,
+      DocumentType = documentType,
+      MetaData = metaData,
+      PreviousSignature = _latestSignature,
+      Entries = [new EventAppendEntry(document)],
+    };
+
+    await _pipeline.ExecuteAsync(context, async () =>
+    {
+      EventStreamDocument persisted = context.Entries[0].Document;
+      ulong newVersion = persisted.Version;
+
+      await _documentsCollection.InsertOneAsync(persisted, new InsertOneOptions(), cancellationToken).ConfigureAwait(false);
+
+      var filter = Builders<MongoEventStreamMetadata>.Filter.Eq(m => m.StreamId, StreamId);
+      var update = Builders<MongoEventStreamMetadata>.Update
+        .Set(m => m.Version, newVersion)
+        .Set(m => m.NextVersion, newVersion + 1)
+        .Set(m => m.LatestSignature, persisted.Signature != null ? persisted.Signature.Value : _latestSignature)
+        .Set(m => m.SigningAlgorithm, persisted.Signature != null ? persisted.Signature.Algorithm : null)
+        .Set(m => m.SigningCertificateThumbprint, persisted.Signature != null ? persisted.Signature.CertificateThumbprint : null);
+      if (documentType == EventStreamDocumentType.Snapshot)
+      {
+        update = update.Set(m => m.LatestSnapshotVersion, newVersion);
+      }
+
+      await _metadataCollection.UpdateOneAsync(filter, update, new UpdateOptions(), cancellationToken).ConfigureAwait(false);
+
+      Version = newVersion;
+      NextVersion = newVersion + 1;
+      if (persisted.Signature is not null)
+      {
+        _latestSignature = persisted.Signature.Value;
+      }
+    }, cancellationToken).ConfigureAwait(false);
   }
 
   public Task<IEventStoreTransactionAppender> CreateTransactionalBatchAsync()
@@ -204,6 +215,7 @@ internal class MongoDBEventStream : IEventStream, ILowLevelEventStream
         _timeProvider,
         StreamId,
         _targetType,
+        _pipeline,
         _logger
       )
     );

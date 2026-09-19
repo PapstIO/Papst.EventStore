@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Papst.EventStore.AzureCosmos.Database;
 using Papst.EventStore.Documents;
+using Papst.EventStore.Pipeline;
 using Papst.EventStore.Exceptions;
 using System.Net;
 
@@ -15,7 +16,8 @@ internal sealed class CosmosEventStore(
   CosmosDatabaseProvider dbProvider,
   IEventTypeProvider eventTypeProvider,
   ICosmosIdStrategy idStrategy,
-  TimeProvider timeProvider
+  TimeProvider timeProvider,
+  IEventStorePipeline<EventAppendContext> pipeline
 )
   : IEventStore
 {
@@ -52,7 +54,8 @@ internal sealed class CosmosEventStore(
       dbProvider,
       eventTypeProvider,
       idStrategy,
-      timeProvider);
+      timeProvider,
+      pipeline);
   }
 
   public async Task<ILowLevelEventStream> GetLowLevelAsync(Guid streamId, CancellationToken cancellationToken = default)
@@ -86,7 +89,8 @@ internal sealed class CosmosEventStore(
       dbProvider,
       eventTypeProvider,
       idStrategy,
-      timeProvider);
+      timeProvider,
+      pipeline);
   }
 
   private async Task<ItemResponse<EventStreamIndexEntity>> ReadStreamAndBuildIndex(
@@ -244,7 +248,8 @@ internal sealed class CosmosEventStore(
       dbProvider,
       eventTypeProvider,
       idStrategy,
-      timeProvider);
+      timeProvider,
+      pipeline);
   }
 
   public async Task DeleteAsync(Guid streamId, CancellationToken cancellationToken = default)

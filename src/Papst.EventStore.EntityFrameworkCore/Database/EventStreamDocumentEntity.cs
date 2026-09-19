@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using Newtonsoft.Json.Linq;
+using Papst.EventStore.Documents;
 
 namespace Papst.EventStore.EntityFrameworkCore.Database;
 
@@ -16,6 +17,12 @@ public class EventStreamDocumentEntity
   public string TargetType { get; init; } = string.Empty;
 
   public EventStreamDocumentMetaDataEntity MetaData { get; init; } = new();
+
+  /// <summary>
+  /// Cryptographic signature of the document, or <see langword="null"/> when the
+  /// stream is not signed. Stored as owned JSON.
+  /// </summary>
+  public EventSignature? Signature { get; init; }
 }
 
 public class EventStreamDocumentMetaDataEntity

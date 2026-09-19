@@ -17,7 +17,7 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.7")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -81,6 +81,9 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
                     b.Property<DateTimeOffset>("Created")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("LatestSignature")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("LatestSnapshotVersion")
                         .HasColumnType("decimal(20,0)");
 
@@ -102,6 +105,12 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
                     b.Property<decimal>("NextVersion")
                         .HasColumnType("decimal(20,0)");
 
+                    b.Property<string>("SigningAlgorithm")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SigningCertificateThumbprint")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TargetType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -119,46 +128,70 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
 
             modelBuilder.Entity("Papst.EventStore.EntityFrameworkCore.Database.EventStreamDocumentEntity", b =>
                 {
-                    b.OwnsOne("Papst.EventStore.EntityFrameworkCore.Database.EventStreamDocumentMetaDataEntity", "MetaData", b1 =>
+                    b.OwnsOne("Papst.EventStore.Documents.EventSignature", "Signature", b1 =>
                         {
-                            b1.Property<Guid>("EventStreamDocumentEntityId")
-                                .HasColumnType("uniqueidentifier");
+                            b1.Property<Guid>("EventStreamDocumentEntityId");
 
-                            b1.Property<string>("Comment")
-                                .HasMaxLength(255)
-                                .HasColumnType("nvarchar(255)");
+                            b1.Property<string>("Algorithm")
+                                .IsRequired();
 
-                            b1.Property<string>("TenantId")
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                            b1.Property<string>("CertificateThumbprint")
+                                .IsRequired();
 
-                            b1.Property<string>("UserId")
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                            b1.Property<string>("Hash")
+                                .IsRequired();
 
-                            b1.Property<string>("UserName")
-                                .HasMaxLength(50)
-                                .HasColumnType("nvarchar(50)");
+                            b1.Property<string>("PreviousSignature");
+
+                            b1.Property<string>("Value")
+                                .IsRequired();
 
                             b1.HasKey("EventStreamDocumentEntityId");
 
                             b1.ToTable("Documents");
 
-                            b1.ToJson("MetaData");
+                            b1
+                                .ToJson("Signature")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("EventStreamDocumentEntityId");
+                        });
+
+                    b.OwnsOne("Papst.EventStore.EntityFrameworkCore.Database.EventStreamDocumentMetaDataEntity", "MetaData", b1 =>
+                        {
+                            b1.Property<Guid>("EventStreamDocumentEntityId");
+
+                            b1.Property<string>("Comment")
+                                .HasMaxLength(255);
+
+                            b1.Property<string>("TenantId")
+                                .HasMaxLength(50);
+
+                            b1.Property<string>("UserId")
+                                .HasMaxLength(50);
+
+                            b1.Property<string>("UserName")
+                                .HasMaxLength(50);
+
+                            b1.HasKey("EventStreamDocumentEntityId");
+
+                            b1.ToTable("Documents");
+
+                            b1
+                                .ToJson("MetaData")
+                                .HasColumnType("nvarchar(max)");
 
                             b1.WithOwner()
                                 .HasForeignKey("EventStreamDocumentEntityId");
 
                             b1.OwnsOne("System.Collections.Generic.Dictionary<string, string>", "Additional", b2 =>
                                 {
-                                    b2.Property<Guid>("EventStreamDocumentMetaDataEntityEventStreamDocumentEntityId")
-                                        .HasColumnType("uniqueidentifier");
+                                    b2.Property<Guid>("EventStreamDocumentMetaDataEntityEventStreamDocumentEntityId");
 
                                     b2.HasKey("EventStreamDocumentMetaDataEntityEventStreamDocumentEntityId");
 
                                     b2.ToTable("Documents");
-
-                                    b2.ToJson("Additional");
 
                                     b2.WithOwner()
                                         .HasForeignKey("EventStreamDocumentMetaDataEntityEventStreamDocumentEntityId");
@@ -169,6 +202,8 @@ namespace Papst.EventStore.EntityFrameworkCore.Migrations
 
                     b.Navigation("MetaData")
                         .IsRequired();
+
+                    b.Navigation("Signature");
                 });
 #pragma warning restore 612, 618
         }

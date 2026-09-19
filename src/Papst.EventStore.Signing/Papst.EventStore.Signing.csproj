@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Papst.EventStore.Signing</PackageId>
+    <Title>Papst.EventStore.Signing</Title>
+    <Description>Cryptographic signing of events for Papst.EventStore. Adds a registrable append pipeline handler that signs every appended event with a configurable X.509 certificate, forming a tamper-evident hash chain, plus a verifier. Works with every EventStore implementation.</Description>
+    <PackageTags>eventsourcing;eventstore;signing;security;x509;dotnet</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Papst.EventStore\Papst.EventStore.csproj" Condition="'$(Configuration)' == 'DEBUG'" />
+    <PackageReference Include="Papst.EventStore" Condition="'$(Configuration)' != 'DEBUG'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+</Project>

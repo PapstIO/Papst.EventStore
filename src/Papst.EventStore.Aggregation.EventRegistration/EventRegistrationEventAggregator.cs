@@ -114,6 +114,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
           target = evt.Data.ToObject<TEntity>() ?? target ?? new();
           // update the targets Version to match the current Snapshot
           target.Version = context.CurrentVersion;
+          ApplySignature(target, evt);
 
           continue;
         }
@@ -137,6 +138,7 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
         {
           // set the entity Version to the current event version
           target.Version = context.CurrentVersion;
+          ApplySignature(target, evt);
         }
       }
       catch (InvalidOperationException exc)
@@ -146,5 +148,16 @@ internal class EventRegistrationEventAggregator<TEntity> : IEventStreamAggregato
       }
     }
     return target;
+  }
+
+  // When the aggregated Entity opts into signing, carry the signature of the
+  // currently applied document onto it, so the Entity exposes the signature of
+  // its current Version.
+  private static void ApplySignature(TEntity? target, Documents.EventStreamDocument evt)
+  {
+    if (target is ISignedEntity signed)
+    {
+      signed.Signature = evt.Signature;
+    }
   }
 }
