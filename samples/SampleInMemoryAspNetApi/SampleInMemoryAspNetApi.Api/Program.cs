@@ -39,6 +39,8 @@ app.MapGet("/", () => Results.Ok(new
     "POST /orders/{orderId}/status",
     "POST /orders/{orderId}/ship",
     "POST /orders/{orderId}/cancel",
+    "POST /orders/{orderId}/items",
+    "DELETE /orders/{orderId}/items/{itemId}",
     "GET /orders/{orderId}",
     "GET /catalog/{entity}/events",
     "GET /catalog/{entity}/events/{eventName}/schema",
@@ -57,6 +59,8 @@ orders.MapPost("/", CreateOrderAsync);
 orders.MapPost("/{orderId:guid}/status", ChangeOrderStatusAsync);
 orders.MapPost("/{orderId:guid}/ship", ShipOrderAsync);
 orders.MapPost("/{orderId:guid}/cancel", CancelOrderAsync);
+orders.MapPost("/{orderId:guid}/items", UpsertOrderItemAsync);
+orders.MapDelete("/{orderId:guid}/items/{itemId:guid}", RemoveOrderItemAsync);
 orders.MapGet("/{orderId:guid}", GetOrderAsync);
 
 RouteGroupBuilder catalog = app.MapGroup("/catalog");
@@ -158,7 +162,13 @@ static async Task<IResult> CreateOrderAsync(
   IEventStream stream = await eventStore.CreateAsync(orderId, nameof(Order), cancellationToken);
 
   List<OrderItem> items = request.Items
-    .Select(item => new OrderItem(item.ProductName, item.Quantity, item.UnitPrice))
+    .Select(item => new OrderItem
+    {
+      Id = Guid.NewGuid(),
+      ProductName = item.ProductName,
+      Quantity = item.Quantity,
+      UnitPrice = item.UnitPrice
+    })
     .ToList();
 
   decimal total = items.Sum(item => item.Quantity * item.UnitPrice);
@@ -242,6 +252,59 @@ static async Task<IResult> CancelOrderAsync(
   }
 
   await stream.AppendAsync(Guid.NewGuid(), new OrderCancelledEvent(request.Reason), cancellationToken: cancellationToken);
+  Order? order = await AggregateAndStoreAsync(stream, aggregator, repository.UpsertAsync, cancellationToken);
+
+  return order is null
+    ? Results.Problem("Order aggregation returned no entity.")
+    : Results.Ok(order);
+}
+
+static async Task<IResult> UpsertOrderItemAsync(
+  Guid orderId,
+  UpsertOrderItemRequest request,
+  IEventStore eventStore,
+  IEventStreamAggregator<Order> aggregator,
+  IOrderRepository repository,
+  CancellationToken cancellationToken)
+{
+  IEventStream? stream = await TryGetStreamAsync(eventStore, orderId, cancellationToken);
+  if (stream is null)
+  {
+    return Results.NotFound();
+  }
+
+  // Upsert is aggregated by the code-generated collection aggregation (no hand-written aggregator).
+  Guid itemId = request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid();
+  await stream.AppendAsync(
+    Guid.NewGuid(),
+    new OrderItemUpsertedEvent(itemId, request.ProductName, request.Quantity, request.UnitPrice),
+    cancellationToken: cancellationToken);
+  Order? order = await AggregateAndStoreAsync(stream, aggregator, repository.UpsertAsync, cancellationToken);
+
+  return order is null
+    ? Results.Problem("Order aggregation returned no entity.")
+    : Results.Ok(order);
+}
+
+static async Task<IResult> RemoveOrderItemAsync(
+  Guid orderId,
+  Guid itemId,
+  IEventStore eventStore,
+  IEventStreamAggregator<Order> aggregator,
+  IOrderRepository repository,
+  CancellationToken cancellationToken)
+{
+  IEventStream? stream = await TryGetStreamAsync(eventStore, orderId, cancellationToken);
+  if (stream is null)
+  {
+    return Results.NotFound();
+  }
+
+  // Remove-by-key is aggregated by the code-generated collection aggregation (no hand-written aggregator).
+  await stream.AppendAsync(
+    Guid.NewGuid(),
+    new OrderItemRemovedEvent(itemId),
+    cancellationToken: cancellationToken);
   Order? order = await AggregateAndStoreAsync(stream, aggregator, repository.UpsertAsync, cancellationToken);
 
   return order is null

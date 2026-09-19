@@ -131,6 +131,38 @@ public sealed record TagUpserted([property: AggregationCollectionKey("Id")] stri
 A working example lives in the Orders module of
 [`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/) (`OrderShippedEvent`).
 
+Set `Mode = AggregationMode.RemoveByKey` to **remove** the identified entry instead of upserting it. The same
+`[AggregationDictionaryKey]` / `[AggregationCollectionKey]` marker locates the element; the event carries only
+the key:
+
+```csharp
+// remove the List<OrderItem> item whose Id equals the event value
+[EventAggregation<Order>(PropertyPath = nameof(Order.Items), Mode = AggregationMode.RemoveByKey)]
+public sealed record OrderItemRemoved([property: AggregationCollectionKey(nameof(OrderItem.Id))] Guid Id);
+```
+
+### Stamping stream-context values
+
+Mark an **entity** property with `[AggregationContextStamp(AggregationContextValue.…)]` to have the generator
+write a stream-context value onto it during aggregation — independent of any event property. Available values are
+`EventTime`, `StreamId`, `StreamCreated`, `CurrentVersion` and `TargetVersion`. By default the property is stamped
+on every applied event; set `OnEveryEvent = false` to stamp it only when the entity is newly created
+(`ctx.CurrentVersion == 0`), which is the natural fit for `Id` / `Created`:
+
+```csharp
+public sealed class Order : IEntity
+{
+  [AggregationContextStamp(AggregationContextValue.StreamId, OnEveryEvent = false)]     public Guid Id { get; set; }
+  [AggregationContextStamp(AggregationContextValue.StreamCreated, OnEveryEvent = false)] public DateTimeOffset Created { get; set; }
+  [AggregationContextStamp(AggregationContextValue.EventTime)]                           public DateTimeOffset Updated { get; set; }
+  public ulong Version { get; set; }
+}
+```
+
+The stamp target must be implicitly assignable from the selected value's type; otherwise the generator emits
+warning `EVTSRC0005` and skips it. Both features are demonstrated end to end in the Orders module of
+[`samples/SampleInMemoryAspNetApi/`](./samples/SampleInMemoryAspNetApi/).
+
 ## Configuring an Implementation for use
 
 Please refer to the documentation in the relevant implementation sources:
@@ -267,6 +299,12 @@ hand-written aggregator API.
   `[SkipWhenNull(bool)]`.
 * Individual event properties can be excluded with `[AggregationIgnore]` or mapped onto a differently named
   entity property with `[AggregationProperty("TargetName")]`.
+* Setting `Mode = AggregationMode.RemoveByKey` on `[EventAggregation<TEntity>]` **removes** the keyed
+  dictionary entry / collection item instead of upserting it (`EVTSRC0006` when no key is resolvable).
+* Entity properties marked with `[AggregationContextStamp(AggregationContextValue.…)]` are stamped from the
+  stream context (`EventTime`, `StreamId`, `StreamCreated`, `CurrentVersion`, `TargetVersion`) on every event,
+  or create-only with `OnEveryEvent = false` — ideal for `Id` / `Created` / `Updated` audit fields
+  (`EVTSRC0005` when the target type is not assignable).
 * If a hand-written aggregator already exists for the same `(entity, event)` pair, generation is skipped and
   an `EVTSRC0003` diagnostic is reported, so the two approaches never double-register.
 * The code generator no longer fails when a project contains nested event/aggregator types; such types are

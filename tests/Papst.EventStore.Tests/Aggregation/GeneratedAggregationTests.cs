@@ -123,6 +123,41 @@ public class GeneratedAggregationTests
     order.Tags.ShouldContain(t => t.Id == "t2" && t.Label == "Wholesale");
   }
 
+  [Fact]
+  public async Task ContextStamp_StampsCreatedOnceAndAdvancesUpdated()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    var t0 = new DateTimeOffset(2026, 1, 1, 8, 0, 0, TimeSpan.Zero);
+    var t1 = new DateTimeOffset(2026, 1, 2, 9, 30, 0, TimeSpan.Zero);
+    stream.Append(new OrderCreated("Alice"), t0);
+    stream.Append(new CustomerNameForced("Bob"), t1);
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order.ShouldNotBeNull();
+    // Created is stamped once from the stream context (create-only, CurrentVersion == 0)
+    order!.Created.ShouldBe(stream.Created);
+    // Updated advances to the last applied event's time
+    order.Updated.ShouldBe(t1);
+  }
+
+  [Fact]
+  public async Task CollectionRemoveByKey_RemovesMatchingItem()
+  {
+    var aggregator = BuildAggregator();
+    var stream = new FakeStream();
+    stream.Append(new TagUpserted("t1", "Urgent"));
+    stream.Append(new TagUpserted("t2", "Wholesale"));
+    stream.Append(new TagRemoved("t1"));
+
+    var order = await aggregator.AggregateAsync(stream, CancellationToken.None);
+
+    order!.Tags.Count.ShouldBe(1);
+    order.Tags.ShouldContain(t => t.Id == "t2" && t.Label == "Wholesale");
+    order.Tags.ShouldNotContain(t => t.Id == "t1");
+  }
+
   private sealed class FakeStream : IEventStream
   {
     private readonly List<EventStreamDocument> _events = new();
@@ -133,14 +168,14 @@ public class GeneratedAggregationTests
     public ulong? LatestSnapshotVersion => null;
     public EventStreamMetaData MetaData { get; } = new();
 
-    public void Append<TEvent>(TEvent evt) where TEvent : notnull
+    public void Append<TEvent>(TEvent evt, DateTimeOffset? time = null) where TEvent : notnull
       => _events.Add(new EventStreamDocument
       {
         Id = Guid.NewGuid(),
         StreamId = StreamId,
         DocumentType = EventStreamDocumentType.Event,
         Version = (ulong)_events.Count,
-        Time = DateTimeOffset.UtcNow,
+        Time = time ?? DateTimeOffset.UtcNow,
         Name = typeof(TEvent).Name,
         Data = JObject.FromObject(evt),
         DataType = typeof(TEvent).Name,
