@@ -153,6 +153,88 @@ public class CosmosEventStreamTests : IClassFixture<CosmosDbIntegrationTestFixtu
   }
 
   [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnOnlyEventsWithGivenNames(Guid streamId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent(), new TestAppendedEvent());
+
+    // act
+    var events = await stream.ListAsync(0, stream.Version, ["Appended"], TestContext.Current.CancellationToken)
+      .ToListAsync(TestContext.Current.CancellationToken);
+
+    // assert
+    events.Select(d => d.Version).ShouldBe([1ul, 2ul, 3ul]);
+    events.ShouldAllBe(d => d.Name == "Appended");
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldRespectVersionRange_WhenFilteringByName(Guid streamId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent(), new TestAppendedEvent());
+
+    // act
+    var events = await stream.ListAsync(0, 2, ["Appended"], TestContext.Current.CancellationToken)
+      .ToListAsync(TestContext.Current.CancellationToken);
+
+    // assert
+    events.Select(d => d.Version).ShouldBe([1ul, 2ul]);
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnEventsOfAllGivenNames(Guid streamId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent());
+
+    // act
+    var events = await stream.ListAsync(0, stream.Version, ["Foo", "Appended"], TestContext.Current.CancellationToken)
+      .ToListAsync(TestContext.Current.CancellationToken);
+
+    // assert
+    events.Select(d => d.Version).ShouldBe([0ul, 1ul, 2ul]);
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnEmpty_WhenNoEventNamesAreGiven(Guid streamId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent());
+
+    // act
+    var events = await stream.ListAsync(0, stream.Version, [], TestContext.Current.CancellationToken)
+      .ToListAsync(TestContext.Current.CancellationToken);
+
+    // assert
+    events.ShouldBeEmpty();
+  }
+
+  [Theory, AutoData]
+  public async Task ListDescendingAsync_ShouldReturnOnlyEventsWithGivenNames(Guid streamId)
+  {
+    // arrange
+    var services = _fixture.BuildServiceProvider();
+    var store = services.GetRequiredService<IEventStore>();
+    var stream = await CreateStreamAsync(store, streamId, new TestAppendedEvent(), new TestAppendedEvent(), new TestAppendedEvent());
+
+    // act
+    var events = await stream.ListDescendingAsync(stream.Version, 0, ["Appended"], TestContext.Current.CancellationToken)
+      .ToListAsync(TestContext.Current.CancellationToken);
+
+    // assert
+    events.Select(d => d.Version).ShouldBe([3ul, 2ul, 1ul]);
+    events.ShouldAllBe(d => d.Name == "Appended");
+  }
+
+  [Theory, AutoData]
   public async Task UpdateMetadata_ShouldUpdate(Guid streamId, EventStreamMetaData metaData)
   {
     // arrange
