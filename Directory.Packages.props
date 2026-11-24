@@ -8,9 +8,12 @@
          Papst.EventStore packages.
          The Store packages consume the Contracts package from nuget.org in
          Release builds; the range keeps them on the current major line.
+         NuGet resolves the LOWEST version of a range, so the floor is what the
+         Stores and their tests compile against: raise it whenever they start
+         using Contracts API that an older version does not have.
          ====================================================================== -->
     <ItemGroup>
-        <PackageVersion Include="Papst.EventStore" Version="[7.0.3,8.0)" />
+        <PackageVersion Include="Papst.EventStore" Version="[7.1.2,8.0)" />
     </ItemGroup>
 
     <!-- ======================================================================
