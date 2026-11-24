@@ -64,14 +64,8 @@
         <PackageVersion Include="MongoDB.Driver" Version="[3.11.0, 4.0.0)" />
     </ItemGroup>
 
-    <!-- EF Core tracks the runtime: 8.x on net8.0, 10.x on net10.0, 11.x on net11.0.
+    <!-- EF Core tracks the runtime: 10.x on net10.0, 11.x on net11.0.
          A given major has no build for another runtime, so these must be conditioned. -->
-    <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.34" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.34" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.34" />
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.34" />
-    </ItemGroup>
     <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
         <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
