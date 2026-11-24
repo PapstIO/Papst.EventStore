@@ -202,6 +202,35 @@ if (stream is ILowLevelEventStream lowLevelStream)
 
 This is intended for scenarios where the event payload or event type is not known at compile time. If you work with strongly typed events, prefer `IEventStream.AppendAsync<TEvent>()`.
 
+## Listing Events by Name
+
+`IEventStream` can list only the documents with certain event names, in ascending or descending version order:
+
+```csharp
+IAsyncEnumerable<EventStreamDocument> events = stream.ListAsync(
+    startVersion: 0,
+    endVersion: stream.Version,
+    eventNames: ["OrderPlaced", "OrderCancelled"],
+    cancellationToken);
+
+IAsyncEnumerable<EventStreamDocument> newestFirst = stream.ListDescendingAsync(
+    endVersion: stream.Version,
+    startVersion: 0,
+    eventNames: ["OrderPlaced", "OrderCancelled"],
+    cancellationToken);
+```
+
+Semantics:
+
+* The names are compared exactly with the stored `EventStreamDocument.Name`. If an event has several
+  registered names (see [Configuring Write and Read Event Identifier](#configuring-write-and-read-event-identifier)),
+  pass every name it has been written with.
+* An empty collection returns no documents.
+* Snapshots are stored under the name of their entity type, so they are only returned when that name is requested.
+
+The Azure Cosmos store filters in the database query. All other stores use the default implementation of
+`IEventStream`, which filters while enumerating the stream.
+
 ## Deleting an Event Stream
 
 The `IEventStore` interface offers a `DeleteAsync` method that permanently removes an event stream together with **all** of its documents (events, snapshots and the stream index):
@@ -296,6 +325,19 @@ Multi-targets the libraries for the current .NET runtimes.
   target framework — the 10.x line on `net10.0`, the 11.x line on `net11.0`.
 * CI builds with the .NET 11 SDK and runs the test matrix on both the .NET 10 and
   .NET 11 runtimes.
+
+## V 7.1
+
+Adds listing the documents of a stream filtered by event name.
+
+### Changes
+
+* New `IEventStream.ListAsync(startVersion, endVersion, eventNames)` and
+  `IEventStream.ListDescendingAsync(endVersion, startVersion, eventNames)` overloads return only the
+  documents whose `Name` is one of the given event names.
+* The overloads are default interface methods that filter while enumerating, so existing `IEventStream`
+  implementations keep working unchanged.
+* The Azure Cosmos store overrides them and applies the filter in the database query.
 
 ## V 7.0
 

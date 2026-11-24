@@ -27,6 +27,7 @@ public class InMemoryTestFixture
 
     EventDescriptionEventRegistration registration = new();
     registration.AddEvent<TestEvent>(new EventAttributeDescriptor(nameof(TestEvent), true));
+    registration.AddEvent<OtherTestEvent>(new EventAttributeDescriptor(nameof(OtherTestEvent), true));
     
     Services.AddInMemoryEventStore()
       .AddEventRegistrationTypeProvider()

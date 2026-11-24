@@ -143,4 +143,89 @@ public class InMemoryEventStreamTests: IClassFixture<InMemoryTestFixture>
     documents.Count.ShouldBe(500);
     documents.Select(d => d.Version).ShouldBeUnique();
   }
+
+  private async Task<IEventStream> CreateMixedStreamAsync(Guid streamId)
+  {
+    var serviceProvider = _fixture.BuildServiceProvider();
+    var eventStore = serviceProvider.GetRequiredService<IEventStore>();
+    var stream = await eventStore.CreateAsync(streamId, "", CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new TestEvent(), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new OtherTestEvent(), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new TestEvent(), cancellationToken: CancellationToken.None);
+    await stream.AppendAsync(Guid.NewGuid(), new OtherTestEvent(), cancellationToken: CancellationToken.None);
+    return stream;
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnOnlyEventsWithGivenNames(Guid streamId)
+  {
+    // arrange
+    var stream = await CreateMixedStreamAsync(streamId);
+
+    // act
+    var result = await stream.ListAsync(0, stream.Version, [nameof(OtherTestEvent)], CancellationToken.None)
+      .ToListAsync(CancellationToken.None);
+
+    // assert
+    result.Select(d => d.Version).ShouldBe([1ul, 3ul]);
+    result.ShouldAllBe(d => d.Name == nameof(OtherTestEvent));
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldRespectVersionRange_WhenFilteringByName(Guid streamId)
+  {
+    // arrange
+    var stream = await CreateMixedStreamAsync(streamId);
+
+    // act
+    var result = await stream.ListAsync(0, 2, [nameof(OtherTestEvent)], CancellationToken.None)
+      .ToListAsync(CancellationToken.None);
+
+    // assert
+    result.Select(d => d.Version).ShouldBe([1ul]);
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnEventsOfAllGivenNames(Guid streamId)
+  {
+    // arrange
+    var stream = await CreateMixedStreamAsync(streamId);
+
+    // act
+    var result = await stream
+      .ListAsync(0, stream.Version, [nameof(TestEvent), nameof(OtherTestEvent)], CancellationToken.None)
+      .ToListAsync(CancellationToken.None);
+
+    // assert
+    result.Select(d => d.Version).ShouldBe([0ul, 1ul, 2ul, 3ul]);
+  }
+
+  [Theory, AutoData]
+  public async Task ListAsync_ShouldReturnEmpty_WhenNoEventNamesAreGiven(Guid streamId)
+  {
+    // arrange
+    var stream = await CreateMixedStreamAsync(streamId);
+
+    // act
+    var result = await stream.ListAsync(0, stream.Version, [], CancellationToken.None)
+      .ToListAsync(CancellationToken.None);
+
+    // assert
+    result.ShouldBeEmpty();
+  }
+
+  [Theory, AutoData]
+  public async Task ListDescendingAsync_ShouldReturnOnlyEventsWithGivenNames(Guid streamId)
+  {
+    // arrange
+    var stream = await CreateMixedStreamAsync(streamId);
+
+    // act
+    var result = await stream.ListDescendingAsync(stream.Version, 0, [nameof(TestEvent)], CancellationToken.None)
+      .ToListAsync(CancellationToken.None);
+
+    // assert
+    result.Select(d => d.Version).ShouldBe([2ul, 0ul]);
+    result.ShouldAllBe(d => d.Name == nameof(TestEvent));
+  }
 }

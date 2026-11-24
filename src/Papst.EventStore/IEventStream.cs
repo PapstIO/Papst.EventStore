@@ -1,4 +1,5 @@
 using Papst.EventStore.Documents;
+using System.Linq;
 
 namespace Papst.EventStore;
 
@@ -110,6 +111,40 @@ public interface IEventStream
   /// <param name="cancellationToken"></param>
   /// <returns></returns>
   IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, CancellationToken cancellationToken = default);
+
+  /// <summary>
+  /// List the Stream Documents ascending from <paramref name="startVersion"/> to <paramref name="endVersion"/>
+  /// whose <see cref="EventStreamDocument.Name"/> is one of <paramref name="eventNames"/>.
+  /// The names are matched exactly; when an event has several registered names, pass every name it has been written with.
+  /// The default implementation filters while enumerating, stores can override it to filter in the database.
+  /// </summary>
+  /// <param name="startVersion"></param>
+  /// <param name="endVersion"></param>
+  /// <param name="eventNames">Names of the Documents to return, an empty collection returns no Documents</param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
+  IAsyncEnumerable<EventStreamDocument> ListAsync(ulong startVersion, ulong endVersion, IReadOnlyCollection<string> eventNames, CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(eventNames);
+    return ListAsync(startVersion, endVersion, cancellationToken).Where(doc => eventNames.Contains(doc.Name));
+  }
+
+  /// <summary>
+  /// List the Stream Documents descending from <paramref name="endVersion"/> to <paramref name="startVersion"/>
+  /// whose <see cref="EventStreamDocument.Name"/> is one of <paramref name="eventNames"/>.
+  /// The names are matched exactly; when an event has several registered names, pass every name it has been written with.
+  /// The default implementation filters while enumerating, stores can override it to filter in the database.
+  /// </summary>
+  /// <param name="endVersion"></param>
+  /// <param name="startVersion"></param>
+  /// <param name="eventNames">Names of the Documents to return, an empty collection returns no Documents</param>
+  /// <param name="cancellationToken"></param>
+  /// <returns></returns>
+  IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(ulong endVersion, ulong startVersion, IReadOnlyCollection<string> eventNames, CancellationToken cancellationToken = default)
+  {
+    ArgumentNullException.ThrowIfNull(eventNames);
+    return ListDescendingAsync(endVersion, startVersion, cancellationToken).Where(doc => eventNames.Contains(doc.Name));
+  }
   
   /// <summary>
   /// Updates the Even Stream Metadata
