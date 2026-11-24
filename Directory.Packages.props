@@ -13,7 +13,7 @@
          using Contracts API that an older version does not have.
          ====================================================================== -->
     <ItemGroup>
-        <PackageVersion Include="Papst.EventStore" Version="[7.1.2,8.0)" />
+        <PackageVersion Include="Papst.EventStore" Version="[7.2.0,8.0)" />
     </ItemGroup>
 
     <!-- ======================================================================
