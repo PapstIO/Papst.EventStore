@@ -311,6 +311,21 @@ For an end-to-end ASP.NET Core example using the in-memory event store, stream a
 
 # Changelog
 
+## V 7.2
+
+Multi-targets the libraries for the current .NET runtimes.
+
+**V7.2 supports .NET 10.0 and .NET 11.0.**
+
+### Changes
+
+* The shipped packages and the test suite now build for both `net10.0` and `net11.0`
+  (the `Papst.EventStore.CodeGeneration` source generator stays `netstandard2.0`).
+* Entity Framework Core and the `Microsoft.Extensions.*` dependencies are resolved per
+  target framework — the 10.x line on `net10.0`, the 11.x line on `net11.0`.
+* CI builds with the .NET 11 SDK and runs the test matrix on both the .NET 10 and
+  .NET 11 runtimes.
+
 ## V 7.1
 
 Adds listing the documents of a stream filtered by event name.

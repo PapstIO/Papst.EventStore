@@ -1,6 +1,17 @@
 <Project>
 
   <!-- ==========================================================================
+       Shared target frameworks. The single source of truth for which runtimes the
+       shipped libraries and the test suite support. Projects opt in with
+       <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>. The
+       CodeGeneration source generator (netstandard2.0), the samples and the Fallout
+       build project set their own TFM and do not reference this property.
+       ========================================================================== -->
+  <PropertyGroup>
+    <PackageTargetFrameworks>net10.0;net11.0</PackageTargetFrameworks>
+  </PropertyGroup>
+
+  <!-- ==========================================================================
        Shared NuGet package metadata. Applies to every packable project in the
        repository; per-project files add only Title, Description and PackageTags.
        ========================================================================== -->

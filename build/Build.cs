@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Fallout.Common;
 using Fallout.Common.CI.GitHubActions;
+using Fallout.Common.CI.GitHubActions.Configuration;
 using Fallout.Common.IO;
 using Fallout.Common.Tools.DotNet;
 using Serilog;
@@ -30,9 +32,24 @@ using static Fallout.Common.Tools.DotNet.DotNetTasks;
     EnableGitHubToken = true,
     ImportSecrets = [nameof(NuGetUser)],
     FetchDepth = 0)]
-class Build : FalloutBuild
+class Build : FalloutBuild, IConfigureGitHubActions
 {
     public static int Main() => Execute<Build>(x => x.Test);
+
+    /// <summary>
+    /// Injects a setup-dotnet step installing the .NET 10 runtime into every generated job.
+    /// global.json pins the .NET 11 SDK, which compiles both net10.0 and net11.0, but the
+    /// runner still needs the .NET 10 runtime to execute the net10.0 test builds. setup-dotnet
+    /// installs side by side, so "dotnet fallout" sees both the net11 SDK and the net10 runtime.
+    /// Inserted before the built-in setup-dotnet / restore / fallout block (PreRun).
+    /// </summary>
+    public void ConfigureSteps(GitHubActionsStepPipeline pipeline) =>
+        pipeline.Insert(GitHubActionsStepPosition.PreRun, new GitHubActionsCustomStep
+        {
+            Name = "Setup: .NET 10 runtime",
+            Uses = "actions/setup-dotnet@v6",
+            With = new Dictionary<string, string> { ["dotnet-version"] = "10.0.x" },
+        });
 
     // --- Parameters ------------------------------------------------------------------------------
     

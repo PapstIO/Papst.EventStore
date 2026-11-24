@@ -17,25 +17,24 @@
     </ItemGroup>
 
     <!-- ======================================================================
-         Microsoft.Extensions.* — published dependency floors.
+         Microsoft.Extensions.* — published dependency floors, per target framework.
 
          The intent is to declare these as low as the code allows, so consumers
          are not forced onto one servicing patch and can keep the assemblies the
          shared framework already supplies.
 
-         In practice most of them cannot go below 10.0.11 in this repository:
-         Microsoft.EntityFrameworkCore 10.0.11 requires Caching.Memory 10.0.11,
-         which requires DependencyInjection.Abstractions / Logging.Abstractions /
-         Options at 10.0.11, and with CentralPackageTransitivePinningEnabled a
-         lower PackageVersion becomes a direct pin -> NU1109 package downgrade.
+         With CentralPackageTransitivePinningEnabled a PackageVersion becomes a
+         minimum across the transitive graph, and each runtime major has to carry
+         its own floor:
+           net10.0 -> the 10.0.x line (forced to 10.0.11 by EF Core / Caching.Memory)
+           net11.0 -> the 11.0.x line (EF Core 11 pulls 11.0.0)
          The versions below are the lowest values that restore cleanly; do not
-         lower one without re-running "dotnet restore Papst.EventStore.slnx".
-
-         Lowering the rest would mean turning off transitive pinning, which is
-         also what enforces the security floors further down. Not worth the trade.
+         lower one without re-running "dotnet restore Papst.EventStore.slnx" for
+         that TFM, or NU1109 (package downgrade) is raised. Lowering off the
+         transitive pins would also drop the security floors further down.
          ====================================================================== -->
-    <ItemGroup>
-        <!-- floor forced to 10.0.11 by the EF Core / Caching.Memory graph -->
+    <ItemGroup Condition="'$(TargetFramework)' != 'net11.0'">
+        <!-- floor forced to 10.0.11 by the EF Core / Caching.Memory / Azure.Core graph -->
         <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
@@ -45,6 +44,16 @@
         <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
         <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
     </ItemGroup>
 
     <!-- ======================================================================
@@ -58,23 +67,47 @@
         <PackageVersion Include="MongoDB.Driver" Version="[3.11.0, 4.0.0)" />
     </ItemGroup>
 
-    <ItemGroup>
+    <!-- EF Core tracks the runtime: 10.x on net10.0, 11.x on net11.0.
+         A given major has no build for another runtime, so these must be conditioned. -->
+    <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
         <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
         <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.11" />
         <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0" />
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
+    </ItemGroup>
+    <ItemGroup>
         <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     </ItemGroup>
 
     <!-- ======================================================================
-         Source generator.
+         Roslyn / CodeAnalysis.
          Microsoft.CodeAnalysis.CSharp is deliberately NOT tracked to the latest
-         release: it defines the minimum Roslyn (and therefore the minimum SDK)
-         a consumer of Papst.EventStore.CodeGeneration must have.
+         release on the shipped source generator: at 5.0.0 it defines the minimum
+         Roslyn (and therefore the minimum SDK) a consumer of
+         Papst.EventStore.CodeGeneration must have. The source generator is
+         netstandard2.0, so it always picks up the 5.0.0 line below.
+
+         On net11 only, Microsoft.EntityFrameworkCore.Design 11.0.0 pulls
+         Microsoft.CodeAnalysis.CSharp.Workspaces 5.9.0, which drags CSharp 5.9.0
+         and Analyzers 5.9.0-1.26328.17 into the transitive graph; with transitive
+         pinning the 5.0.0 / 3.11.0 floors would be a downgrade (NU1109). So the
+         net11 inner build raises just those, leaving the generator's minimum intact.
          ====================================================================== -->
-    <ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' != 'net11.0'">
+        <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.0.0" />
         <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
         <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+        <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.9.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0-1.26328.17" />
     </ItemGroup>
 
     <!-- ======================================================================
@@ -84,16 +117,29 @@
          minimum for the transitive graph. Do not delete them as unused:
            SharpCompress, Azure.Core            <- MongoDB.Driver / Microsoft.Data.SqlClient
            Azure.Identity, System.Formats.Asn1  <- Microsoft.Data.SqlClient
-           System.Security.Cryptography.Pkcs    <- Microsoft.Data.SqlClient
            Microsoft.Extensions.Caching.Memory  <- Microsoft.EntityFrameworkCore
+           System.Security.Cryptography.Pkcs    <- Microsoft.Data.SqlClient / Azure.Identity
+                                                   (pins out the CVE-2026-84008 /
+                                                    CVE-2026-70162 vulnerable builds)
          ====================================================================== -->
     <ItemGroup>
         <PackageVersion Include="Azure.Core" Version="1.61.0" />
         <PackageVersion Include="Azure.Identity" Version="[1.17.1, 2.0.0)" />
-        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
         <PackageVersion Include="SharpCompress" Version="0.48.1" />
+    </ItemGroup>
+    <!-- Caching.Memory (<- EF Core), System.Formats.Asn1 and
+         System.Security.Cryptography.Pkcs (<- Microsoft.Data.SqlClient / Azure.Identity)
+         track the runtime major, so they split the same way as the Extensions
+         floors above: 10.x for net10.0, 11.x for net11.0. -->
+    <ItemGroup Condition="'$(TargetFramework)' != 'net11.0'">
+        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
         <PackageVersion Include="System.Formats.Asn1" Version="10.0.1" />
-        <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+        <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
+        <PackageVersion Include="System.Formats.Asn1" Version="11.0.0" />
+        <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
     </ItemGroup>
 
     <!-- ====================================== Build / tooling ============== -->
@@ -105,7 +151,6 @@
     <ItemGroup>
         <PackageVersion Include="AutoFixture.Xunit3" Version="4.19.0" />
         <PackageVersion Include="coverlet.collector" Version="10.0.1" />
-        <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.0.0" />
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
         <PackageVersion Include="Moq" Version="4.20.72" />
         <PackageVersion Include="Shouldly" Version="4.3.0" />
