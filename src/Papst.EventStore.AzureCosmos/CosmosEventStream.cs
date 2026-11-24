@@ -301,6 +301,65 @@ internal sealed class CosmosEventStream(
     CancellationToken cancellationToken = default)
     => ListDescendingAsync(endVersion, 0u, cancellationToken);
 
+  public IAsyncEnumerable<EventStreamDocument> ListAsync(
+    ulong startVersion,
+    ulong endVersion,
+    IReadOnlyCollection<string> eventNames,
+    CancellationToken cancellationToken = default
+  ) => ListByNamesAsync(startVersion, endVersion, eventNames, descending: false, cancellationToken);
+
+  public IAsyncEnumerable<EventStreamDocument> ListDescendingAsync(
+    ulong endVersion,
+    ulong startVersion,
+    IReadOnlyCollection<string> eventNames,
+    CancellationToken cancellationToken = default
+  ) => ListByNamesAsync(startVersion, endVersion, eventNames, descending: true, cancellationToken);
+
+  private async IAsyncEnumerable<EventStreamDocument> ListByNamesAsync(
+    ulong startVersion,
+    ulong endVersion,
+    IReadOnlyCollection<string> eventNames,
+    bool descending,
+    [EnumeratorCancellation] CancellationToken cancellationToken
+  )
+  {
+    ArgumentNullException.ThrowIfNull(eventNames);
+    if (eventNames.Count == 0)
+    {
+      yield break;
+    }
+
+    // a List is translated to an IN clause, an array would bind to the span based Contains
+    List<string> names = [.. eventNames];
+    IQueryable<EventStreamDocumentEntity> query = dbProvider.Container
+      .GetItemLinqQueryable<EventStreamDocumentEntity>()
+      .Where(doc =>
+        doc.StreamId == _stream.StreamId
+        && doc.DocumentType != EventStreamDocumentType.Index
+        && doc.Version >= startVersion
+        && doc.Version <= endVersion
+        && names.Contains(doc.Name));
+    FeedIterator<EventStreamDocumentEntity> iterator = (descending
+        ? query.OrderByDescending(doc => doc.Version)
+        : query.OrderBy(doc => doc.Version))
+      .ToFeedIterator();
+
+    while (iterator.HasMoreResults && !cancellationToken.IsCancellationRequested)
+    {
+      FeedResponse<EventStreamDocumentEntity> batch =
+        await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+      foreach (EventStreamDocumentEntity doc in batch)
+      {
+        if (cancellationToken.IsCancellationRequested)
+        {
+          break;
+        }
+
+        yield return Map(doc);
+      }
+    }
+  }
+
   public async Task UpdateStreamMetaData(EventStreamMetaData metaData, CancellationToken cancellationToken = default)
   {
     bool indexUpdateSuccessful = false;
